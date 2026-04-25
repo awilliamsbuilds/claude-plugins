@@ -102,9 +102,9 @@ Use the GitHub MCP `create_or_update_file` tool for each file. **New files do no
 
 **2c.** Update `.claude-plugin/marketplace.json` — read the file first to get its current SHA (required for updates), then add the new entry to the `plugins` array.
 
-### Step 3 — Open and merge PR
+### Step 3 — Open PR and wait for approval
 
-Use GitHub MCP `create_pull_request`, then `merge_pull_request`. Delete the branch after merging (remote and local).
+Use GitHub MCP `create_pull_request`. Share the PR URL with the user and stop — do not merge. Wait for the user to explicitly say to merge before calling `merge_pull_request`. After the user approves the merge, delete the remote branch via `gh api -X DELETE repos/awilliamsbuilds/claude-plugins/git/refs/heads/<branch>`.
 
 ### Step 4 — Enable in `~/.claude/settings.json`
 
