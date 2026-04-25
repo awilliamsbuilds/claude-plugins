@@ -1,0 +1,8 @@
+{
+  "name": "plugin-manager",
+  "description": "Create and manage plugins in the awilliamsbuilds/claude-plugins repo",
+  "author": {
+    "name": "Local",
+    "email": ""
+  }
+}

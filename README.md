@@ -1,0 +1,71 @@
+# claude-plugins
+
+Personal Claude Code plugins for awilliamsbuilds.
+
+## Plugins
+
+| Plugin | Skills | Description |
+|--------|--------|-------------|
+| `ux-toolkit` | `ui-ux-designer`, `ux-copywriter` | UX design strategy, visual craft, and interface copywriting |
+| `humanize` | `humanize` | AI pattern detection and human voice rewriting for blog posts, LinkedIn, email, and Slack |
+| `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
+
+## Setup
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "local-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "awilliamsbuilds/claude-plugins"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "ux-toolkit@local-plugins": true,
+    "humanize@local-plugins": true,
+    "plugin-manager@local-plugins": true
+  },
+  "env": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "<your-token>"
+  }
+}
+```
+
+Then run `/plugin update` in Claude Code.
+
+## Repo Structure
+
+```
+awilliamsbuilds/claude-plugins/
+├── .claude-plugin/
+│   └── marketplace.json           # Registry of all plugins
+└── plugins/
+    └── <plugin-name>/
+        ├── .claude-plugin/
+        │   └── plugin.json
+        └── skills/
+            └── <skill-name>/
+                └── SKILL.md
+```
+
+## Adding a Plugin
+
+Use the `add-plugin` skill — it walks through the full process. Or manually:
+
+1. Create a feature branch: `add-plugin/<name>`
+2. Create `plugins/<name>/.claude-plugin/plugin.json`
+3. Create `plugins/<name>/skills/<skill-name>/SKILL.md`
+4. Update `.claude-plugin/marketplace.json`
+5. PR → merge → delete branch
+6. Enable in `~/.claude/settings.json`: `"<name>@local-plugins": true`
+7. Run `/plugin update`
+
+## Notes
+
+- Use `github` source type only. The `directory` source type is broken in Claude Code.
+- The `description` field in SKILL.md frontmatter drives skill invocation — write rich trigger phrases.
