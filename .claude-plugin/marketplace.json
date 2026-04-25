@@ -9,6 +9,11 @@
       "name": "ux-toolkit",
       "description": "UX design strategy, visual craft, and interface copywriting toolkit",
       "source": "./"
+    },
+    {
+      "name": "humanize",
+      "description": "AI pattern detection and human voice rewriting for blog posts, LinkedIn, email, and Slack",
+      "source": "./"
     }
   ]
 }
