@@ -1,0 +1,14 @@
+{
+  "name": "local-plugins",
+  "description": "Personal Claude Code plugins",
+  "owner": {
+    "name": "Local"
+  },
+  "plugins": [
+    {
+      "name": "ux-toolkit",
+      "description": "UX design strategy, visual craft, and interface copywriting toolkit",
+      "source": "./"
+    }
+  ]
+}
