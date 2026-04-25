@@ -14,6 +14,11 @@
       "name": "humanize",
       "description": "AI pattern detection and human voice rewriting for blog posts, LinkedIn, email, and Slack",
       "source": "./plugins/humanize"
+    },
+    {
+      "name": "plugin-manager",
+      "description": "Create and manage plugins in this repo",
+      "source": "./plugins/plugin-manager"
     }
   ]
 }
