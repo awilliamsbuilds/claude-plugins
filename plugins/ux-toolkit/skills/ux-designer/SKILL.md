@@ -1,5 +1,5 @@
 ---
-name: ui-ux-designer
+name: ux-designer
 description: "Combined UX strategy and visual design craft. Activates when building, reviewing, or improving any user-facing interface — websites, apps, dashboards, forms, onboarding, components, design systems, landing pages. Triggers on: user flows, information architecture, usability, wireframes, CSS styling, layout, spacing, typography, color, dark mode, responsive design, design tokens, visual hierarchy, animations, component design. Also activates on: 'how should this flow', 'make it look good', 'improve the design', 'it looks off', 'make it easier', 'confusing', 'intuitive', 'user experience', 'modern design', 'spacing', 'colors', 'pixel perfect', 'responsive', 'accessibility'. Does NOT activate for backend logic, database schemas, API design without UI, or DevOps."
 ---
 
