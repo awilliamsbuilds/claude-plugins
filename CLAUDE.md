@@ -21,7 +21,7 @@ awilliamsbuilds/claude-plugins/
 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
-| `ux-toolkit` | `ui-ux-designer`, `ux-copywriter` | UX design strategy and interface copywriting |
+| `ux-toolkit` | `ux-designer`, `ux-copywriter` | UX design strategy and interface copywriting |
 | `humanize` | `humanize` | AI pattern detection and voice rewriting |
 | `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
 
