@@ -1,0 +1,159 @@
+---
+name: dev:plan
+description: "Stage 3 of the /dev workflow. Transforms spec + design into an ordered, implementation-ready task list. Applies the isolation principle to every task. Shows a visual sequence flow before writing plan.md. Requires spec.md and design.md (or spec.md alone in no-ui mode)."
+---
+
+# dev:plan — Planning Stage
+
+**Announce:** "I'm using dev:plan to create the implementation plan."
+
+## Purpose
+
+Transform spec + design into a concrete sequence of changes that Build can execute without guessing.
+
+**Anti-Pattern: "Just Start Building."**
+
+<HARD-GATE>
+Do NOT start Build without an approved plan. This gate is not skippable in standard mode.
+Exception: Micro tier — spec.md includes an Implementation Note section that serves as the plan. Build reads that section directly. When tier is "micro" in state.json, skip this entire skill and tell the user: "Micro tier uses the Implementation Note in spec.md as the plan. Proceed to Build."
+</HARD-GATE>
+
+## Step 1: Artifact Gate
+
+Read `docs/dev/<feature>/state.json` first. Check:
+- If `tier == "micro"`: exit per the HARD-GATE exception above
+- If `artifacts.spec` is null: STOP — "Plan requires spec.md. Run /dev:spec first."
+- If mode is not `no-ui` and `skipped` does not include `"shape"` and `artifacts.design` is null: STOP — "Plan requires design.md. Run /dev:shape first, or use /dev:plan with no-ui mode."
+
+Read once, work from this throughout:
+- `docs/dev/<feature>/spec.md`
+- `docs/dev/<feature>/design.md` (if it exists)
+
+## Step 2: Isolation Principle
+
+Every task in the plan must answer all three of these questions independently:
+1. **What does it do?** — one clear purpose
+2. **How is it used?** — what calls it / what does the user do
+3. **What does it depend on?** — what must exist before this task
+
+If any of the three can't be answered without reading adjacent tasks, the task boundary needs work. When a file would grow large from a single task, split the task.
+
+Apply this principle while building the task list. Use it as a checklist during self-review.
+
+## Step 3: Build Task List
+
+From the spec's Happy Path + Edge Cases + Success Criteria + design.md user flows and component inventory:
+
+1. Enumerate every discrete implementation action
+2. Order them so no task depends on something created later
+3. Group parallel tasks (tasks with no dependency on each other) explicitly
+4. For Deep tier: identify unknowns and risks — they go in a `## Risks and Unknowns` section
+
+Each task format:
+```
+### Task N: [Name]
+What: [one-sentence purpose]
+Used by: [what calls this / user action that triggers it]
+Depends on: [Task N-1, or "nothing — first task"]
+Files: [create/modify list]
+
+Implementation steps:
+1. [specific step]
+2. [specific step]
+```
+
+## Step 4: Comprehension Check (Standard mode only)
+
+Before writing plan.md, open the visual companion browser. Show the implementation sequence as a flow diagram:
+- Tasks as nodes (numbered)
+- Dependencies as arrows
+- Files to be created labeled "NEW", files to be modified labeled "MODIFY"
+- Parallel tasks grouped visually
+
+Display: **"Here's the order I'll build this — does the sequence look right?"**
+
+This is the last chance to catch sequencing errors before Build starts.
+
+If user requests reordering or changes: update the task list, show updated diagram. Repeat until confirmed.
+
+**Autopilot mode:** Internal self-review substitutes. Check: does every task's dependencies exist before it runs? Fix any out-of-order tasks silently, continue.
+
+## Step 5: Write plan.md
+
+Write to `docs/dev/<feature>/plan.md`:
+
+```markdown
+# [Feature Name] — Implementation Plan
+*Branch: feature/xxx · YYYY-MM-DD*
+
+## Files
+
+| File | Action | Purpose |
+|------|--------|---------|
+| [path] | Create / Modify | [one line] |
+
+## Tasks
+
+### Task 1: [Name]
+What: [purpose]
+Used by: [consumer]
+Depends on: nothing
+Files: [list]
+
+[implementation steps]
+
+### Task 2: [Name]
+...
+
+## Edge Cases
+| Edge case | Handled in | Approach |
+|-----------|-----------|----------|
+| [case] | Task N | [how] |
+
+## Out of Scope
+- [item not being done in this cycle]
+```
+
+**Deep tier only — append:**
+```markdown
+## Risks and Unknowns
+- [risk]: [mitigation or "investigate in Task N"]
+```
+
+Scale to complexity: a Micro feature plan might be 10 lines total. A complex Standard plan might be 80 lines.
+
+## Step 6: Artifact Self-Review
+
+After writing plan.md:
+1. Is every spec requirement accounted for in a task?
+2. Does the sequence make sense — no task depends on something created later?
+3. Does every task answer: what / how used / depends on?
+4. Are edge cases assigned to specific tasks?
+5. Are there any "do X and Y" tasks that should be split?
+
+Fix any issues inline. No need to re-review after fixing.
+
+## Step 7: Update State + Commit
+
+Update state.json:
+- Set `artifacts.plan` to the path
+- Record `stage_timestamps.plan_start` and `plan_end`
+
+```bash
+git add docs/dev/<feature>/plan.md docs/dev/<feature>/state.json
+git commit -m "plan: write implementation plan for <feature>"
+```
+
+## Step 8: User Review Gate (Standard mode)
+
+```
+Plan written and committed to docs/dev/<feature>/plan.md.
+
+Please review it and let me know if you'd like any changes before we start building.
+```
+
+Wait for explicit user approval.
+
+When approved: update state.json — add `"plan"` to `completed[]`, set `stage` to `"build"`. Commit state update.
+
+**Autopilot mode:** No gate. After self-review, update state and proceed.
