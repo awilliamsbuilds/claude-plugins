@@ -1,0 +1,174 @@
+---
+name: dev:validate
+description: "Stage 5 of the /dev workflow. Runs code review and security review in parallel (feature cycles), classifies issues P1-Nit, and iterates a fix loop until clean or limit reached. Architecture cycles review decision documents. Writes validation.md."
+---
+
+# dev:validate — Validation Stage
+
+**Announce:** "I'm using dev:validate to review and fix issues before the PR."
+
+## Purpose
+
+Find and fix issues before the PR. Iterate until clean or the loop limit is reached.
+
+## Step 1: Artifact Gate
+
+Read `docs/dev/<feature>/state.json`. Confirm `"build"` is in `completed[]` and the branch has commits ahead of main.
+
+If build is not complete: STOP — "Validate requires completed build. Run /dev:build first."
+
+Read once at stage start:
+- `docs/dev/<feature>/state.json` — cycle_type, tier, validate settings
+- `docs/dev/<feature>/spec.md` — success criteria (validation checks against these)
+- `docs/dev/<feature>/plan.md` or Implementation Note — what was planned (were all tasks done?)
+
+Determine `loops_max` from tier:
+- micro: 1
+- standard: 3
+- deep: 5
+
+Confirm this matches `validate.loops_max` in state.json. Update if mismatched.
+
+## Step 2: Cycle Type Behavior
+
+### Feature Cycle — Parallel Reviews
+
+Run both reviews simultaneously. Do not wait for one to complete before starting the other.
+
+**Code review** — examine the diff since branch creation:
+- Logic errors and correctness bugs
+- Edge cases not handled (compare against spec)
+- Code quality: readability, naming, complexity
+- Conventions: does this match the codebase's existing patterns?
+- Plan coverage: were all plan tasks implemented?
+
+**Security review (diff)** — examine the same diff:
+- Injection vulnerabilities (SQL, command, template)
+- Authentication and authorization gaps
+- Secrets or credentials in code
+- Unsafe data handling (XSS, CSRF exposure)
+- Dependency vulnerabilities introduced
+
+### Architecture Cycle — Document Review
+
+Review the committed decision documents:
+- Are decisions internally consistent (no contradictions)?
+- Does each decision have sufficient context that implementation could proceed?
+- Are consequences realistic?
+- Do decisions contradict each other?
+- Is rationale present and non-trivial?
+
+Security review does not run for architecture cycles.
+
+**Architecture severity mapping:**
+| Level | Meaning |
+|-------|---------|
+| P1 | Decision is internally inconsistent, contradicts another committed decision, or leaves implementation with an unresolvable ambiguity |
+| P2 | Decision is underspecified — implementation couldn't proceed from it without guessing |
+| P3 | Decision is documented but rationale is thin |
+| Nit | Formatting, incomplete Consequences section |
+
+## Step 3: Issue Classification
+
+Classify every issue found:
+
+| Level | Meaning | Behavior |
+|-------|---------|----------|
+| P1 | Correctness/security blocker | Must fix; loop does not exit until resolved |
+| P2 | Significant quality issue | Must fix; loop does not exit until resolved |
+| P3 | Quality improvement | Try to fix; won't block progression |
+| Nit | Style/minor | Surface for awareness; attempt only if no P1/P2 remain |
+
+## Step 4: Fix Loop
+
+Run up to `loops_max` iterations.
+
+**Each iteration:**
+1. Review (both reviews in parallel for feature cycles)
+2. Classify all issues found
+3. Fix all P1 and P2 issues
+4. Attempt P3 fixes (commit if successful; skip if risky)
+5. Attempt Nit fixes only if P1/P2/P3 all resolved
+6. Update state.json `validate` fields:
+   - Increment `loops_run`
+   - Update `p1_open[]`, `p2_open[]`, `p3_open[]`, `nits_open[]` with remaining open issues
+7. Commit fixes: `validate: loop N fixes — [summary of what was fixed]`
+8. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
+9. If `loops_run == loops_max` and P1/P2 still open: go to Step 4a.
+
+**Step 4a — Loop limit reached with open P1/P2:**
+
+```
+Validate: {N} loops complete (tier: {micro|standard|deep}). Issues remaining:
+  P1: [list each with one-line description]
+  P2: [list each with one-line description]
+
+Choose:
+  A. Keep looping (I'll try again)
+  B. Open PR anyway (open issues noted in PR description)
+  C. Stop entirely
+```
+
+Wait for user choice. Execute accordingly.
+
+**Autopilot mode:** After loop limit, attempt one additional auto-fix pass. If P1/P2 still remain after that: stop the autopilot, surface the issues, require human input.
+
+## Step 5: Write validation.md
+
+Write to `docs/dev/<feature>/validation.md`:
+
+```markdown
+# [Feature Name] — Validation Report
+*Branch: feature/xxx · YYYY-MM-DD*
+
+## Summary
+Loops run: N / N_max
+Final status: clean | proceeded with open issues | stopped
+
+## Issues Resolved
+### Loop 1
+- P1: [issue] → fixed by [what was done]
+- P2: [issue] → fixed
+
+### Loop 2
+- P3: [issue] → fixed
+
+## Issues Remaining
+### P1 Open
+- [issue description]
+
+### P2 Open
+- [issue description]
+
+### P3 Open
+- [issue description]
+
+### Nits Surfaced
+- [nit description]
+
+## Notes
+[Any context worth preserving for the PR or decision log]
+```
+
+## Step 6: Update State + Commit
+
+Update state.json:
+- Add `"validate"` to `completed[]`
+- Set `stage` to `"pr"`
+- Record final `validate.loops_run`, `p1_open[]`, `p2_open[]`, `p3_open[]`, `nits_open[]`
+- Record `stage_timestamps.validate_end`
+- Set `artifacts.validation` to path
+
+```bash
+git add docs/dev/<feature>/validation.md docs/dev/<feature>/state.json
+git commit -m "validate: complete validation — N loops, [clean/N issues remain]"
+```
+
+In standard mode, notify:
+```
+Validation complete. N loops run.
+[Clean: no open P1/P2 | N P3/Nit issues remain — noted in validation.md]
+Ready for PR. Run /dev:pr (or /dev to continue).
+```
+
+**Autopilot mode:** Update state, proceed.
