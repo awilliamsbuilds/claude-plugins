@@ -1,0 +1,144 @@
+---
+name: dev
+description: "Main entry point for the /dev workflow. Standard mode: manages the 7-stage development workflow (spec → shape → plan → build → validate → PR → done) with explicit approval gates between stages. Use /dev:autopilot for no-gate mode. Use /dev:init to set up a new project. Use /dev:fix for Linear issue entry."
+---
+
+# dev — Development Workflow Orchestrator
+
+**Announce:** "I'm using the dev skill to manage the development workflow."
+
+## Purpose
+
+Orchestrate the full /dev workflow in standard mode — sequential stages with explicit approval gates between each. Each stage produces one artifact; each gate is a real stop.
+
+## Step 1: Parse Arguments
+
+Arguments can appear in any combination:
+
+- `auto` → this is a redirect: "For autopilot mode, use /dev:autopilot. Continuing in standard mode with approval gates."
+- `no-ui` → set mode to no-ui; Shape stage will be skipped
+- `init` → delegate to /dev:init immediately
+- `spec`, `shape`, `plan`, `build`, `validate`, `pr`, `done` → jump to that stage (see Step 5)
+- No arguments → standard flow (Step 2)
+
+## Step 2: Check Initialization
+
+Check if `docs/dev/config.json` exists in the current project.
+
+If absent: "No /dev config found. Running /dev:init first."
+Invoke `/dev:init` inline. Wait for it to complete. Then continue to Step 3.
+
+If present: continue to Step 3.
+
+## Step 3: Check for In-Progress Session
+
+Scan for `docs/dev/*/state.json` files in the current project.
+
+**If one or more found:**
+
+For each session found, read state.json and display:
+
+```
+/dev session in progress: <feature-name>
+<stage-status-line>
+Resume from <current-stage>, restart, or abandon?
+```
+
+Stage status line format (completed stages show ✓, current stage shows →, pending stages show names):
+```
+Spec ✓  Shape ✓  Plan →  Build  Validate  PR  Done
+```
+
+If multiple sessions: list them all, ask which one to continue with.
+
+**User choices:**
+- **Resume:** proceed to the current stage (read from state.json `stage`)
+- **Restart:** delete the current state.json and `docs/dev/<feature>/` directory, start over from spec
+- **Abandon:** delete state.json and working directory, delete the feature branch, exit
+
+**If no in-progress session found:** proceed to Step 4.
+
+## Step 4: Start New Session
+
+Invoke `dev:spec` to begin the cycle.
+
+After dev:spec completes and the user approves the spec:
+- Read state.json to confirm `"spec"` is in `completed[]`
+- Determine next stage from tier and mode:
+  - Micro tier: jump to Build (Shape and Plan are in `skipped[]`)
+  - Standard/Deep, no-ui mode: skip Shape → go to Plan
+  - Standard/Deep, UI involved (spec says `UI Needed: Yes`): go to Shape
+
+## Step 5: Stage Sequencing (Standard Mode)
+
+After each stage completes (stage added to `completed[]` in state.json):
+
+**Display the next stage and offer:**
+```
+[Stage] complete. ✓
+
+Next: [Next Stage] — [one-line description of what it does]
+
+Continue? (yes / skip / stop)
+```
+
+Wait for user response:
+- `yes`: invoke the next stage skill
+- `skip`: ask for reason, update `skipped[]` in state.json, move to stage after
+- `stop`: exit cleanly; state.json preserved for resume
+
+**Stage sequence by tier:**
+
+Micro:
+1. Spec → 2. Build → 3. Validate → 4. PR → 5. Done
+
+Standard + no-ui:
+1. Spec → 2. Plan → 3. Build → 4. Validate → 5. PR → 6. Done
+
+Standard + UI:
+1. Spec → 2. Shape → 3. Plan → 4. Build → 5. Validate → 6. PR → 7. Done
+
+Deep + UI:
+1. Spec → 2. Shape → 3. Plan → 4. Build → 5. Validate → 6. PR → 7. Done
+
+## Step 5a: Jump to Stage
+
+When a stage name is given as argument (e.g., `/dev build`):
+1. Read state.json to find the current feature
+2. Check if required prior artifacts exist for the target stage:
+   - build: requires plan.md (or spec.md Micro)
+   - validate: requires build in completed[]
+   - pr: requires validation.md
+   - done: requires pr_url in state
+3. If requirements met: invoke that stage skill directly
+4. If requirements not met: "Build requires plan.md. Run /dev:plan first (or /dev to run the full flow)."
+
+## Step 6: Product Plan Continuation
+
+When a `docs/dev/product-plan.md` exists and no in-progress session:
+
+```
+Product plan: X/N cycles complete.
+
+Milestone 1: ✓ feature-a  ✓ feature-b  → feature-c
+Milestone 2: feature-d  feature-e
+
+Start feature-c next? Or pick a different cycle.
+```
+
+Wait for user's choice, then invoke dev:spec with the chosen feature name.
+
+## Invocation Reference
+
+| Command | What happens |
+|---------|-------------|
+| `/dev` | Standard mode, new session or resume |
+| `/dev no-ui` | Standard mode, Shape skipped |
+| `/dev auto` | Redirects to /dev:autopilot |
+| `/dev init` | Runs /dev:init |
+| `/dev spec` | Jump to Spec (new session) |
+| `/dev build` | Jump to Build (requires plan) |
+| `/dev validate` | Jump to Validate (requires build) |
+| `/dev pr` | Jump to PR (requires validation) |
+| `/dev done` | Jump to Done (requires PR) |
+| `/dev:fix ENG-123` | Linear issue entry |
