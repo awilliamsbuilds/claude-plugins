@@ -19,6 +19,11 @@
       "name": "plugin-manager",
       "description": "Create and manage plugins in this repo",
       "source": "./plugins/plugin-manager"
+    },
+    {
+      "name": "dev",
+      "description": "Structured, multi-stage development workflow for coding projects — spec through merge",
+      "source": "./plugins/dev"
     }
   ]
 }
