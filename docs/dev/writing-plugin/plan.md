@@ -9,7 +9,7 @@ Prior to building, we surveyed existing Claude Code writing plugins to avoid rei
 |--------|-------------------|
 | [great-web-copy](https://github.com/makash/great-web-copy) | 4 copywriting frameworks (PAS, AIDA, BAB, StoryBrand); always output 3 headline variants + 2 CTA variants; banned jargon list |
 | [linkedin-skills](https://github.com/sergebulaev/linkedin-skills) | 2026 hook formula library (anaphora, R.I.P. obituary, curiosity gap, year-over-year pivot, etc.); built-in AI-pattern enforcement; length guidance |
-| [marketingskills](https://github.com/coreyhaines31/marketingskills) | Skill dependency model: check voice/positioning context before writing anything |
+| [marketingskills](https://github.com/coreyhaines31/marketingskills) | Skill dependency model: check voice/positioning context before writing anything (used in web-copy + linkedin; not applied to email) |
 | [ai-co-writing-claude-skills](https://github.com/az9713/ai-co-writing-claude-skills) | `voice-dna` structure for the voice skill: tone + signature phrases + things-never-said + audience context |
 
 **What changed vs. original plan:** `voice` SKILL.md is now structured as a voice-dna document (not freeform). `web-copy` embeds framework selection. `linkedin` embeds the 2026 hook formula library. `email` uses B2B sequence model with subject variants.
@@ -149,21 +149,21 @@ Implementation steps:
 ---
 
 ### Task 8: Create email SKILL.md
-What: Email writing with sequence model, subject line variants, and relationship-context calibration.
-Used by: Invoked when user wants to write an email — cold outreach, follow-up, internal comms, newsletters.
+What: Personal email writing with relationship-context calibration and subject line variants.
+Used by: Invoked when user wants to write a personal email — not B2B outreach or marketing sequences.
 Depends on: Task 1 (folder exists)
 Files: `plugins/writing/skills/email/SKILL.md` (create)
 
 Implementation steps:
 1. Create directory: `plugins/writing/skills/email/`
-2. Write SKILL.md frontmatter: name `email`, rich description triggering on "write an email", "email draft", "cold email", "follow-up email", "outreach email", "email copy", "draft an email"
+2. Write SKILL.md frontmatter: name `email`, rich description triggering on "write an email", "email draft", "follow-up email", "draft an email", "help me email", "email to a friend", "email someone"
 3. Skill body structure:
    - **Step 1 — Voice context**: same A/B/C prompt as web-copy
-   - **Step 2 — Relationship calibration**: ask "Who is this to? (A) Stranger/cold  (B) Warm lead — we've interacted  (C) Existing relationship  (D) Internal/colleague" — adjusts formality and opener approach
-   - **Email types with guidance** (borrowed from marketingskills cold-email model): cold outreach, follow-up, internal update, newsletter, re-engagement — each with structural template
-   - **Hard rules**: subject line always required; output 3 subject variants; opening line must not be "I hope this email finds you well", "Hope you're doing well", or "I wanted to reach out"; no more than 3 sentences in first paragraph
-   - **Output format**: 3 subject variants (with rationale) + full email body + optional PS line
-   - **Iteration**: invite feedback, offer to adjust tone or length
+   - **Step 2 — Relationship calibration**: ask "Who is this to? (A) Friend or family  (B) Acquaintance / someone you've met  (C) Professional contact (known)  (D) Someone you're meeting for the first time" — adjusts warmth, formality, and directness
+   - **Email types with guidance**: casual catch-up, making an ask or request, difficult/sensitive topic, thank you or appreciation, reconnecting after time apart, sharing news or an update — each with tone and structural notes
+   - **Hard rules**: subject line always included; output 2 subject variants; opening line must not be "I hope this email finds you well" or "Hope you're doing well"; keep it human, not transactional
+   - **Output format**: 2 subject variants + full email body + optional PS line
+   - **Iteration**: invite feedback, offer to adjust warmth or length
 
 *Tasks 5, 6, 7, 8 have no dependency on each other — only on Task 1. Can be done in any order.*
 
