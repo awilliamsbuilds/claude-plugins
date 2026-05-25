@@ -1,54 +1,50 @@
 ---
 name: voice
-description: >
-  Load and apply Adam's personal voice and tone when writing. Use this skill when the user wants to: write in my voice, sound like me, use my voice, apply my personal style, write the way I write, match my tone, use my writing style. Also reference this skill when web-copy, linkedin, or email skills are invoked and the user selects "personal voice" as their voice context. This is a personal voice-dna reference — it captures what makes Adam's writing distinctly his.
+description: |
+  Adam Williams's personal writing voice. Use this skill to write or rewrite
+  content in Adam's voice — or load it as a reference to calibrate tone and style.
+  
+  Use when:
+  - User asks to write something "in my voice", "for me", or "as me"
+  - User asks to rewrite, clean up, or polish something they wrote
+  - User is drafting a Slack message, LinkedIn post, blog post, executive update, or external email
+  - Any skill generating first-person content from Adam (not TRM the company) should load this
+  - Combined with /humanize: apply humanize first to strip AI patterns, then apply this voice
+  
+  This is Adam's personal voice for human-facing writing, not TRM's brand voice.
+  For TRM company voice, use the trm-brand-voice skill instead.
+user-invocable: true
 ---
 
-# Voice — Adam's Personal Writing DNA
+# Voice: Adam Williams
 
-This skill defines how Adam writes. Load it before any writing task where Adam's personal voice is needed.
+Write or rewrite content in Adam's voice. Load [references/voice-profile.md](references/voice-profile.md) for the full voice analysis and [references/platform-guide.md](references/platform-guide.md) for platform-specific rules.
 
----
+## How to use this skill
 
-## Tone
+**Active rewrite:** User pastes draft → load both reference files → rewrite in Adam's voice → note key changes made.
 
-<!-- ADAM: Describe your overall tone in a few words or sentences. e.g. "Direct and warm. No fluff. I write like I talk — clear sentences, no hedging." -->
+**New draft:** User describes what they want to say → load both reference files → draft from scratch → confirm it lands.
 
----
+**As a reference:** Other skills load `references/voice-profile.md` to calibrate tone without invoking the full skill.
 
-## Signature Phrases
+## Process
 
-<!-- ADAM: List phrases, constructions, or patterns you use regularly. e.g. "Short declarative sentences after a longer one. Starting sentences with 'And' or 'But'. Using dashes for emphasis." -->
+1. Load [references/voice-profile.md](references/voice-profile.md)
+2. Load [references/platform-guide.md](references/platform-guide.md) — check which platform applies
+3. If editing existing text: identify what's off (too formal, sycophantic, padded, AI-textured, wrong structure)
+4. Rewrite or draft, following the platform guide and voice profile
+5. Never add ideas that weren't in the original — preserve substance, change only delivery
+6. If a concrete example or specific detail is missing and needed, insert `[ADD SPECIFIC EXAMPLE]` — do not invent
+7. Present the rewrite with a one-line note on the main changes made
 
----
+## Quick rules
 
-## Things I Never Say
-
-<!-- ADAM: List words, phrases, or patterns to avoid. e.g. "leverage, synergy, cutting-edge, robust, seamless, in today's fast-paced world, it's worth noting that, at the end of the day" -->
-
----
-
-## Audience Context
-
-<!-- ADAM: Who do you usually write for? What do they care about? What language resonates with them? -->
-
----
-
-## Example Writing
-
-<!-- ADAM: Paste 2–3 samples of your best writing. These are the ground truth — the voice reference should make Claude sound like these. -->
-
-**Sample 1:**
-
-**Sample 2:**
-
-**Sample 3:**
-
----
-
-## What This Is Not
-
-This is Adam's personal voice reference. It is not a general writing adapter.
-
-- If you're writing for a brand or project that isn't Adam, use option B (project voice) or C (start fresh) in the voice context prompt instead.
-- This skill does not dynamically adapt to other voices — it applies Adam's voice as written above.
+- Open with the point. Never with context-setting or "In today's..."
+- One idea, fully developed. Don't pile on.
+- Short standalone sentences for emphasis. Used deliberately, not constantly.
+- End with a principle, question, or challenge — never a summary.
+- Specific over general. "The company I work for had been understaffed" not "organizations often struggle."
+- Honest first-person when appropriate. "I nearly cried." "I couldn't sleep."
+- Qualifies when genuinely uncertain. Never hedges to avoid taking a position.
+- Never: signposting, sycophancy, summary conclusions, stacked fragment punchlines, AI vocabulary.
