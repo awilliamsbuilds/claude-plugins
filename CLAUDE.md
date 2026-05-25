@@ -73,7 +73,11 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:shape` | plugins/dev/skills/shape/SKILL.md | Stage 2 — produces design.md with user flows |
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification |
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
-| `humanize:humanize` | plugins/humanize/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting |
+| `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting |
+| `writing:voice` | plugins/writing/skills/voice/SKILL.md | Adam's personal voice-dna reference |
+| `writing:web-copy` | plugins/writing/skills/web-copy/SKILL.md | Web copy writing with framework selection |
+| `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn post writing with 2026 hook formulas |
+| `writing:email` | plugins/writing/skills/email/SKILL.md | Personal email writing |
 | `plugin-manager:add-plugin` | plugins/plugin-manager/skills/add-plugin/SKILL.md | Create and manage plugins in this repo |
 | `ux-toolkit:ux-copywriter` | plugins/ux-toolkit/skills/ux-copywriter/SKILL.md | Expert UX copywriting — write, review, audit copy |
 | `ux-toolkit:ux-designer` | plugins/ux-toolkit/skills/ux-designer/SKILL.md | UX strategy and visual design craft |
