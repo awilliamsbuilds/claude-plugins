@@ -11,9 +11,9 @@
       "source": "./plugins/ux-toolkit"
     },
     {
-      "name": "humanize",
-      "description": "AI pattern detection and human voice rewriting for blog posts, LinkedIn, email, and Slack",
-      "source": "./plugins/humanize"
+      "name": "writing",
+      "description": "Multi-context writing toolkit — humanize AI text, write in your voice, web copy, LinkedIn posts, and email",
+      "source": "./plugins/writing"
     },
     {
       "name": "plugin-manager",

@@ -7,7 +7,7 @@ Personal Claude Code plugins for awilliamsbuilds.
 | Plugin | Skills | Description |
 |--------|--------|-------------|
 | `ux-toolkit` | `ux-designer`, `ux-copywriter` | UX design strategy, visual craft, and interface copywriting |
-| `humanize` | `humanize` | AI pattern detection and human voice rewriting for blog posts, LinkedIn, email, and Slack |
+| `writing` | `humanize`, `voice`, `web-copy`, `linkedin`, `email` | Multi-context writing toolkit — humanize AI text, write in your voice, web copy, LinkedIn posts, and email |
 | `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
 | `dev` | `dev`, `dev:init`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done) |
 
@@ -28,7 +28,7 @@ Add to `~/.claude/settings.json`:
   },
   "enabledPlugins": {
     "ux-toolkit@local-plugins": true,
-    "humanize@local-plugins": true,
+    "writing@local-plugins": true,
     "plugin-manager@local-plugins": true,
     "dev@local-plugins": true
   },
