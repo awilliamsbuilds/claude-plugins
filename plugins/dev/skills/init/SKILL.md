@@ -91,6 +91,18 @@ Ask these one at a time. If evidence exists (Scenario C), present the inferred a
 **Question 3 — Primary audience:**
 "Who primarily uses this? (One sentence — e.g., 'internal ops team', 'public end-users', 'developers integrating your API')"
 
+### Changelog Detection
+
+Scan for a changelog file in this order: `CHANGELOG.md`, `CHANGES.md`, `HISTORY.md`, `docs/CHANGELOG.md`.
+
+**If found:** use that path. Inspect its content for version patterns (`## v1.2.3`, `## [1.2.3]`, `# 1.2.3`). Set `changelog_versioned: true` if any version pattern is found, otherwise `false`.
+
+**If not found:** ask:
+> "Does this project have a changelog? If so, what's the path? (Enter the path or 'none')"
+
+- If the user provides a path: use it, run the same version detection above.
+- If the user says 'none' or leaves it blank: record `"changelog": null`, `"changelog_versioned": false`.
+
 ### Create Directories
 
 Create these in the project root (not the plugins repo — run these in the user's project):
@@ -145,9 +157,13 @@ Write to `docs/dev/config.json` in the user's project:
   "autopilot": {
     "spec_max_questions": 10,
     "spec_min_confidence": 85
-  }
+  },
+  "changelog": "<detected-path-or-null>",
+  "changelog_versioned": "<true-or-false>"
 }
 ```
+
+Set `changelog` to the detected path or `null`. Set `changelog_versioned` to `true` or `false` based on detection.
 
 ### Commit
 
@@ -164,6 +180,7 @@ git commit -m "Initialize /dev workflow"
   Created: docs/dev/  docs/decisions/
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
+  Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"
 
 Run /dev to start your first feature cycle.
 ```
