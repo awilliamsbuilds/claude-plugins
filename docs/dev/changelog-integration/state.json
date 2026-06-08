@@ -3,8 +3,8 @@
   "feature": "changelog-integration",
   "branch": "feature/changelog-integration",
   "mode": "standard",
-  "stage": "plan",
-  "completed": ["spec"],
+  "stage": "build",
+  "completed": ["spec", "plan"],
   "skipped": ["shape"],
   "startedAt": "2026-06-07T00:00:00Z",
   "artifacts": {
