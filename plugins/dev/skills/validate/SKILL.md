@@ -41,6 +41,7 @@ Run both reviews simultaneously. Do not wait for one to complete before starting
 - Code quality: readability, naming, complexity
 - Conventions: does this match the codebase's existing patterns?
 - Plan coverage: were all plan tasks implemented?
+- Config contract: if this cycle adds a new key to `docs/dev/config.json`, verify every skill that reads config.json has that key in its Step 1 read list
 
 **Security review (diff)** — examine the same diff:
 - Injection vulnerabilities (SQL, command, template)
