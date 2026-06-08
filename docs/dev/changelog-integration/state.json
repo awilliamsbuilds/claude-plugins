@@ -3,8 +3,8 @@
   "feature": "changelog-integration",
   "branch": "feature/changelog-integration",
   "mode": "standard",
-  "stage": "build",
-  "completed": ["spec", "plan"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-06-07T00:00:00Z",
   "artifacts": {
@@ -52,7 +52,8 @@
       "spec_start": "2026-06-07T00:00:00Z",
       "spec_end": "2026-06-07T00:10:00Z",
       "plan_start": "2026-06-07T00:11:00Z",
-      "plan_end": "2026-06-07T00:15:00Z"
+      "plan_end": "2026-06-07T00:15:00Z",
+      "build_end": "2026-06-07T00:20:00Z"
     }
   }
 }
