@@ -23,6 +23,7 @@ Read once at stage start:
 - `docs/dev/<feature>/design.md` (if it exists — Shape may have been skipped)
 - `docs/dev/<feature>/plan.md` (if it exists — Micro uses spec Implementation Note)
 - `docs/dev/<feature>/validation.md`
+- `docs/dev/config.json` (for changelog path and versioning config)
 
 ## Step 2: Build PR Description
 
@@ -74,7 +75,7 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 **If qualifying changes exist:**
 
-1. Read the last 2–3 entries in the changelog file to extract the style (heading format, bullet style, date/version format). Match it exactly.
+1. Read the most recent 2–3 entries in the changelog file to extract the style (heading format, bullet style, date/version format). Match it exactly.
 
 2. **Version bump** (only when `changelog_versioned: true`):
    - New features present → **minor** bump

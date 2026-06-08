@@ -158,8 +158,8 @@ Write to `docs/dev/config.json` in the user's project:
     "spec_max_questions": 10,
     "spec_min_confidence": 85
   },
-  "changelog": "CHANGELOG.md",
-  "changelog_versioned": true
+  "changelog": "<detected-path-or-null>",
+  "changelog_versioned": "<true-or-false>"
 }
 ```
 
