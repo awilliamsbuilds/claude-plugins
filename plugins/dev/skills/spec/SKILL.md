@@ -190,7 +190,7 @@ Still needed for High: edge cases, out of scope, success criteria
 - One question per message — never two questions in one turn
 - Prefer multiple choice when options can be enumerated
 - Ask about the most impactful unscored dimension first
-- Increment `metrics.spec_questions_asked` after each question
+- **Increment `metrics.spec_questions_asked` in state.json after each question — do this before moving on**
 
 **Proceed thresholds:**
 - Standard mode: continue until High (65%) reached. Offer early exit at Sufficient (40%): "We're at Sufficient (40%) — enough to proceed, though some things may surface later. Continue or keep going?"

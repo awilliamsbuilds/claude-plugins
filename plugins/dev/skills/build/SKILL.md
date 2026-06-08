@@ -98,7 +98,7 @@ If during Build you discover that plan.md is wrong or insufficient:
 
 ## Step 5: Track Files Read
 
-Each time you read a file to understand context (not to write it), increment the conceptual count in state.json's `metrics.files_read_in_build`. This is a proxy metric tracked by dev:reflect.
+**Each time you read a file to understand context (not to write it), update state.json immediately: increment `metrics.files_read_in_build`.** Do this inline as you work — don't batch it at the end.
 
 ## Step 6: Update State on Completion
 
