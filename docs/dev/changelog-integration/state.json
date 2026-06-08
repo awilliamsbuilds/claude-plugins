@@ -3,20 +3,20 @@
   "feature": "changelog-integration",
   "branch": "feature/changelog-integration",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-06-07T00:00:00Z",
   "artifacts": {
     "spec": "docs/dev/changelog-integration/spec.md",
     "design": null,
     "plan": "docs/dev/changelog-integration/plan.md",
-    "validation": null,
+    "validation": "docs/dev/changelog-integration/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
@@ -53,7 +53,8 @@
       "spec_end": "2026-06-07T00:10:00Z",
       "plan_start": "2026-06-07T00:11:00Z",
       "plan_end": "2026-06-07T00:15:00Z",
-      "build_end": "2026-06-07T00:20:00Z"
+      "build_end": "2026-06-07T00:20:00Z",
+      "validate_end": "2026-06-07T00:25:00Z"
     }
   }
 }
