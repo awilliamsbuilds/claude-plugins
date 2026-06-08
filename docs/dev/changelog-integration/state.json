@@ -3,9 +3,9 @@
   "feature": "changelog-integration",
   "branch": "feature/changelog-integration",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
-  "skipped": [],
+  "stage": "plan",
+  "completed": ["spec"],
+  "skipped": ["shape"],
   "startedAt": "2026-06-07T00:00:00Z",
   "artifacts": {
     "spec": "docs/dev/changelog-integration/spec.md",
