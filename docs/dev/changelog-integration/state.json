@@ -3,8 +3,8 @@
   "feature": "changelog-integration",
   "branch": "feature/changelog-integration",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-06-07T00:00:00Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/changelog-integration/plan.md",
     "validation": "docs/dev/changelog-integration/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/9",
+    "pr_number": 9
   },
   "validate": {
     "loops_run": 1,
@@ -54,7 +54,8 @@
       "plan_start": "2026-06-07T00:11:00Z",
       "plan_end": "2026-06-07T00:15:00Z",
       "build_end": "2026-06-07T00:20:00Z",
-      "validate_end": "2026-06-07T00:25:00Z"
+      "validate_end": "2026-06-07T00:25:00Z",
+      "pr_created": "2026-06-07T00:30:00Z"
     }
   }
 }
