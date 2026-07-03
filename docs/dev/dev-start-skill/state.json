@@ -3,8 +3,8 @@
   "feature": "dev-start-skill",
   "branch": "fix/dev-start-skill",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "build",
+  "completed": ["spec"],
   "skipped": ["shape", "plan"],
   "startedAt": "2026-07-03T13:09:43Z",
   "artifacts": {
