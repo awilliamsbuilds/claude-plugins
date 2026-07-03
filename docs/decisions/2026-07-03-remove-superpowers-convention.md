@@ -43,3 +43,6 @@ Spec, plan, and validation committed at: f5d41ce3f92f7e87f2678471214b35cba458c15
 **Suggestions:**
 - `stage_timestamps` and `spec_questions_asked`/`files_read_in_build` metric-tracking instructions are being skipped in live execution across at least two consecutive cycles now, despite being called out before. The prose-reminder approach isn't working. Consider making the instruction mechanically concrete (e.g., an explicit `date -u +%Y-%m-%dT%H:%M:%SZ` command shown inline at each stage's "Update State" step) rather than a plain sentence, since the current phrasing is easy to read past.
 - Add a Plan self-review check: when a task changes a stage skill's stopping/gating/behavioral rules, explicitly check whether `dev:autopilot` (or any other skill that documents or depends on that behavior) needs a matching update. This would have caught the `build.md`/`autopilot.md` coupling before Validate instead of during it.
+
+## Reflect Suggestions — Outcome
+Both suggestions from the retrospective above were approved and applied via PR #11 (chore/reflect-metrics-and-plan-check): concrete `date` commands added to every `stage_timestamps` recording instruction across `spec`/`shape`/`plan`/`build`/`validate`/`pr`, and a 7th Plan self-review check added for cross-file stopping/gating dependencies.
