@@ -3,20 +3,20 @@
   "feature": "remove-superpowers-convention",
   "branch": "feature/remove-superpowers-convention",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-02T00:00:00Z",
   "artifacts": {
     "spec": "docs/dev/remove-superpowers-convention/spec.md",
     "design": null,
     "plan": "docs/dev/remove-superpowers-convention/plan.md",
-    "validation": null,
+    "validation": "docs/dev/remove-superpowers-convention/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
