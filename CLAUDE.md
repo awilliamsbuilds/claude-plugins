@@ -24,7 +24,7 @@ awilliamsbuilds/claude-plugins/
 | `ux-toolkit` | `ux-designer`, `ux-copywriter` | UX design strategy and interface copywriting |
 | `humanize` | `humanize` | AI pattern detection and voice rewriting |
 | `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
-| `dev` | `dev`, `dev:init`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done) |
+| `dev` | `dev`, `dev:init`, `dev:start`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done) |
 
 ## Adding a Plugin
 
@@ -57,7 +57,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-05-22*
+*Last updated by /dev · 2026-07-03*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -72,6 +72,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle |
 | `dev:shape` | plugins/dev/skills/shape/SKILL.md | Stage 2 — produces design.md with user flows |
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification |
+| `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
 | `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting |
 | `writing:voice` | plugins/writing/skills/voice/SKILL.md | Adam's personal voice-dna reference |
