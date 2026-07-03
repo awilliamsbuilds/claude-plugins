@@ -13,7 +13,7 @@ Close the feature cycle: merge the PR, create a permanent decision log, run the 
 
 ## Step 1: Artifact Gate
 
-May be invoked with an artifact-path argument (`validation.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior.
+May be invoked with an artifact-path argument (`validation.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
 
 Read `docs/dev/<feature>/state.json`. Confirm `artifacts.pr_url` is not null.
 
@@ -117,10 +117,11 @@ git commit -m "chore: clean up /dev working directory for <feature>"
 git push
 ```
 
-Delete local branch:
+Delete local branch — **only if `state.json.worktreePath` is not set**:
 ```bash
 git branch -d feature/<feature-name>
 ```
+If `worktreePath` is set, the branch is still checked out inside that worktree — `git branch -d` will fail ("cannot delete branch ... checked out at ..."). Skip this deletion entirely; worktree cleanup (branch included) is deferred to `ExitWorktree`, called explicitly by the user later, per this cycle's design (`/clear` and normal stage completion never call it automatically).
 
 (Remote branch was deleted in Step 2 by `--delete-branch`.)
 

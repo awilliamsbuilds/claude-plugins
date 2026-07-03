@@ -15,7 +15,7 @@ This skill supersedes `superpowers:requesting-code-review` for the duration of t
 
 ## Step 1: Artifact Gate
 
-May be invoked with an artifact-path argument (`plan.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior.
+May be invoked with an artifact-path argument (`plan.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
 
 Read `docs/dev/<feature>/state.json`. Confirm `"build"` is in `completed[]` and the branch has commits ahead of main.
 

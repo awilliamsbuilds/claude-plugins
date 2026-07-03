@@ -18,7 +18,7 @@ Shape is skipped via `no-ui` mode or auto-routing from Spec. It is not skipped b
 
 ## Step 1: Artifact Gate
 
-May be invoked with an artifact-path argument (e.g. `docs/dev/<feature>/spec.md`). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior (feature already known from orchestration or an existing in-progress session).
+May be invoked with an artifact-path argument (e.g. `docs/dev/<feature>/spec.md`). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior (feature already known from orchestration or an existing in-progress session). **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
 
 <HARD-GATE>
 Read `docs/dev/<feature>/state.json` to find the feature name and locate `spec.md`. If `artifacts.spec` is null or the file does not exist, STOP:
