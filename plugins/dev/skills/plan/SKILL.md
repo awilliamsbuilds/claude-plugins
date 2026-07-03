@@ -22,10 +22,14 @@ Exception: Micro tier — spec.md includes an Implementation Note section that s
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (`spec.md` or `design.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior.
+
 Read `docs/dev/<feature>/state.json` first. Check:
 - If `tier == "micro"`: exit per the HARD-GATE exception above
 - If `artifacts.spec` is null: STOP — "Plan requires spec.md. Run /dev:spec first."
 - If mode is not `no-ui` and `skipped` does not include `"shape"` and `artifacts.design` is null: STOP — "Plan requires design.md. Run /dev:shape first, or use /dev:plan with no-ui mode."
+
+**Resume-mid-approval check:** if `plan.md` already exists for this feature and `state.json.stage` is still `"plan"`, skip straight to Step 8 to re-display it for approval rather than re-running Steps 2–7.
 
 Read once, work from this throughout:
 - `docs/dev/<feature>/spec.md`
@@ -164,6 +168,9 @@ git commit -m "plan: write implementation plan for <feature>"
 Plan written and committed to docs/dev/<feature>/plan.md.
 
 Please review it and let me know if you'd like any changes before we start building.
+
+Safe to /clear now — resume with: /dev:build docs/dev/<feature>/plan.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 Wait for explicit user approval.
