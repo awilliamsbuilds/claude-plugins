@@ -7,6 +7,8 @@ description: "Stage 2 of the /dev workflow. Produces design.md — user flows, c
 
 **Announce:** "I'm using dev:shape to create the design document."
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `shape_start`, recorded in Step 10. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Produce a `design.md` that gives Build everything it needs to implement the feature without guessing. Embeds UX design and copywriting judgment — no external skill dependencies.
@@ -184,7 +186,7 @@ Fix any issues inline. No need to re-review after fixing.
 Update state.json:
 - Set `artifacts.design` to the path
 - Increment `metrics.visual_screens_shown` by number of browser screens used
-- Record `metrics.stage_timestamps.shape_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1) and `metrics.stage_timestamps.shape_end` (same command, run now)
+- Record `metrics.stage_timestamps.shape_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.shape_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
 git add docs/dev/<feature>/design.md docs/dev/<feature>/state.json

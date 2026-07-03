@@ -7,6 +7,8 @@ description: "Stage 5 of the /dev workflow. Runs code review and security review
 
 **Announce:** "I'm using dev:validate to review and fix issues before the PR."
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `validate_start`, recorded in Step 6. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Find and fix issues before the PR. Iterate until clean or the loop limit is reached.
@@ -169,7 +171,7 @@ Update state.json:
 - Add `"validate"` to `completed[]`
 - Set `stage` to `"pr"`
 - Record final `validate.loops_run`, `p1_open[]`, `p2_open[]`, `p3_open[]`, `nits_open[]`
-- Record `metrics.stage_timestamps.validate_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1, if not already set) and `metrics.stage_timestamps.validate_end` (same command, run now)
+- Record `metrics.stage_timestamps.validate_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.validate_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 - Set `artifacts.validation` to path
 
 ```bash

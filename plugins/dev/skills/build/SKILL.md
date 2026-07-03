@@ -7,6 +7,8 @@ description: "Stage 4 of the /dev workflow. Implements the plan. Feature cycles 
 
 **Announce:** "I'm using dev:build to implement the plan."
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `build_start`, recorded in Step 6. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Implement the plan. Produce committed code (feature cycle) or committed decision documents (architecture cycle) on the feature branch.
@@ -116,7 +118,7 @@ When all plan tasks are done and tests pass:
 Update state.json:
 - Add `"build"` to `completed[]`
 - Set `stage` to `"validate"`
-- Record `metrics.stage_timestamps.build_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1, if not already set) and `metrics.stage_timestamps.build_end` (same command, run now)
+- Record `metrics.stage_timestamps.build_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.build_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
 git add docs/dev/<feature>/state.json
