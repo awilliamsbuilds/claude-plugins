@@ -25,3 +25,22 @@ Made `/dev` cycles resumable across `/clear` at two granularities: cross-stage (
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 745bf7d35569cd2169df9d3d7726bd759e0d84b0 on branch feature/resumable-dev-cycles
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-03*
+
+**Spec:** Confidence (95%, Ready) matched actual clarity — Build needed zero corrections against the spec, no Backtrack Trigger fired. Two design decisions were resolved via `AskUserQuestion` with a 60s timeout that went unanswered both times, defaulting to the recommended option — the user later came back and refined/corrected both through plain conversation rather than re-answering the tool prompts. Worked out fine here (the later correction was thorough), but worth naming as a flow pattern: long Deep-tier spec sessions with unanswered timeouts risk defaulting decisions that need a second pass.
+
+**Shape:** Skipped (no UI). Correct call.
+
+**Plan:** No mid-Build corrections needed — all 10 tasks executed exactly as planned. But this is a narrower claim than it sounds: Validate found 2 P1s (missing `git commit`, missing `git push` before a dependent command) that Plan's own self-review checklist didn't catch, because both were "does this command sequence actually execute successfully end-to-end" gaps, not "is this task internally consistent" gaps — a different class of check than Plan's checklist currently runs.
+
+**Validate:** 2/5 loops (Deep max) — didn't hit the cap. Loop 1 found 5 real issues (2 P1, 3 P2) on first pass, a high count for one cycle, though proportionate to a 9-file cross-cutting Deep-tier change introducing an entirely new mechanism. Both P1s share a root cause: a command sequence that reads correctly in isolation but fails when actually traced end-to-end (uncommitted file, unpushed dependency).
+
+**Flow:** Tier (Deep) correctly detected — cross-cutting, 9 files touched matched the tier-detection estimate (≥10) closely. No unnecessary stages.
+
+**Token efficiency:** `files_read_in_build` = 0 — accurate this cycle, not a tracking gap (every file read during Build was a direct precursor to editing that same file, which the instruction explicitly excludes from the counter). But `stage_timestamps.validate_start` was never recorded, despite `validate/SKILL.md` — edited *by this very cycle* — explicitly instructing "capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1, if not already set." `spec_questions_asked` again shows 0 despite real interactive back-and-forth (2 `AskUserQuestion` calls plus follow-up conversation) — the third consecutive cycle with this exact gap, now confirmed to persist even with PR #11's "make it concrete" fix live in a freshly-updated plugin cache. The concrete-instruction approach was tested for real this cycle (unlike cycle 2, which ran against stale cache) and still didn't change the outcome.
+
+**Suggestions:**
+- The "make instructions mechanically concrete" fix from the prior cycle's retrospective has now been tested against a live cache and didn't resolve the tracking gap — instruction clarity isn't the bottleneck. Two different approaches worth trying instead: (1) move the "capture stage start timestamp" instruction to the very first line of each skill (right after **Announce**), not buried in a later step where it's easy to reach Step 6 having already forgotten it; (2) for the counters that are inherently about counting *interactive events during the stage* (`spec_questions_asked`), reconcile them retroactively at the stage's own self-review step — count actual questions asked / actual `AskUserQuestion` calls made during the stage and set the counter then, rather than relying on an inline per-event increment that competes with the actual work for attention.
+- Add a check to `dev:plan`'s Step 6 self-review: for the task(s) most likely to involve multi-step git/gh sequences with ordering dependencies (commits, pushes, PR creation), mentally trace the exact command sequence end-to-end and confirm each command's prerequisites (file staged, branch pushed, etc.) are satisfied by that point — not just that the task's prose is internally consistent. This targets the specific class of P1 found here that isolated-task review didn't catch.
