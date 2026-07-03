@@ -13,6 +13,8 @@ Close the feature cycle: merge the PR, create a permanent decision log, run the 
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (`validation.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
+
 Read `docs/dev/<feature>/state.json`. Confirm `artifacts.pr_url` is not null.
 
 If PR URL is missing: STOP — "Done requires an open PR. Run /dev:pr first."
@@ -41,14 +43,16 @@ PR can't be merged automatically. Reason: [conflict / pending reviews].
 Resolve in GitHub, then run /dev:done again.
 ```
 
-## Step 3: Update Product Plan (if product-scale)
+## Step 3: Update Product Plan (if product-scale, top-level or nested)
 
-If `state.json.product_plan` is not null:
-- Read `docs/dev/product-plan.md`
+Determine the governing product plan: if `state.json.parentFeature` is set, it's `docs/dev/<parentFeature>/product-plan.md` (nested); otherwise, if `state.json.product_plan` is not null, it's the top-level `docs/dev/product-plan.md`. If neither applies, skip this step.
+
+For the governing product plan found:
+- Read it
 - Find this feature's line item (match by feature name)
 - Change `- [ ]` to `- [x]`
 - Update the header: increment cycles completed count
-- Commit to main: `chore: mark <feature> complete in product plan`
+- Commit: `chore: mark <feature> complete in product plan` (to `main` for a top-level plan; to the parent feature's own branch for a nested plan, matching wherever that file already lives)
 
 ## Step 4: Update Component Registry (feature cycles only)
 
@@ -113,10 +117,11 @@ git commit -m "chore: clean up /dev working directory for <feature>"
 git push
 ```
 
-Delete local branch:
+Delete local branch — **only if `state.json.worktreePath` is not set**:
 ```bash
 git branch -d feature/<feature-name>
 ```
+If `worktreePath` is set, the branch is still checked out inside that worktree — `git branch -d` will fail ("cannot delete branch ... checked out at ..."). Skip this deletion entirely; worktree cleanup (branch included) is deferred to `ExitWorktree`, called explicitly by the user later, per this cycle's design (`/clear` and normal stage completion never call it automatically).
 
 (Remote branch was deleted in Step 2 by `--delete-branch`.)
 
@@ -130,12 +135,16 @@ git branch -d feature/<feature-name>
   Retrospective appended (see decision log)
 ```
 
-If product-plan.md exists, offer the next cycle:
+If a governing product plan exists (top-level or nested, per Step 3), replace the generic "start next cycle?" prompt with the exact-command precision the other stages' exit protocols use:
+
 ```
 Product plan: 3/8 cycles complete.
 
 Milestone 1: ✓ auth-setup  ✓ data-model  → user-registration
 Milestone 2: dashboard  settings
 
-Start user-registration next? Or pick a different cycle.
+Completed: <this feature's item>. Remaining: <next item>, <item after>, ...
+
+Safe to /clear now — start the next item with: /dev:spec "<next item's name>"
+[If this was a nested cycle (parentFeature was set): note that the parent feature (<parentFeature>) itself still needs its own /dev:done once all its sub-milestones are merged.]
 ```

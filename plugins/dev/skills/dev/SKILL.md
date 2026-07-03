@@ -45,6 +45,8 @@ For each session found, read state.json and display:
 ```
 /dev session in progress: <feature-name>
 <stage-status-line>
+[If worktreePath is set: Worktree: <worktreePath>]
+[If parentFeature is set: (nested under <parentFeature>)]
 Resume from <current-stage>, restart, or abandon?
 ```
 
@@ -146,3 +148,4 @@ Wait for user's choice, then invoke dev:spec with the chosen feature name.
 | `/dev pr` | Jump to PR (requires validation) |
 | `/dev done` | Jump to Done (requires PR) |
 | `/dev:fix ENG-123` | Linear issue entry |
+| `/dev:<stage> docs/dev/<feature>/<artifact>.md` | Resume any stage without conversation memory — every `dev:<stage>` skill accepts an optional artifact-path argument (the prior stage's committed artifact) and derives `<feature>` from it. This is what the exit-protocol message after each stage prints as the exact resume command. |

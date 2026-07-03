@@ -18,6 +18,8 @@ If implementation reveals the plan needs changes, stop, update plan.md, commit t
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (`plan.md` path, or `spec.md` for Micro tier). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments — matching the kebab-case convention feature names are always created with (see `dev:spec`'s "derive from the stated intent, kebab-case"). If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
+
 <HARD-GATE>
 Read state.json. If `tier == "micro"`, look for `spec.md` and its `## Implementation Note` section — that is the plan. If `artifacts.plan` is null AND tier is not "micro", STOP:
 
@@ -124,7 +126,10 @@ git commit -m "build: complete <feature> implementation"
 In standard mode, notify:
 ```
 Build complete. All plan tasks done, tests passing.
-Ready for Validate. Run /dev:validate (or /dev to continue the flow).
+Ready for Validate.
+
+Safe to /clear now — resume with: /dev:validate docs/dev/<feature>/plan.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 **Autopilot mode:** Update state and proceed automatically.

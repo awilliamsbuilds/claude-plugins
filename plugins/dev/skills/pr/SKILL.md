@@ -13,6 +13,8 @@ Open the PR with a description that tells the full story of the feature cycle �
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (`validation.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
+
 Read `docs/dev/<feature>/state.json`. Confirm `"validate"` is in `completed[]`.
 
 If validation is not complete: STOP — "PR requires validation.md. Run /dev:validate first."
@@ -101,12 +103,20 @@ Push the branch if not already pushed:
 git push -u origin <branch-name>
 ```
 
+**Determine the target branch:** if `state.json.parentFeature` is set (this is a nested sub-milestone), the target is the parent feature's own branch — read the parent's `docs/dev/<parentFeature>/state.json.branch` field to get its exact name. Otherwise (top-level cycle), the target is `main`, as today.
+
+**If nested, the target branch must exist on the remote before `gh pr create` can target it — push it first if it isn't already there:**
+```bash
+git push origin <parent-branch>   # no-op if already up to date remotely
+```
+A nested cycle's PR happens before its parent's own `dev:pr` stage runs (the parent hasn't pushed yet at that point), so this step cannot be skipped — assume the parent branch needs pushing rather than checking first.
+
 Open the PR using the `gh` CLI:
 ```bash
 gh pr create \
   --title "<feature-name>: [one-sentence summary from spec Intent]" \
   --body "[PR description from Step 2]" \
-  --base main
+  --base "<target-branch>"
 ```
 
 Capture the PR URL from the output.
@@ -131,6 +141,9 @@ In standard mode, display:
 PR opened: [PR URL]
 
 Review it, get approvals, then run /dev:done when ready to merge.
+
+Safe to /clear now — resume with: /dev:done docs/dev/<feature>/validation.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 **Autopilot mode:** Update state, proceed to done automatically.

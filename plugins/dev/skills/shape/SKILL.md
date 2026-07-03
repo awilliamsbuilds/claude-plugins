@@ -18,11 +18,15 @@ Shape is skipped via `no-ui` mode or auto-routing from Spec. It is not skipped b
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (e.g. `docs/dev/<feature>/spec.md`). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior (feature already known from orchestration or an existing in-progress session). **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
+
 <HARD-GATE>
 Read `docs/dev/<feature>/state.json` to find the feature name and locate `spec.md`. If `artifacts.spec` is null or the file does not exist, STOP:
 
 "Shape requires spec.md. Run /dev:spec first to create the specification."
 </HARD-GATE>
+
+**Resume-mid-approval check:** if `design.md` already exists for this feature and `state.json.stage` is still `"shape"`, skip straight to Step 11 to re-display it for approval rather than re-running the full design flow.
 
 Read these files once at stage start:
 - `docs/dev/<feature>/state.json`
@@ -193,6 +197,9 @@ git commit -m "shape: write design for <feature>"
 Design written and committed to docs/dev/<feature>/design.md.
 
 Please review it and let me know if you'd like any changes before we move to Plan.
+
+Safe to /clear now — resume with: /dev:plan docs/dev/<feature>/design.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 Wait for explicit user approval. If changes requested: update design.md, re-run Step 9, re-commit.
