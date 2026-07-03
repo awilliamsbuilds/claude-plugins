@@ -7,6 +7,8 @@ description: "Stage 3 of the /dev workflow. Transforms spec + design into an ord
 
 **Announce:** "I'm using dev:plan to create the implementation plan."
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `plan_start`, recorded in Step 7. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Transform spec + design into a concrete sequence of changes that Build can execute without guessing.
@@ -148,6 +150,7 @@ After writing plan.md:
 5. Are there any "do X and Y" tasks that should be split?
 6. Do the `Consumes:`/`Produces:` names and types line up across tasks? A dependency named differently in the task that produces it versus the task that consumes it is a plan bug — fix it before Build starts.
 7. Does any task change a stage skill's stopping, gating, or approval behavior (e.g. a new STOP condition, a new autopilot-blocker, a new hard gate)? If so, check whether `dev:autopilot`'s Step 2 "When autopilot stops" list — or any other skill that documents or depends on that behavior — needs a matching update, and add a task for it if it does. A behavioral change that's only written in one place is a plan gap, even if that one place is correct.
+8. For any task whose implementation steps involve a multi-step git/gh sequence with ordering dependencies (commit, push, PR creation, branch switching): mentally trace the exact command sequence end-to-end and confirm each command's prerequisites are actually satisfied by the point it runs — not just that the task's prose reads consistently. Concretely: is the file actually staged before the commit that references it? Is a branch actually pushed to the remote before a command that requires it to exist there (e.g. `gh pr create --base <branch>`)? A task can be internally consistent and still fail on execution — this check catches that class of bug before Build, not after.
 
 Fix any issues inline. No need to re-review after fixing.
 
@@ -155,7 +158,7 @@ Fix any issues inline. No need to re-review after fixing.
 
 Update state.json:
 - Set `artifacts.plan` to the path
-- Record `metrics.stage_timestamps.plan_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1) and `metrics.stage_timestamps.plan_end` (same command, run now)
+- Record `metrics.stage_timestamps.plan_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.plan_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
 git add docs/dev/<feature>/plan.md docs/dev/<feature>/state.json

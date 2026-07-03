@@ -7,6 +7,8 @@ description: "Stage 1 of the /dev workflow. Builds a specification through guide
 
 **Announce:** "I'm using dev:spec to build the feature specification."
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `spec_start`, used when `state.json` is initialized in Step 6. Capturing it now, before any other work, keeps it accurate to when the stage actually began rather than whenever Step 6 happens to be reached.
+
 ## Purpose
 
 Turn a feature idea into a concrete, committed `spec.md` through guided questions. Produces the artifact that every subsequent stage depends on.
@@ -130,7 +132,7 @@ git checkout -b feature/<feature-name>
 
 Feature name: derive from the stated intent, kebab-case, 2-4 words.
 
-Get the exact timestamp before writing state.json: run `date -u +%Y-%m-%dT%H:%M:%SZ` and use that value for both `startedAt` and `metrics.stage_timestamps.spec_start` below — don't estimate or leave the placeholder text in place.
+Use the `spec_start` value captured at the very top of this skill (before Step 1) for both `startedAt` and `metrics.stage_timestamps.spec_start` below — don't estimate or leave the placeholder text in place.
 
 Initialize `docs/dev/<feature-name>/state.json`:
 ```json
@@ -228,7 +230,7 @@ Still needed for High: edge cases, out of scope, success criteria
 - One question per message — never two questions in one turn
 - Prefer multiple choice when options can be enumerated
 - Ask about the most impactful unscored dimension first
-- **Increment `metrics.spec_questions_asked` in state.json after each question — do this before moving on.** This is a state.json edit, not a mental note: after sending a question, edit state.json and bump the number before you send the next one. If you can't point to the Edit call that changed it, it hasn't happened.
+- Don't try to track `metrics.spec_questions_asked` inline while questioning — it competes with the actual work and reliably gets skipped. It's reconciled once, retroactively, in Step 10.
 
 **Proceed thresholds:**
 - Standard mode: continue until High (65%) reached. Offer early exit at Sufficient (40%): "We're at Sufficient (40%) — enough to proceed, though some things may surface later. Continue or keep going?"
@@ -334,15 +336,18 @@ After writing spec.md, check with fresh eyes:
 
 Fix issues inline. No need to re-review after fixing.
 
+**Reconcile `metrics.spec_questions_asked`:** scroll back through this stage's own conversation and count every distinct question actually asked (plain-text questions and `AskUserQuestion` calls alike) — not the running counter, the real count. Set `spec_questions_asked` to that number in Step 11. An inline per-question increment competes with the actual work for attention and is easy to skip mid-flow; counting once, at the end, against what actually happened is more reliable.
+
 ## Step 11: Update State + Commit
 
 Update `docs/dev/<feature-name>/state.json`:
 - Set `confidence.final_score` and `confidence.final_level`
 - Set all dimension booleans correctly
 - Set `confidence.auto_filled` to list of auto-filled dimensions (or empty array)
+- Set `metrics.spec_questions_asked` to the count reconciled in Step 10
 - Set `stage` to `"spec"` (stays as current stage until spec is approved)
 - Set `artifacts.spec` to the path
-- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was already set in Step 6
+- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1
 
 ```bash
 git add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
