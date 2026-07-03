@@ -21,15 +21,15 @@
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
   "confidence": {
-    "final_score": 80,
-    "final_level": "High",
+    "final_score": 95,
+    "final_level": "Ready",
     "dimensions": {
       "intent": true, "scope": true, "success_criteria": true,
       "happy_path": true, "edge_cases": true, "out_of_scope": true,
       "ui_needed": true, "technical_constraints": true,
       "audience": true, "dependencies": true
     },
-    "auto_filled": ["scope (worktree-trigger design decision)", "technical_constraints (exit-protocol-scope design decision)"]
+    "auto_filled": []
   },
   "cycle_type": "feature",
   "tier": "deep",
