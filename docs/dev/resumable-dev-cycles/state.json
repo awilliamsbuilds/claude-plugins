@@ -3,8 +3,8 @@
   "feature": "resumable-dev-cycles",
   "branch": "feature/resumable-dev-cycles",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-03T17:47:02Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/resumable-dev-cycles/plan.md",
     "validation": "docs/dev/resumable-dev-cycles/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/16",
+    "pr_number": 16
   },
   "validate": {
     "loops_run": 2,
@@ -46,7 +46,8 @@
       "plan_end": "2026-07-03T18:07:23Z",
       "build_start": "2026-07-03T18:09:48Z",
       "build_end": "2026-07-03T18:15:29Z",
-      "validate_end": "2026-07-03T19:05:02Z"
+      "validate_end": "2026-07-03T19:05:02Z",
+      "pr_created": "2026-07-03T22:50:36Z"
     }
   }
 }
