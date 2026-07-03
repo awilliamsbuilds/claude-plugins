@@ -49,6 +49,8 @@ These rules apply throughout all stages. They override the standard-mode behavio
 
 **Shape alternatives: auto-select.** Present 2-3 alternatives internally, select the recommended one, note the selection and reasoning in design.md under "Design decision."
 
+**Worktree offer: auto-accept.** When `dev:spec` Step 6 would offer worktree isolation (cycle is part of a product plan), auto-accept without asking — beneficial, non-destructive default.
+
 **Backtrack is silent.** When a later stage discovers an earlier artifact gap:
 1. Fix the earlier artifact
 2. Commit the fix with message: `autopilot: backtrack — update <spec|plan> for <reason>`
