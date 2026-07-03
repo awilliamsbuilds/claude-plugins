@@ -3,8 +3,8 @@
   "feature": "remove-superpowers-convention",
   "branch": "feature/remove-superpowers-convention",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": ["spec"],
   "skipped": ["shape"],
   "startedAt": "2026-07-02T00:00:00Z",
   "artifacts": {
