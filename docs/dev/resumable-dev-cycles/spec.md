@@ -16,8 +16,9 @@ This cycle closes both gaps, and — per research done during this Spec stage �
 
 1. **Per-stage exit protocol** — for every standard-mode gated stage (`dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`), after the artifact is committed, print:
    - Confirmation the artifact is saved and committed (already happens today)
-   - The exact resume command for the next stage (already happens today, informally)
-   - An explicit instruction that it's safe to run `/clear` now, and the exact command to run afterward to resume (`/dev` or the specific `/dev:<stage>`), including which branch/worktree to be in if not the current directory
+   - **The exact resume command, self-contained with the prior stage's artifact path as an argument** — e.g. `/dev:plan docs/dev/resumable-dev-cycles/spec.md`, not a bare `/dev:plan`. This closes a real gap discovered while speccing this: today, `dev:plan`/`dev:build`/etc.'s Step 1 says "Read `docs/dev/<feature>/state.json`" but `<feature>` is never actually resolved anywhere — it silently depends on conversation memory (broken by `/clear`) or an implicit single-session assumption (breaks once nested/parallel worktrees exist). Every `dev:<stage>` skill's Step 1 is updated to accept an optional artifact-path argument and derive `<feature>` from it; if no argument is given, fall back to today's implicit behavior (scan `docs/dev/*/state.json`) for interactive same-session use.
+   - If the cycle is in a worktree, the exact worktree path, so the instruction is correct even from a different terminal or a fresh session that isn't already there.
+   - An explicit instruction that it's safe to run `/clear` now. **`/clear` must never trigger `ExitWorktree`** — nothing in this exit protocol calls it; the worktree (if any) persists across `/clear` by design, matching `ExitWorktree`'s own documented behavior ("do NOT call this proactively — only when the user asks"). This was an open assumption earlier in this spec; it's now a stated design requirement, not a guess.
    - **Not applied to `dev:autopilot`** — it runs end-to-end without stopping, so there's no natural moment for this messaging.
 
 2. **Master-plan trigger extended beyond Scale Detection, and made recursive** — `dev:spec` Step 4 (Scope Check + YAGNI Gate), when it identifies that a single request covers multiple independent sub-features, now also creates/updates a product plan — not just asking "which should we start with?" and discarding the rest. This is the mechanism that would have captured this session's original three-part request. Critically, this isn't limited to the top level: **product plans nest**. If a cycle that is itself an item inside a product plan turns out, during its own Spec stage, to be product-scale in its own right (Step 2 or Step 4 fires again, one level down), it gets its own nested product plan at `docs/dev/<feature>/product-plan.md`, scoped to that feature's own sub-milestones — distinct from the top-level `docs/dev/product-plan.md`. The mechanism is identical at every level; it just recurses.
@@ -36,7 +37,9 @@ This cycle closes both gaps, and — per research done during this Spec stage �
 
 ## Success Criteria
 
-- Every standard-mode gated stage, after committing its artifact, prints an explicit "safe to `/clear` now, run `<exact command>` to resume" message.
+- Every standard-mode gated stage, after committing its artifact, prints an explicit "safe to `/clear` now, run `<exact command with artifact-path argument>` to resume" message — e.g. `/dev:plan docs/dev/<feature>/spec.md` — plus the worktree path if applicable.
+- Every `dev:<stage>` skill's Step 1 accepts an optional artifact-path argument and resolves `<feature>` from it, rather than leaving `<feature>` as an unresolved placeholder as it is today.
+- Nothing in the exit protocol calls `ExitWorktree` — verified by grep across the updated skill files after Build.
 - `dev:spec` Step 4, when it detects multiple independent sub-features in a single request, writes/updates `docs/dev/product-plan.md` — verified by re-running this exact scenario (a request that decomposes into 3 things via conversation, not an obviously product-scale opening ask) and confirming a product-plan.md exists afterward.
 - Starting a cycle that's part of a product plan offers `EnterWorktree`; starting a standalone cycle does not — and this holds recursively: a cycle whose own Spec stage discovers it needs sub-milestones creates a nested product plan, and each sub-milestone is offered a worktree branched from the parent's branch HEAD, not `origin/main`.
 - `dev:done` Step 8, when a product plan exists, explicitly names the completed item, the remaining items, and gives the exact next command — not just a general "start next cycle?" prompt.
@@ -47,8 +50,8 @@ This cycle closes both gaps, and — per research done during this Spec stage �
 **Single standalone cycle (most common case, unchanged from today):**
 1. User runs `/dev`, request is feature-scale, single deliverable.
 2. Plain branch created (`git checkout -b`), as today.
-3. Each stage completes, prints exit-protocol instructions (item 1).
-4. User can `/clear` between any two stages and resume cleanly by running the printed command.
+3. Each stage completes, prints exit-protocol instructions, e.g.: "Spec committed to `docs/dev/my-feature/spec.md`. Safe to `/clear` now — resume with `/dev:plan docs/dev/my-feature/spec.md`."
+4. User runs `/clear`, then pastes the exact printed command. `dev:plan`'s Step 1 resolves `<feature>` = `my-feature` from the argument — no dependence on the cleared conversation's memory.
 
 **Multi-cycle master-plan case (the gap this closes):**
 1. User makes a request that turns out, through conversation, to cover 3 independent things.
@@ -82,7 +85,7 @@ No.
 ## Technical Constraints
 
 - Depends on the harness providing `EnterWorktree`/`ExitWorktree` as native tools (confirmed present in this session) — must degrade gracefully where they're absent.
-- Per this Spec stage's own research: working directory and git branch state are filesystem state, unaffected by `/clear` — the exit-protocol instructions rely on this being true; if a harness resets cwd on `/clear`, the resume instructions need to say so explicitly (flagged as an assumption to validate, not proven with certainty in this session).
+- Per this Spec stage's own research: working directory and git branch state are filesystem state, unaffected by `/clear`. Confirmed as a stated design requirement (not just an assumption): the exit protocol never calls `ExitWorktree`, matching that tool's own documented "don't call proactively" rule — so nothing in `/dev`'s own design causes a worktree exit on `/clear`. If some harness resets cwd on `/clear` independent of any tool call, that's outside this cycle's control and not something the exit-protocol messaging can fully guard against — the resume command's explicit artifact-path argument is the mitigation (Step 1 of every stage skill can re-derive its feature from the argument regardless of what directory it's re-invoked from).
 - Must not change `dev:dev` Step 3's existing in-progress-session detection logic — only add messaging/master-plan awareness around it.
 - Nested product plans require `dev:pr` to know its target branch is the parent feature's branch, not always `main` — Step 4 of `dev:pr` needs a way to determine "am I nested, and if so, under what branch," likely by checking whether `state.json` records a parent feature.
 
