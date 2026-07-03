@@ -17,7 +17,7 @@ Read `CLAUDE.md`'s `## Component Registry` table. Pull the one-line "Purpose" de
 
 ## Step 2: Print the Stage Pathway
 
-Using the fixed stage order below (this structure is stable and doesn't need to be read from anywhere), print each stage paired with its registry description:
+Using the fixed stage order below (this structure is stable and doesn't need to be read from anywhere), print each stage paired with its registry description. The registry's Purpose strings for stage skills already start with their own "Stage N — " prefix (e.g. "Stage 1 — builds the feature specification") — strip that prefix when substituting, since the line below supplies its own numbering; use only the text after it.
 
 ```
 /dev workflow — 7 stages:
