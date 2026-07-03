@@ -3,9 +3,9 @@
   "feature": "resumable-dev-cycles",
   "branch": "feature/resumable-dev-cycles",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
-  "skipped": [],
+  "stage": "plan",
+  "completed": ["spec"],
+  "skipped": ["shape"],
   "startedAt": "2026-07-03T17:47:02Z",
   "artifacts": {
     "spec": "docs/dev/resumable-dev-cycles/spec.md",
