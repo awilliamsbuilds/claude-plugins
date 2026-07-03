@@ -15,6 +15,8 @@ This skill supersedes `superpowers:requesting-code-review` for the duration of t
 
 ## Step 1: Artifact Gate
 
+May be invoked with an artifact-path argument (`plan.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior.
+
 Read `docs/dev/<feature>/state.json`. Confirm `"build"` is in `completed[]` and the branch has commits ahead of main.
 
 If build is not complete: STOP — "Validate requires completed build. Run /dev:build first."
@@ -179,7 +181,10 @@ In standard mode, notify:
 ```
 Validation complete. N loops run.
 [Clean: no open P1/P2 | N P3/Nit issues remain — noted in validation.md]
-Ready for PR. Run /dev:pr (or /dev to continue).
+Ready for PR.
+
+Safe to /clear now — resume with: /dev:pr docs/dev/<feature>/validation.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 **Autopilot mode:** Update state, proceed.
