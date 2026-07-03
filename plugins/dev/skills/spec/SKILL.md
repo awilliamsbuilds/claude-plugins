@@ -11,6 +11,8 @@ description: "Stage 1 of the /dev workflow. Builds a specification through guide
 
 Turn a feature idea into a concrete, committed `spec.md` through guided questions. Produces the artifact that every subsequent stage depends on.
 
+This skill supersedes `superpowers:brainstorming` for the duration of the `/dev` session — do not invoke it separately.
+
 **Anti-Pattern: "This Feature Is Simple, Skip the Spec."**
 Every feature goes through Spec. Simple features are where unexamined assumptions cause the most wasted Build work. The spec can be short — it must exist.
 

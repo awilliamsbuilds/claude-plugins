@@ -11,6 +11,10 @@ description: "Main entry point for the /dev workflow. Standard mode: manages the
 
 Orchestrate the full /dev workflow in standard mode — sequential stages with explicit approval gates between each. Each stage produces one artifact; each gate is a real stop.
 
+## Superpowers Supersession
+
+While a `/dev` session is active (a `docs/dev/<feature>/state.json` exists for the current feature), this workflow supersedes `superpowers:brainstorming` and `superpowers:writing-plans`. Do not invoke those skills separately — each `/dev` stage already contains the equivalent capability inline.
+
 ## Step 1: Parse Arguments
 
 Arguments can appear in any combination:

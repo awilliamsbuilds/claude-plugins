@@ -11,6 +11,8 @@ description: "Stage 2 of the /dev workflow. Produces design.md — user flows, c
 
 Produce a `design.md` that gives Build everything it needs to implement the feature without guessing. Embeds UX design and copywriting judgment — no external skill dependencies.
 
+This skill supersedes `superpowers:brainstorming`'s design phase for the duration of the `/dev` session — do not invoke it separately.
+
 **Anti-Pattern: "There's No UI, Skip Shape."**
 Shape is skipped via `no-ui` mode or auto-routing from Spec. It is not skipped because "the UI will be simple." If the spec says `UI Needed: Yes`, Shape runs.
 
