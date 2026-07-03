@@ -143,6 +143,7 @@ After writing plan.md:
 4. Are edge cases assigned to specific tasks?
 5. Are there any "do X and Y" tasks that should be split?
 6. Do the `Consumes:`/`Produces:` names and types line up across tasks? A dependency named differently in the task that produces it versus the task that consumes it is a plan bug — fix it before Build starts.
+7. Does any task change a stage skill's stopping, gating, or approval behavior (e.g. a new STOP condition, a new autopilot-blocker, a new hard gate)? If so, check whether `dev:autopilot`'s Step 2 "When autopilot stops" list — or any other skill that documents or depends on that behavior — needs a matching update, and add a task for it if it does. A behavioral change that's only written in one place is a plan gap, even if that one place is correct.
 
 Fix any issues inline. No need to re-review after fixing.
 
@@ -150,7 +151,7 @@ Fix any issues inline. No need to re-review after fixing.
 
 Update state.json:
 - Set `artifacts.plan` to the path
-- Record `stage_timestamps.plan_start` and `plan_end`
+- Record `metrics.stage_timestamps.plan_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1) and `metrics.stage_timestamps.plan_end` (same command, run now)
 
 ```bash
 git add docs/dev/<feature>/plan.md docs/dev/<feature>/state.json

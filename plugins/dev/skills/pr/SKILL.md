@@ -118,7 +118,7 @@ Update state.json:
 - Set `artifacts.pr_number` to the PR number (parse from URL or gh output)
 - Add `"pr"` to `completed[]`
 - Set `stage` to `"done"`
-- Record `stage_timestamps.pr_created`
+- Record `metrics.stage_timestamps.pr_created` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in
 
 ```bash
 git add docs/dev/<feature>/state.json
