@@ -3,20 +3,20 @@
   "feature": "resumable-dev-cycles",
   "branch": "feature/resumable-dev-cycles",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-03T17:47:02Z",
   "artifacts": {
     "spec": "docs/dev/resumable-dev-cycles/spec.md",
     "design": null,
     "plan": "docs/dev/resumable-dev-cycles/plan.md",
-    "validation": null,
+    "validation": "docs/dev/resumable-dev-cycles/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 2,
     "loops_max": 5,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
@@ -45,7 +45,8 @@
       "plan_start": "2026-07-03T18:03:47Z",
       "plan_end": "2026-07-03T18:07:23Z",
       "build_start": "2026-07-03T18:09:48Z",
-      "build_end": "2026-07-03T18:15:29Z"
+      "build_end": "2026-07-03T18:15:29Z",
+      "validate_end": "2026-07-03T19:05:02Z"
     }
   }
 }
