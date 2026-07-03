@@ -3,8 +3,8 @@
   "feature": "remove-superpowers-convention",
   "branch": "feature/remove-superpowers-convention",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-02T00:00:00Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/remove-superpowers-convention/plan.md",
     "validation": "docs/dev/remove-superpowers-convention/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/10",
+    "pr_number": 10
   },
   "validate": {
     "loops_run": 1,
