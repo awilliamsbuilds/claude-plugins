@@ -11,6 +11,8 @@ description: "Stage 3 of the /dev workflow. Transforms spec + design into an ord
 
 Transform spec + design into a concrete sequence of changes that Build can execute without guessing.
 
+This skill supersedes `superpowers:writing-plans` for the duration of the `/dev` session — do not invoke it separately.
+
 **Anti-Pattern: "Just Start Building."**
 
 <HARD-GATE>
@@ -56,11 +58,18 @@ What: [one-sentence purpose]
 Used by: [what calls this / user action that triggers it]
 Depends on: [Task N-1, or "nothing — first task"]
 Files: [create/modify list]
+Interfaces:
+- Consumes: [what this task uses from earlier tasks — exact signatures, or "nothing"]
+- Produces: [what later tasks rely on — exact names and types, or "nothing — terminal task"]
 
 Implementation steps:
 1. [specific step]
 2. [specific step]
 ```
+
+## No Placeholders
+
+Every task must contain the actual content Build needs. Never write: "TBD", "similar to Task N" (repeat the content instead — Build may work tasks out of order), "add appropriate error handling" / "handle edge cases" without naming which edge case and how, or references to names/types not defined in any task's `Produces:`.
 
 ## Step 4: Comprehension Check (Standard mode only)
 
@@ -99,6 +108,9 @@ What: [purpose]
 Used by: [consumer]
 Depends on: nothing
 Files: [list]
+Interfaces:
+- Consumes: nothing
+- Produces: [exact names/types later tasks rely on]
 
 [implementation steps]
 
@@ -130,6 +142,7 @@ After writing plan.md:
 3. Does every task answer: what / how used / depends on?
 4. Are edge cases assigned to specific tasks?
 5. Are there any "do X and Y" tasks that should be split?
+6. Do the `Consumes:`/`Produces:` names and types line up across tasks? A dependency named differently in the task that produces it versus the task that consumes it is a plan bug — fix it before Build starts.
 
 Fix any issues inline. No need to re-review after fixing.
 
