@@ -69,7 +69,7 @@ Implementation steps:
 
 ## No Placeholders
 
-Every task must contain the actual content Build needs. Never write: "TBD", "similar to Task N" (repeat the content instead — Build may work tasks out of order), "add appropriate error handling" / "handle edge cases" without naming which edge case and how, or references to names/types not defined in any task's `Produces:`.
+Every task must contain the actual content Build needs. Never write: "TBD", "similar to Task N" (repeat the content instead — each task must be understandable on its own, per the Isolation Principle in Step 2), "add appropriate error handling" / "handle edge cases" without naming which edge case and how, or references to names/types not defined in any task's `Produces:`.
 
 ## Step 4: Comprehension Check (Standard mode only)
 

@@ -11,7 +11,7 @@ description: "No-gate orchestrator for the /dev workflow. Chains all stages end-
 
 Chain all applicable stages end-to-end without stopping for user approval. Trade interactivity for speed. Use when you trust the spec enough to let the AI run the full cycle.
 
-**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, or confidence is too low even after auto-fill. Everything else runs through.
+**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through.
 
 ## Step 1: Initialize
 

@@ -52,7 +52,9 @@ Build is complete when:
 - Third-party integrations where test setup is disproportionately complex: comment the tradeoff in the code
 
 **When a Test Fails Unexpectedly:**
-If a test fails that you didn't expect to fail — not the TDD red-phase, but an existing test breaking, or a new test failing for a reason other than "not implemented yet" — stop before patching. Read the full error and stack trace. Check what changed since it last passed (`git diff`, recent commits). Form one specific hypothesis for the cause. Make the smallest change that tests that hypothesis. If it doesn't resolve it, form a new hypothesis rather than stacking a second change on top of the first. If 3 hypotheses fail, stop and flag it to the user — the plan or the approach may be wrong, not just the code.
+If a test fails that you didn't expect to fail — not the TDD red-phase, but an existing test breaking, or a new test failing for a reason other than "not implemented yet" — stop before patching. Read the full error and stack trace. Check what changed since it last passed (`git diff`, recent commits). Form one specific hypothesis for the cause. Make the smallest change that tests that hypothesis. If it doesn't resolve it, form a new hypothesis rather than stacking a second change on top of the first.
+
+If 3 hypotheses fail: stop — this is a genuine blocker, not a symptom to keep patching. In standard mode, surface the 3 failed hypotheses to the user and wait for guidance; do not attempt a 4th fix unprompted. If the user's guidance points to the plan or approach being wrong rather than the code, follow the Backtrack Trigger (Step 4) to correct plan.md before continuing. **Autopilot mode:** this is one of autopilot's genuine-blocker stop conditions (see `dev:autopilot` Step 2) — stop and surface the failed hypotheses rather than attempting a 4th fix.
 
 ### Architecture Cycle
 
