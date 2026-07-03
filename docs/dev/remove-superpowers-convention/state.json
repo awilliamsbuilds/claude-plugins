@@ -3,14 +3,14 @@
   "feature": "remove-superpowers-convention",
   "branch": "feature/remove-superpowers-convention",
   "mode": "standard",
-  "stage": "plan",
-  "completed": ["spec"],
+  "stage": "build",
+  "completed": ["spec", "plan"],
   "skipped": ["shape"],
   "startedAt": "2026-07-02T00:00:00Z",
   "artifacts": {
     "spec": "docs/dev/remove-superpowers-convention/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/remove-superpowers-convention/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
