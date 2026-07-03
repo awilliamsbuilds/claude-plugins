@@ -3,8 +3,8 @@
   "feature": "remove-superpowers-convention",
   "branch": "feature/remove-superpowers-convention",
   "mode": "standard",
-  "stage": "build",
-  "completed": ["spec", "plan"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-02T00:00:00Z",
   "artifacts": {
@@ -38,7 +38,7 @@
   "metrics": {
     "spec_questions_asked": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 8,
     "stage_timestamps": {}
   }
 }
