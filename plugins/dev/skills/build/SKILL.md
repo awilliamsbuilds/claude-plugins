@@ -105,7 +105,7 @@ If during Build you discover that plan.md is wrong or insufficient:
 
 ## Step 5: Track Files Read
 
-**Each time you read a file to understand context (not to write it), update state.json immediately: increment `metrics.files_read_in_build`.** Do this inline as you work — don't batch it at the end.
+**Each time you read a file to understand context (not to write it), update state.json immediately: increment `metrics.files_read_in_build`.** Do this inline as you work — don't batch it at the end. Concretely: right after each Read call that's for context (not for a file you're about to edit), make the counter-bump Edit to state.json before your next tool call — treat it as part of the same step as the read, not a separate cleanup task.
 
 ## Step 6: Update State on Completion
 
@@ -114,7 +114,7 @@ When all plan tasks are done and tests pass:
 Update state.json:
 - Add `"build"` to `completed[]`
 - Set `stage` to `"validate"`
-- Record `stage_timestamps.build_end`
+- Record `metrics.stage_timestamps.build_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1, if not already set) and `metrics.stage_timestamps.build_end` (same command, run now)
 
 ```bash
 git add docs/dev/<feature>/state.json

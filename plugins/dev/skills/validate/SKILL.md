@@ -167,7 +167,7 @@ Update state.json:
 - Add `"validate"` to `completed[]`
 - Set `stage` to `"pr"`
 - Record final `validate.loops_run`, `p1_open[]`, `p2_open[]`, `p3_open[]`, `nits_open[]`
-- Record `stage_timestamps.validate_end`
+- Record `metrics.stage_timestamps.validate_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1, if not already set) and `metrics.stage_timestamps.validate_end` (same command, run now)
 - Set `artifacts.validation` to path
 
 ```bash

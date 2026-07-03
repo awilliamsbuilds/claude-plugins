@@ -180,7 +180,7 @@ Fix any issues inline. No need to re-review after fixing.
 Update state.json:
 - Set `artifacts.design` to the path
 - Increment `metrics.visual_screens_shown` by number of browser screens used
-- Record `stage_timestamps.shape_start` and `shape_end`
+- Record `metrics.stage_timestamps.shape_start` (capture with `date -u +%Y-%m-%dT%H:%M:%SZ` at the top of this skill, before Step 1) and `metrics.stage_timestamps.shape_end` (same command, run now)
 
 ```bash
 git add docs/dev/<feature>/design.md docs/dev/<feature>/state.json

@@ -102,6 +102,8 @@ git checkout -b feature/<feature-name>
 
 Feature name: derive from the stated intent, kebab-case, 2-4 words.
 
+Get the exact timestamp before writing state.json: run `date -u +%Y-%m-%dT%H:%M:%SZ` and use that value for both `startedAt` and `metrics.stage_timestamps.spec_start` below — don't estimate or leave the placeholder text in place.
+
 Initialize `docs/dev/<feature-name>/state.json`:
 ```json
 {
@@ -145,7 +147,9 @@ Initialize `docs/dev/<feature-name>/state.json`:
     "spec_questions_asked": 0,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
-    "stage_timestamps": {}
+    "stage_timestamps": {
+      "spec_start": "<output of date -u +%Y-%m-%dT%H:%M:%SZ, run just now>"
+    }
   }
 }
 ```
@@ -192,7 +196,7 @@ Still needed for High: edge cases, out of scope, success criteria
 - One question per message — never two questions in one turn
 - Prefer multiple choice when options can be enumerated
 - Ask about the most impactful unscored dimension first
-- **Increment `metrics.spec_questions_asked` in state.json after each question — do this before moving on**
+- **Increment `metrics.spec_questions_asked` in state.json after each question — do this before moving on.** This is a state.json edit, not a mental note: after sending a question, edit state.json and bump the number before you send the next one. If you can't point to the Edit call that changed it, it hasn't happened.
 
 **Proceed thresholds:**
 - Standard mode: continue until High (65%) reached. Offer early exit at Sufficient (40%): "We're at Sufficient (40%) — enough to proceed, though some things may surface later. Continue or keep going?"
@@ -306,7 +310,7 @@ Update `docs/dev/<feature-name>/state.json`:
 - Set `confidence.auto_filled` to list of auto-filled dimensions (or empty array)
 - Set `stage` to `"spec"` (stays as current stage until spec is approved)
 - Set `artifacts.spec` to the path
-- Record `metrics.stage_timestamps.spec_start` and `spec_end`
+- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was already set in Step 6
 
 ```bash
 git add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
