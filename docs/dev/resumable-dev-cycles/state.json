@@ -3,8 +3,8 @@
   "feature": "resumable-dev-cycles",
   "branch": "feature/resumable-dev-cycles",
   "mode": "standard",
-  "stage": "build",
-  "completed": ["spec", "plan"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-03T17:47:02Z",
   "artifacts": {
@@ -43,7 +43,9 @@
       "spec_start": "2026-07-03T17:47:02Z",
       "spec_end": "2026-07-03T17:50:17Z",
       "plan_start": "2026-07-03T18:03:47Z",
-      "plan_end": "2026-07-03T18:07:23Z"
+      "plan_end": "2026-07-03T18:07:23Z",
+      "build_start": "2026-07-03T18:09:48Z",
+      "build_end": "2026-07-03T18:15:29Z"
     }
   }
 }
