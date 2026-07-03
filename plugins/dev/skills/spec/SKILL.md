@@ -24,6 +24,15 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 12), skip straight to Step 12 to re-display it for approval. Do not re-run Steps 2–11 from scratch.
+
+**Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
+1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
+2. Otherwise, check the current branch: if `git branch --show-current` matches an existing `docs/dev/<parent>/state.json`'s `branch` field, and that parent's `stage` is not `"done"`, this Spec invocation is running inside that parent's branch — treat it as nested under `<parent>`.
+3. Otherwise, this is a top-level (non-nested) Spec invocation.
+
+Record the result (a feature name or "none") for use in Steps 4 and 6 — this becomes `state.json.parentFeature` once state.json is created in Step 6.
+
 ## Step 2: Scale Detection
 
 Before any questions, assess the scope of the request.
@@ -62,7 +71,12 @@ Record `cycle_type: "feature" | "architecture"` in state.json.
 
 ## Step 4: Scope Check + YAGNI Gate
 
-For feature-scale: check if the single request describes multiple independent sub-features (e.g., "add auth, billing, and analytics"). If so, flag it: "This covers three independent things — each needs its own /dev cycle. Which should we start with?"
+For feature-scale: check if the single request describes multiple independent sub-features (e.g., "add auth, billing, and analytics"). If so, flag it: "This covers N independent things — each needs its own /dev cycle. Which should we start with?" — and, before asking, **write the decomposition to a product plan** rather than letting it live only in conversation memory:
+
+- If the Nesting Detection result from Step 1 found a parent feature: write/update `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones).
+- Otherwise: write/update the top-level `docs/dev/product-plan.md`.
+- Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If the target file already exists, append the new items as a new milestone — don't overwrite existing ones.
+- This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable artifact.
 
 As questions surface requirements throughout this stage: when a requirement isn't essential to the stated goal, name it explicitly and ask: "Is [requirement] in scope for this cycle?" Default to out.
 
@@ -94,11 +108,19 @@ Set `skipped[]` in state.json immediately based on tier:
 
 Create the branch before asking any questions. All artifacts commit to this branch.
 
+**Worktree offer:** first, check whether this feature is an item in *any* product plan — the top-level `docs/dev/product-plan.md`, or (per Step 1's Nesting Detection) a nested `docs/dev/<parent>/product-plan.md`. If it is:
+- **Standard mode:** offer isolation — "This is part of a multi-cycle plan — want me to isolate it in its own worktree? (protects it from other work happening in this directory while it's in progress)" and wait for consent.
+- **Autopilot mode:** auto-accept without asking, per `dev:autopilot`'s no-gate principle (see `dev:autopilot` Step 2) — it's the beneficial, non-destructive default.
+- If accepted: call `EnterWorktree`. If this cycle is nested (Step 1 found a parent feature), the new worktree's branch must be created from the parent feature's own branch HEAD, not fresh from `origin/main` — if the harness doesn't expose a per-call base-ref override, create the worktree normally then rebase/reset its branch onto the parent feature's branch (read the parent's `state.json.branch`) before continuing. If this cycle is top-level (no parent), branch fresh from `origin/main` as the tool defaults to.
+- If `EnterWorktree` is unavailable in this harness, or declined: fall through to the plain-branch behavior below unchanged. `worktreePath` stays `null` either way if not used.
+
 ```bash
 git checkout -b feature/<feature-name>
 # For Micro: git checkout -b fix/<feature-name>
 # For architecture cycles: git checkout -b arch/<feature-name>
 ```
+
+(Skip this plain `git checkout -b` if a worktree was created above — `EnterWorktree` already created and switched to the branch.)
 
 Feature name: derive from the stated intent, kebab-case, 2-4 words.
 
@@ -143,6 +165,8 @@ Initialize `docs/dev/<feature-name>/state.json`:
   "tier": "standard",
   "product_plan": null,
   "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": null,
   "metrics": {
     "spec_questions_asked": 0,
     "visual_screens_shown": 0,
@@ -155,6 +179,8 @@ Initialize `docs/dev/<feature-name>/state.json`:
 ```
 
 If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill those confidence dimensions as true and set initial score accordingly (audience = 5%, technical_constraints = 5%).
+
+Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to the worktree's path if the Worktree Offer above created one (or `null` if working in-place).
 
 Commit the initial state.json:
 ```bash
@@ -319,11 +345,15 @@ git commit -m "spec: write spec for <feature-name> (confidence: XX%)"
 
 ## Step 12: User Review Gate (Standard mode)
 
+Determine the next-stage command the same way as before (Shape if UI needed, Plan if no-ui, Build if Micro tier), and its exact argument (`docs/dev/<feature-name>/spec.md`).
+
 ```
 Spec written and committed to docs/dev/<feature-name>/spec.md.
 
 Please review it and let me know if you'd like any changes before we continue.
-Next: Shape (UI involved) / Plan (no-ui mode) / Build (Micro tier)
+
+Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
+[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
 Wait for explicit user approval. If changes requested: update spec.md, re-run Step 10, re-commit, re-display gate.
