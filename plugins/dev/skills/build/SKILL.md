@@ -11,6 +11,8 @@ description: "Stage 4 of the /dev workflow. Implements the plan. Feature cycles 
 
 Implement the plan. Produce committed code (feature cycle) or committed decision documents (architecture cycle) on the feature branch.
 
+This skill supersedes `superpowers:test-driven-development` and `superpowers:systematic-debugging` for the duration of the `/dev` session — do not invoke them separately.
+
 **Anti-Pattern: "The Plan Needs Updates, I'll Just Do It While Building."**
 If implementation reveals the plan needs changes, stop, update plan.md, commit the update, then continue. Plan and code stay in sync.
 
@@ -48,6 +50,9 @@ Build is complete when:
 **When to deviate from TDD:**
 - Configuration files, migrations, and scaffolding: test after, not before
 - Third-party integrations where test setup is disproportionately complex: comment the tradeoff in the code
+
+**When a Test Fails Unexpectedly:**
+If a test fails that you didn't expect to fail — not the TDD red-phase, but an existing test breaking, or a new test failing for a reason other than "not implemented yet" — stop before patching. Read the full error and stack trace. Check what changed since it last passed (`git diff`, recent commits). Form one specific hypothesis for the cause. Make the smallest change that tests that hypothesis. If it doesn't resolve it, form a new hypothesis rather than stacking a second change on top of the first. If 3 hypotheses fail, stop and flag it to the user — the plan or the approach may be wrong, not just the code.
 
 ### Architecture Cycle
 
