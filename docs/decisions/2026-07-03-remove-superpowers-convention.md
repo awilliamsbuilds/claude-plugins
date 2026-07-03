@@ -24,3 +24,22 @@ Made the `/dev` plugin fully self-contained by absorbing the specific techniques
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: f5d41ce3f92f7e87f2678471214b35cba458c15e on branch feature/remove-superpowers-convention
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-03*
+
+**Spec:** Confidence score (100%, Ready) matched actual clarity — no plan updates needed during Build, no auto-filled dimensions to evaluate. Scope legitimately expanded mid-Spec (from "add guard notes" to "absorb techniques," then a fork-vs-absorb architecture question) — that's Spec doing its job, not a flow problem. `spec_questions_asked` shows 0 despite substantial guided back-and-forth (scope sequencing, cycle-count decision, fork-vs-absorb question); counter wasn't incremented.
+
+**Shape:** Skipped (no UI). Correct call.
+
+**Plan:** Mostly accurate — all 7 planned tasks executed as specified, no mid-Build plan updates. But Validate surfaced a real plan gap: Task 5 (`build/SKILL.md`'s new stop condition) had a hidden dependency on `autopilot/SKILL.md`'s stopping-conditions list that the plan didn't identify, discovered only during the fix loop.
+
+**Validate:** 1 loop / 3 — efficient. This cycle's own new subagent-dispatch mechanism (built in this same cycle) reviewed its own output, catching a P1 (self-contradictory diff-scope definition) and a security P2 (missing data/instruction framing) that a same-session author might have been more likely to miss due to authorship bias. Dogfooding worked.
+
+**Flow:** Tier (Standard) was correctly detected — cross-cutting enough (6 files) to not be Micro, not architectural enough for Deep. No unnecessary stages.
+
+**Token efficiency:** `stage_timestamps` stayed completely empty (`{}`) for the entire cycle — never recorded at any stage transition, across all 5 stages. `files_read_in_build` was recorded (8) but `spec_questions_asked` was not. This is the second consecutive cycle (see `2026-06-07-changelog-integration` retro) where `spec_questions_asked`/`files_read_in_build` tracking was flagged as skipped; that retro's suggested fix (a bold callout reminder) evidently wasn't applied, and `stage_timestamps` is now revealed to be *fully* unpopulated too — a broader version of the same problem.
+
+**Suggestions:**
+- `stage_timestamps` and `spec_questions_asked`/`files_read_in_build` metric-tracking instructions are being skipped in live execution across at least two consecutive cycles now, despite being called out before. The prose-reminder approach isn't working. Consider making the instruction mechanically concrete (e.g., an explicit `date -u +%Y-%m-%dT%H:%M:%SZ` command shown inline at each stage's "Update State" step) rather than a plain sentence, since the current phrasing is easy to read past.
+- Add a Plan self-review check: when a task changes a stage skill's stopping/gating/behavioral rules, explicitly check whether `dev:autopilot` (or any other skill that documents or depends on that behavior) needs a matching update. This would have caught the `build.md`/`autopilot.md` coupling before Validate instead of during it.
