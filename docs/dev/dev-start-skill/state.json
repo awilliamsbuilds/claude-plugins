@@ -3,20 +3,20 @@
   "feature": "dev-start-skill",
   "branch": "fix/dev-start-skill",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "build"],
+  "stage": "pr",
+  "completed": ["spec", "build", "validate"],
   "skipped": ["shape", "plan"],
   "startedAt": "2026-07-03T13:09:43Z",
   "artifacts": {
     "spec": "docs/dev/dev-start-skill/spec.md",
     "design": null,
     "plan": null,
-    "validation": null,
+    "validation": "docs/dev/dev-start-skill/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 1,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
@@ -43,7 +43,8 @@
       "spec_start": "2026-07-03T13:09:43Z",
       "spec_end": "2026-07-03T13:11:18Z",
       "build_start": "2026-07-03T13:23:02Z",
-      "build_end": "2026-07-03T13:24:09Z"
+      "build_end": "2026-07-03T13:24:09Z",
+      "validate_end": "2026-07-03T13:31:04Z"
     }
   }
 }
