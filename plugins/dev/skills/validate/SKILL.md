@@ -11,6 +11,8 @@ description: "Stage 5 of the /dev workflow. Runs code review and security review
 
 Find and fix issues before the PR. Iterate until clean or the loop limit is reached.
 
+This skill supersedes `superpowers:requesting-code-review` for the duration of the `/dev` session — do not invoke it separately.
+
 ## Step 1: Artifact Gate
 
 Read `docs/dev/<feature>/state.json`. Confirm `"build"` is in `completed[]` and the branch has commits ahead of main.
@@ -33,7 +35,13 @@ Confirm this matches `validate.loops_max` in state.json. Update if mismatched.
 
 ### Feature Cycle — Parallel Reviews
 
-Run both reviews simultaneously. Do not wait for one to complete before starting the other.
+Dispatch both reviews as fresh `general-purpose` subagents, in parallel — do not wait for one to complete before starting the other. Each subagent receives only:
+- The diff since branch creation (`git diff BASE_SHA..HEAD_SHA`, where `BASE_SHA` is the commit before Build started)
+- `spec.md`'s Success Criteria
+- `plan.md`'s task list (or the Implementation Note for Micro tier)
+- The specific checklist below for its review type
+
+Deliberately exclude this session's conversation history — a reviewer who watched the code get written is less objective than one seeing only the finished diff and the requirements it must meet. If subagent dispatch isn't available in the current harness, fall back to running both checklists in-session as before.
 
 **Code review** — examine the diff since branch creation:
 - Logic errors and correctness bugs
@@ -49,6 +57,8 @@ Run both reviews simultaneously. Do not wait for one to complete before starting
 - Secrets or credentials in code
 - Unsafe data handling (XSS, CSRF exposure)
 - Dependency vulnerabilities introduced
+
+Each subagent returns its findings (strengths + issues found) to the main session, which classifies and fixes them per Step 3 and Step 4 below — those steps are unchanged regardless of where the review ran.
 
 ### Architecture Cycle — Document Review
 
