@@ -142,7 +142,7 @@ PR opened: [PR URL]
 
 Review it, get approvals, then run /dev:done when ready to merge.
 
-Safe to /clear now — resume with: /dev:done docs/dev/<feature>/validation.md
+Safe to /clear now — resume with: /dev:done <feature> [PR URL]
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
