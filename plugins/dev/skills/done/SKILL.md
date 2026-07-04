@@ -13,7 +13,12 @@ Close the feature cycle: merge the PR, create a permanent decision log, run the 
 
 ## Step 1: Artifact Gate
 
-May be invoked with an artifact-path argument (`validation.md` path). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
+May be invoked with one or more arguments — a feature slug, a PR URL, or an artifact-path (`validation.md` path) — to derive `<feature>` without requiring it already be known from conversation context. Check in this order, using the first that resolves:
+1. A bare slug matching `^[a-z0-9][a-z0-9-]*$` with no `..` segments, where `docs/dev/<slug>/state.json` exists — use it directly as `<feature>`.
+2. A GitHub PR URL (`.../pull/<number>`) — parse the PR number, then scan `docs/dev/*/state.json` for one whose `artifacts.pr_number` matches; that directory's name is `<feature>`.
+3. An artifact-path matching `docs/dev/<feature>/<artifact>.md`, with `<feature>` matching the same slug pattern and no `..` segments.
+
+If no argument is given, or none of the given arguments resolve, fall back to today's behavior — require `<feature>` already known from conversation context.
 
 Read `docs/dev/<feature>/state.json`. Confirm `artifacts.pr_url` is not null.
 
