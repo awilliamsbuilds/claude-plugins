@@ -24,6 +24,11 @@
       "name": "dev",
       "description": "Structured, multi-stage development workflow for coding projects — spec through merge",
       "source": "./plugins/dev"
+    },
+    {
+      "name": "naming",
+      "description": "Business, brand, product, and feature naming toolkit",
+      "source": "./plugins/naming"
     }
   ]
 }
