@@ -193,6 +193,20 @@ Examples of possible friction:
 
 Spelling does not have to be perfect, but friction should be intentional and worth it.
 
+### 8. Compound-word seam test
+
+Run this test whenever a candidate joins two whole, recognizable words (e.g., **Headroom**, **Snapchat**, **Codebase**, **Facebook**). This is a distinct failure mode from clusters inside a single word (see above) — it's about the boundary between two words, and it's easy to miss because the name reads fine and means something coherent on the page.
+
+At the seam, where word A ends and word B begins, ask:
+
+- Do the ending sound of word A and the starting sound of word B collide? Watch especially for a stop consonant (**d, t, b, p, g, k**) running into a liquid or approximant (**r, l, w, y**) — this is the exact failure in **head-room**, where the **d** has nowhere clean to go before **r**.
+- Does word A's final consonant get weakened, swallowed, or dropped in natural fast speech?
+- Say the full name 5–10 times quickly. Does the seam stay crisp, or does it start to blur ("heh-room," "hedroom")?
+- Does the name land as one fused sound unit, or does the listener's ear keep parsing it back into "word A" + "word B"? Names like **Tempo**, **Sonos**, and **Canopy** arrive as a single shape; a name with a bad seam behaves like two words standing next to each other.
+- Cover the components mentally and just say the whole word: does it feel like a natural single word, or like a description read aloud?
+
+Do this test *especially* when the compound's meaning is a perfect conceptual fit for the product — semantic fit is exactly what makes evaluators overlook a bad seam. A name can be intellectually precise and phonetically unsatisfying at the same time; meaning does not get to compensate for a collision at the seam. If the seam collides, either swap in a word with a smoother transition, drop the compound structure for an invented or root-derived name, or flag the trade-off explicitly to the user rather than recommending the name outright.
+
 ## Naming Directions to Explore
 
 Do not begin by searching only inside the product category. Great names often come from adjacent or unrelated territories.
@@ -350,8 +364,9 @@ For each candidate, score 1–5:
 | Hearability | Can people understand it when spoken? | 1–5 |
 | Spellability | Can people spell it after hearing it? | 1–5 |
 | Distinctiveness | Does it stand out without feeling weird? | 1–5 |
+| Seam clarity (compounds only) | If it's two joined words, does the seam stay crisp under repetition, or collide/blur? | 1–5 |
 
-Give extra weight to ease, rhythm, repeatability, and sentence fit.
+Give extra weight to ease, rhythm, repeatability, and sentence fit. For any candidate that joins two whole words, a low seam-clarity score is disqualifying on its own — a bad seam should not be averaged away by strong scores elsewhere, since a good concept with a colliding seam is exactly how a name like "Headroom" clears every other filter and still fails in the mouth.
 
 ### Step 5: Run the natural-language test
 
@@ -393,6 +408,7 @@ Watch for:
 - Awkward consonants.
 - Confusion with other words.
 - Loss of charm.
+- For compound names: does the seam between the two words hold up, or does it start to slur ("head-room" → "hedroom")? Run the compound-word seam test explicitly if it applies.
 
 Names that still feel good after repetition are stronger.
 
@@ -567,6 +583,8 @@ Be careful when a name:
 - Feels clever once but annoying later.
 - Depends on a joke or trend.
 - Locks the product into a narrow feature.
+- Joins two real words at a seam where a stop consonant (d, t, b, p, g, k) runs into a liquid or approximant (r, l, w, y) — say it 5x fast to check ("Headroom" is the reference case: the "d" into "r" transition slurs).
+- Has a strong conceptual/semantic fit that could be masking a phonetic problem — meaning should never substitute for the seam and repetition tests.
 
 ## Example: Tempo
 
@@ -617,6 +635,8 @@ Ask:
 > Would someone enjoy saying this name enough to repeat it?
 
 If the answer is yes, the name has a real chance to become memorable.
+
+Do not let a strong conceptual fit push a finalist to the top of the recommendation before it has passed the repetition test and, if it's a compound, the seam test out loud. A name that is conceptually perfect and phonetically weak (see the compound-word seam test) should be presented with that trade-off named explicitly, not recommended as the clear winner.
 
 ## Sources and Further Reading
 
