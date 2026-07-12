@@ -67,6 +67,8 @@ When layout or visual questions are ahead, offer the visual companion. This mess
 
 Wait for the response before continuing. If declined, proceed text-only. If accepted, use the visual companion for layout/spatial questions throughout this stage.
 
+**Target device(s) — required before any prototype.** Whenever a prototype or mockup will be produced — whether you propose one or the user asks for one — first ask which device(s) it targets (e.g. iPhone 17 · 393×852 pt, or a specific web breakpoint). Build every mockup at that device's real point dimensions and aspect ratio (1:1), never a shrunken or arbitrary frame, so Build implements at true size. If multiple devices, mock the primary one at true size and note the others. Record the answer in design.md's Design Status block (Step 8).
+
 **Autopilot mode:** Skip this step entirely.
 
 ## Step 5: Design Alternatives
@@ -134,6 +136,7 @@ ASCII wireframes where layout matters — not for every screen, only where struc
 
 **Visual companion design rules (when browser is active):**
 - Fidelity matches the question: structural → rough wireframes; look-and-feel → higher fidelity
+- Render at target-device dimensions: every mockup uses the real point size and aspect ratio of the target device captured in Step 4 (1:1, not scaled down), so on-device implementation doesn't need to resize
 - 2–4 options max per screen
 - Use real content: real component names, real copy strings, real data shapes
 - Iterate before advancing: if feedback changes the current screen, write a new version before moving on
@@ -149,6 +152,10 @@ Write to `docs/dev/<feature>/design.md`:
 ```markdown
 # [Feature Name] — Design
 *Branch: feature/xxx · YYYY-MM-DD*
+
+## Design Status
+[**Locked** — Plan and Build must adhere to these dimensions, copy, and layout exactly. | **Directional** — conveys intent; Plan/Build may adapt specifics.]
+Target device(s): [e.g. iPhone 17 · 393×852 pt]. Any prototype/mockup was built at these dimensions (1:1).
 
 ## Design Decision
 [Which alternative was selected and why]
@@ -178,6 +185,7 @@ After writing design.md:
 2. Is every new component justified by the component policy?
 3. Is copy present for every interactive element?
 4. Are any sections contradicted by the spec?
+5. Is Design Status set (Locked or Directional), and — if a prototype/mockup exists — does it name the target device it was built at?
 
 Fix any issues inline. No need to re-review after fixing.
 
@@ -203,6 +211,8 @@ Please review it and let me know if you'd like any changes before we move to Pla
 Safe to /clear now — resume with: /dev:plan docs/dev/<feature>/design.md
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
+
+Confirm **Design Status** before moving on: is this design **locked** (Plan and Build must follow it exactly) or **directional** (Plan may adapt specifics)? Record it in the Design Status block so Plan knows how strictly to follow it.
 
 Wait for explicit user approval. If changes requested: update design.md, re-run Step 9, re-commit.
 
