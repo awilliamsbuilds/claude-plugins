@@ -291,6 +291,38 @@ This helps avoid category clichés.
 
 ## Generation Process
 
+### Step 0: Establish the register (do this first, before generating)
+
+**"Delightful to say" spans three registers, and they produce completely
+different names. Pin the register down before generating a single name** —
+otherwise you will drift toward the invented end (the examples in this skill,
+and most famous brand names, live there), present a list, and discover only
+after several rounds that the person wanted something else entirely.
+
+The three registers:
+
+| Register | What it means | Examples |
+|---|---|---|
+| **Real / common** | Everyday dictionary words anyone can spell and pronounce on sight | Streak, Boulder, Stripe, Slack, Notion |
+| **Real / rare** | Real words, but uncommon or evocative — may need a glance to spell | Vesper, Quarry, Halcyon, Ember |
+| **Invented / borrowed** | Coined, root-derived, or foreign words | Sonos, Dasani, Brio, Koa, Vercel |
+
+**Ask the person which register they want before generating.** If they don't
+know, offer a few examples from each (as above) and let them point. A one-line
+question here saves entire rounds of rejected names.
+
+Also capture at this step:
+
+- **Hard spellability bar?** "Anyone can spell it after hearing it once" rules
+  out the invented and rare registers almost entirely. Do not quietly ignore it.
+- **Hard constraints that gate generation** — e.g. "must be a single English
+  word," "must avoid a specific competitor." Treat these as filters applied
+  *during* generation, not as a final screen after the person already likes a name.
+
+Once the register and any hard constraints are set, keep every subsequent round
+inside them. If you find yourself generating smooth invented words after the
+person asked for plain English, stop — you have left the register.
+
 ### Step 1: Define the target feeling
 
 Do not start with words. Start with the desired sensation.
