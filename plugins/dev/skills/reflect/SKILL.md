@@ -110,3 +110,14 @@ Wait for explicit "yes" before touching any skill file. If "no", record the sugg
 If "yes": read the current SKILL.md, make the minimal targeted change, show the diff, ask for final confirmation before writing.
 
 **Never update a skill file without two explicit confirmations: one to proceed with the update, one after seeing the diff.**
+
+### Skill edits go through the plugins repo — always
+
+Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source of truth. Never leave a skill improvement as a local cache-only edit. Once the two confirmations are in and the change is written, port it to the source repo and open a PR — this is the standing process, not a per-cycle choice:
+
+1. Locate the source repo (the `local-plugins` marketplace checkout, e.g. `~/Development/claude-plugins`). The skill lives at `plugins/<plugin>/skills/<skill>/SKILL.md`.
+2. Create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, push, and open a PR with `gh`.
+3. Keep the deployed cache copy and the repo copy identical so the running skill matches what's under review.
+4. Tell the user the PR URL and that changes take effect after merge + `/plugin update`.
+
+If the source repo can't be found, ask the user where it lives rather than leaving the edit cache-only.
