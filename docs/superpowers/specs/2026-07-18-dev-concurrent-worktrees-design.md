@@ -140,22 +140,35 @@ where the commands execute.
 ### 7. `dev:done` — merge, main-commits, teardown (single worktree lifecycle)
 
 Rather than spawn a second ephemeral worktree for the post-merge `main` commits, `done`
-**reuses the cycle worktree by flipping it to the integration branch** after merge.
-`<integration>` = `main` (top-level) or the parent feature's branch (nested).
+**reuses the cycle worktree, positioning it at the integration tip via a detached HEAD**
+after merge. `<integration>` = `main` (top-level) or the parent feature's branch (nested).
 
-1. `git -C "$WORKDIR" fetch origin`
-   `git -C "$WORKDIR" checkout <integration>` — moves the worktree off the feature
-   branch so it is no longer checked out anywhere, letting `--delete-branch` succeed.
-2. `gh pr merge <n> --merge --delete-branch --head <feature>` — merges, deletes remote +
-   local feature branch.
-3. `git -C "$WORKDIR" pull --ff-only origin <integration>` — now includes the merge.
+A detached HEAD (not `git checkout <integration>`) is essential: `<integration>` is
+normally `main`, which is checked out in the primary tree, and git forbids the same branch
+in two worktrees — a plain checkout would fail (`fatal: 'main' is already used by worktree`).
+Detaching sidesteps the collision and still lets `--delete-branch` remove the feature branch.
+
+**Worktree cycle (normal):**
+1. `git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" checkout --detach` — frees the
+   feature branch (detached, no branch-collision).
+2. `( cd "$WORKDIR" && gh pr merge <n> --merge --delete-branch )` — merges, deletes remote
+   + local feature branch. (No `--head`: that flag exists on `gh pr create`, not `gh pr
+   merge`, where it errors.)
+3. `git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" checkout --detach origin/<integration>`
+   — detached at the merged integration tip.
 4. Component Registry (Step 4), decision log (Step 5), retrospective (Step 6),
-   product-plan (Step 3), and working-dir cleanup (Step 7) all commit in `$WORKDIR` on
-   `<integration>`; each push uses **rebase-on-reject** (`git pull --rebase` then retry)
-   to tolerate a concurrent `done` racing on `main`.
-5. `git -C "$PRIMARY" worktree remove "$WORKDIR" && git -C "$PRIMARY" worktree prune` —
-   teardown is owned by `done`. The old "defer worktree cleanup to an explicit
-   `ExitWorktree`" model is dropped, since worktrees are now internal and always-on.
+   product-plan (Step 3), and working-dir cleanup (Step 7) all commit in `$WORKDIR` and
+   push via one helper using an explicit refspec: `git push origin HEAD:<integration>`,
+   with **rebase-on-reject** (`fetch` + `rebase origin/<integration>` + re-push) to tolerate
+   a concurrent `done` racing on `main`. The `HEAD:<integration>` refspec works with a
+   detached HEAD and never requires checking the branch out.
+5. `git -C "$PRIMARY" worktree remove --force "$WORKDIR" && git -C "$PRIMARY" worktree prune`
+   — teardown is owned by `done`. The old "defer to `ExitWorktree`" model is dropped.
+
+**Legacy in-place cycle** (`worktreePath` null, `WORKDIR` = primary tree): no second
+worktree exists, so a plain `git checkout <integration>` + `pull --ff-only` is safe; the
+same `HEAD:<integration>` push helper applies. The mergeability guard also tolerates
+GitHub's async `UNKNOWN` result (re-query rather than STOP).
 
 ### 8. `dev:autopilot` and `dev:fix`
 
@@ -213,6 +226,7 @@ Repo config for this repository: `.gitignore` (+ `.dev-worktrees/`), `docs/dev/c
 - **Posture:** isolate every cycle (worktree-always), not detect-and-adapt or guard-and-refuse.
 - **Mechanism:** raw `git worktree`, no harness-tool dependency, no shared-tree fallback.
 - **Location:** gitignored `.dev-worktrees/<feature>/` inside the repo (aids discovery).
-- **Main commits:** reuse the cycle worktree flipped to the integration branch, not a
-  separate ephemeral worktree.
+- **Main commits:** reuse the cycle worktree at a **detached HEAD** on the integration tip
+  (not a `git checkout` of the branch, which collides with the primary tree's `main`), and
+  push via a `HEAD:<integration>` refspec. Not a separate ephemeral worktree.
 - **Teardown:** owned by `dev:done`, automatic.

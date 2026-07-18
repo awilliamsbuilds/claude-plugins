@@ -569,3 +569,36 @@ git commit -m "dev — consistency sweep for worktree isolation" || echo "nothin
 - **Spec coverage:** §1 layout→Task 1; §2 WORKDIR/cwd-independence→canonical block + Tasks 4–10; §3 discovery→Task 9; §4 spec worktree→Task 2; §5 build/shape/plan/validate→Tasks 4–6; §6 gh→Task 7; §7 done lifecycle→Task 8; §8 autopilot/fix→Tasks 3,10; §9 init→Task 1; edge cases (nested→Tasks 2/8; in-repo gitignore→Tasks 1/11; concurrent-done race→Task 8 rebase helper; resume-from-elsewhere→Task 9/canonical block; add-fails→Task 2; legacy null→every task's fallback) all covered; verification plan→Task 11.
 - **Placeholder scan:** none — every edit shows exact old/new text or an exact grep-located target with the replacement form.
 - **Type/name consistency:** `PRIMARY`, `WORKDIR`, `INTEGRATION`, `worktreePath`, `worktree_root`, `.dev-worktrees` used identically across all tasks; the canonical WORKDIR block is defined once and reused verbatim.
+
+---
+
+## Post-implementation corrections (final whole-branch review)
+
+The opus whole-branch review caught three **plan-level** defects that grep-only task
+verification missed (all fixed in commit `640fe5d`, empirically dogfooded):
+
+1. **Task 8 Step 2 — `gh pr merge --head` is invalid.** `--head` exists on `gh pr create`,
+   not `gh pr merge` (errors `unknown flag`). Removed; the positional `<pr-number>`
+   identifies the PR.
+2. **Task 8 Step 2 — flipping the worktree with `git checkout <integration>` collides.**
+   `<integration>` (`main`) is normally checked out in the primary tree, and git forbids the
+   same branch in two worktrees, so the checkout fails on the common path. Fixed: worktree
+   cycles use `git checkout --detach` (free the feature branch) then
+   `git checkout --detach origin/<integration>` (position at the merged tip), and push via
+   `git push origin HEAD:<integration>`. Legacy in-place cycles keep the plain branch
+   checkout (no second worktree to collide with). Verified: `checkout --detach origin/main`
+   succeeds while `main` is live in the primary; `push HEAD:main` refspec targets `main`.
+3. **Tasks 2 & 3 — `git worktree add -b <branch>` had no start-point.** It defaults to the
+   primary's current HEAD, so a top-level cycle started while the primary is on another
+   branch inherits the wrong base. Fixed: append `origin/main`. Verified the new branch
+   bases on `origin/main` regardless of the primary tree's branch.
+
+Also handled: the mergeability guard now tolerates GitHub's async `UNKNOWN` result.
+
+**Known minor limitations (accepted, not blocking):** `worktree_root` config is written by
+`dev:init` but unused (stages hardcode `.dev-worktrees`, which equals the default);
+`dev:reflect` invoked standalone *after* `dev:done` has torn down the cycle can't resolve a
+WORKDIR (the artifacts are gone) — the `done`-invoked path is fine. The **product-plan
+pre-worktree commit** (`spec` L62-63, committed to `main`/parent from the primary tree
+before the cycle worktree exists) remains a deferred design question for product-scale
+cycles — it needs the same detached-HEAD-or-ephemeral treatment as `dev:done`.
