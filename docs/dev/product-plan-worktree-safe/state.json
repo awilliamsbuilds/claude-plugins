@@ -52,7 +52,7 @@
   "metrics": {
     "spec_questions_asked": 1,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 1,
     "stage_timestamps": {
       "spec_start": "2026-07-18T18:18:37Z",
       "spec_end": "2026-07-18T18:23:41Z"

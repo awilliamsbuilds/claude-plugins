@@ -44,7 +44,7 @@ Before any questions, assess the scope of the request.
 2. Map the product into sub-features grouped by milestone
 3. **Standard mode:** Show the milestone map in the visual companion browser — "Here's how I'd break this down. Does this structure look right?"
 4. **Autopilot mode:** Self-review the breakdown for completeness, continue without browser
-5. Determine the target file using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Record in that file:
+5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content — item 6 writes it **into the ephemeral worktree**, never into the primary tree:
    ```markdown
    # [Product Name] — Product Plan
    *Created: YYYY-MM-DD · Cycles completed: 0/N*
@@ -56,12 +56,25 @@ Before any questions, assess the scope of the request.
    ## Milestone 2: [Name]
    - [ ] feature-name (feature)
    ```
-   If the target file already exists, append as a new milestone rather than overwriting.
-6. Commit the product plan — to `main` if top-level (not a feature branch yet); to the parent feature's own branch if nested (that branch is already checked out, per Step 1's nesting-detection check 2):
+   If a product plan already exists, append as a new milestone rather than overwriting (the ephemeral worktree in item 6 starts from `origin/$INTEGRATION`, so any existing plan is already present to append to).
+6. **Land the product plan on the integration branch** (shared procedure — Step 4's decomposition path reuses it). Define `$INTEGRATION` the same way `dev:done` does: `main` for a top-level plan; for a nested plan, the parent feature's branch (read from `docs/dev/<parent>/state.json.branch`). Committing from the primary tree with a bare `git add`/`git commit` is unsafe under the worktree model — a concurrent session may have moved the primary off `main`, and a commit that only reaches *local* `main` is invisible to the cycle worktree (Step 6 creates it from `origin/main`). Instead land the plan on `origin/$INTEGRATION` through an **ephemeral detached worktree**, then let Step 6's `fetch` pick it up:
    ```bash
-   git add docs/dev/product-plan.md   # or docs/dev/<parent>/product-plan.md if nested
-   git commit -m "docs: record product plan for <product-name>"
+   PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+   git -C "$PRIMARY" fetch origin
+   TMP="$PRIMARY/.dev-worktrees/_planroot-<feature-name>"
+   git -C "$PRIMARY" worktree add --detach "$TMP" "origin/$INTEGRATION"
+   # Write/append the item-5 content INSIDE $TMP — never the primary tree:
+   #   $TMP/docs/dev/product-plan.md            (top-level)
+   #   $TMP/docs/dev/<parent>/product-plan.md   (nested)
+   git -C "$TMP" add <product-plan-path>
+   git -C "$TMP" commit -m "docs: record product plan for <product-name>"
+   git -C "$TMP" push origin "HEAD:$INTEGRATION" || {
+     git -C "$TMP" fetch origin && git -C "$TMP" rebase "origin/$INTEGRATION" && git -C "$TMP" push origin "HEAD:$INTEGRATION"
+   }
+   git -C "$PRIMARY" worktree remove --force "$TMP"
+   git -C "$PRIMARY" worktree prune
    ```
+   The `push … || { fetch; rebase; push }` fallback handles a concurrent non-fast-forward push (identical to `dev:done`'s `push_integration`). If the push fails for another reason (auth, network), STOP and report — but still run the `worktree remove`/`prune` first so no half-created cycle is left behind. Step 6 stays unchanged: its `git -C "$PRIMARY" fetch origin` before `worktree add … origin/main` already picks up the pushed plan.
 7. Ask: "Which feature should we start with? I'd suggest [Milestone 1 first item]."
 8. Proceed with the chosen feature as a normal feature-scale spec
 
@@ -80,11 +93,10 @@ Record `cycle_type: "feature" | "architecture"` in state.json.
 
 For feature-scale: check if the single request describes multiple independent sub-features (e.g., "add auth, billing, and analytics"). If so, flag it: "This covers N independent things — each needs its own /dev cycle. Which should we start with?" — and, before asking, **write the decomposition to a product plan** rather than letting it live only in conversation memory:
 
-- If the Nesting Detection result from Step 1 found a parent feature: write/update `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones).
-- Otherwise: write/update the top-level `docs/dev/product-plan.md`.
-- Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If the target file already exists, append the new items as a new milestone — don't overwrite existing ones.
-- **Commit it immediately, before proceeding** — same as Step 2's product-scale path: `git add` the file and `git commit -m "docs: record product plan for <product-name>"` (to `main` if top-level, to the parent's branch if nested — that branch is already checked out). This must happen now, not deferred to Step 6 — uncommitted files in the original directory stay there when the worktree is created, so product-plan.md must be committed to be available in the new worktree.
-- This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable, committed artifact.
+- Target path: if the Nesting Detection result from Step 1 found a parent feature, `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones); otherwise the top-level `docs/dev/product-plan.md`.
+- Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If a product plan already exists, append the new items as a new milestone — don't overwrite existing ones.
+- **Land it before proceeding, using Step 2 item 6's product-plan push procedure** — run that ephemeral-worktree procedure above (with `$INTEGRATION` = `main` if top-level, the parent's branch if nested) rather than a bare `git add`/`git commit`. This must happen now, not deferred to Step 6: the cycle worktree is created from `origin/main`, so the plan has to reach `origin/$INTEGRATION` first to be visible in the new worktree. Committing from the primary tree would also assume it's still on `main`, which a concurrent session may have changed.
+- This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable artifact on `origin/$INTEGRATION`.
 
 As questions surface requirements throughout this stage: when a requirement isn't essential to the stated goal, name it explicitly and ask: "Is [requirement] in scope for this cycle?" Default to out.
 
