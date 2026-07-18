@@ -63,11 +63,10 @@ If multiple sessions: list them all, ask which one to continue with.
 - **Resume:** proceed to the current stage (read from state.json `stage`). Resume resolves
   `WORKDIR` via the canonical block (worktree first, else primary) before proceeding to the
   stage — the user is never asked to `cd`.
-- **Restart:** delete the cycle's state.json and `docs/dev/<feature>/`, then if `worktreePath` is
-  set, `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` and `worktree prune`;
-  start over from spec.
-- **Abandon:** same worktree removal; the feature branch was checked out only in that worktree, so
-  removing it frees the branch — then `git -C "$PRIMARY" branch -D <branch>`; exit.
+- **Restart:** delete the cycle's state.json and `docs/dev/<feature>/` from the resolved WORKDIR (the worktree if `worktreePath` is set, else the primary tree). If `worktreePath` is set, run `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — which also removes the worktree's copy of `docs/dev/<feature>/`. Start over from spec.
+- **Abandon:** remove this cycle entirely, then exit.
+  - If `worktreePath` is set: `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — this deletes the worktree (including its `docs/dev/<feature>/` and state.json) and frees the feature branch, which was checked out only there; then delete it with `git -C "$PRIMARY" branch -D <branch>`.
+  - If `worktreePath` is null (legacy in-place cycle): delete `$PRIMARY/docs/dev/<feature>/` (state.json included). The feature branch is the primary tree's current checkout, so it cannot be deleted from here — tell the user to delete it manually after switching branches, rather than switching their tree for them.
 
 **If no in-progress session found:** proceed to Step 4.
 
