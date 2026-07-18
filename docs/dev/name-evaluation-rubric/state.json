@@ -3,8 +3,8 @@
   "feature": "name-evaluation-rubric",
   "branch": "feature/name-evaluation-rubric",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-16T01:38:05Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/name-evaluation-rubric/plan.md",
     "validation": "docs/dev/name-evaluation-rubric/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/27",
+    "pr_number": 27
   },
   "validate": {
     "loops_run": 1,
@@ -50,7 +50,8 @@
       "build_start": "2026-07-18T02:37:46Z",
       "build_end": "2026-07-18T02:40:57Z",
       "validate_start": "2026-07-18T02:41:58Z",
-      "validate_end": "2026-07-18T02:45:59Z"
+      "validate_end": "2026-07-18T02:45:59Z",
+      "pr_created": "2026-07-18T02:47:39Z"
     }
   }
 }
