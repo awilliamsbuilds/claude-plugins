@@ -7,6 +7,21 @@ description: "Stage 6 of the /dev workflow. Opens a pull request with a descript
 
 **Announce:** "I'm using dev:pr to open the pull request."
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 ## Purpose
 
 Open the PR with a description that tells the full story of the feature cycle — what was built, how it was designed, and how it was validated.
@@ -90,8 +105,8 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 4. Prepend the new entry to the changelog file (newest at top). Stage and commit:
    ```bash
-   git add <changelog-path>
-   git commit -m "chore: update changelog for <feature>"
+   git -C "$WORKDIR" add <changelog-path>
+   git -C "$WORKDIR" commit -m "chore: update changelog for <feature>"
    ```
 
 5. Note in the exit display: `Changelog updated: <path>` (include new version if versioned).
@@ -100,24 +115,26 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 Push the branch if not already pushed:
 ```bash
-git push -u origin <branch-name>
+git -C "$WORKDIR" push -u origin <branch-name>
 ```
 
 **Determine the target branch:** if `state.json.parentFeature` is set (this is a nested sub-milestone), the target is the parent feature's own branch — read the parent's `docs/dev/<parentFeature>/state.json.branch` field to get its exact name. Otherwise (top-level cycle), the target is `main`, as today.
 
 **If nested, the target branch must exist on the remote before `gh pr create` can target it — push it first if it isn't already there:**
 ```bash
-git push origin <parent-branch>   # no-op if already up to date remotely
+git -C "$WORKDIR" push origin <parent-branch>   # no-op if already up to date remotely
 ```
 A nested cycle's PR happens before its parent's own `dev:pr` stage runs (the parent hasn't pushed yet at that point), so this step cannot be skipped — assume the parent branch needs pushing rather than checking first.
 
-Open the PR using the `gh` CLI:
+Open the PR using the `gh` CLI (run inside the worktree with explicit head):
 ```bash
-gh pr create \
-  --title "<feature-name>: [one-sentence summary from spec Intent]" \
-  --body "[PR description from Step 2]" \
-  --base "<target-branch>"
+( cd "$WORKDIR" && gh pr create \
+    --title "<feature-name>: [one-sentence summary from spec Intent]" \
+    --body "[PR description from Step 2]" \
+    --base "<target-branch>" \
+    --head "<branch-name>" )
 ```
+`gh` has no `-C` flag; running it inside `$WORKDIR` with an explicit `--head` avoids the wrong-head bug where `gh` infers the head from whatever branch the shared tree happens to be on.
 
 Capture the PR URL from the output.
 
@@ -131,9 +148,9 @@ Update state.json:
 - Record `metrics.stage_timestamps.pr_created` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in
 
 ```bash
-git add docs/dev/<feature>/state.json
-git commit -m "pr: open PR for <feature> — [PR URL]"
-git push
+git -C "$WORKDIR" add docs/dev/<feature>/state.json
+git -C "$WORKDIR" commit -m "pr: open PR for <feature> — [PR URL]"
+git -C "$WORKDIR" push
 ```
 
 In standard mode, display:
