@@ -509,7 +509,7 @@ Do not rely only on exact matches. Look for similarity in:
 - Category.
 - Visual impression.
 
-What this pass turns up feeds the **Ownability gate** in *Meaning & Strategic Fit* as a soft modifier: heavy clutter in the project's categories routes an otherwise-strong name to "advance only with real trademark review," not to an automatic kill.
+What this pass turns up feeds the **Ownability gate** in *Meaning & Strategic Fit* as a soft modifier: heavy clutter in the project's categories routes an otherwise-strong name to "advance only with trademark review," not to an automatic kill.
 
 ### Step 10: Choose the name with the best total experience
 
@@ -576,7 +576,7 @@ The classic failure is a *mismatch with the target*, not "soft ending = weak":
 
 If the target feeling is soft, a soft onset *and* a soft coda is exactly right; nothing about an open ending is a weakness on its own.
 
-**Futuristic letters (X / Z / K / V):** these add a techy/futuristic edge that is on-target for some feelings and reads artificial or dated in excess. Use them deliberately, matched to the target — not as a default source of "energy."
+**Futuristic letters (X / Z / K / V):** as *spellings* (distinct from the phoneme sensations in the table above), these add a techy/futuristic edge that is on-target for some feelings and reads artificial or dated in excess. Use them deliberately, matched to the target — not as a default source of "energy."
 
 The per-vowel qualities in the **Open vowel sounds** subsection (under "What Makes a Name Feel Good to Say") still apply and are consistent with the front/back vowel rows above — no need to restate them here.
 
@@ -601,7 +601,7 @@ Flag when a name sounds tool- or feature-sized rather than platform-sized — a 
 
 ### Ownability gate
 
-A trademark + marketplace-clutter read in **the categories relevant to this project** — not a fixed AI/fintech/security list, but whatever categories this name actually competes in. Apply it as a *modifier on an otherwise-strong name*, not a first-class score: a strong name sitting in a crowded space routes to "advance only with real trademark review," never an automatic kill. This builds on **Step 9: Check marketplace friction** — Step 9 gathers the signal, this gate interprets it as a soft modifier. Don't re-run Step 9's checklist here.
+A trademark + marketplace-clutter read in **the categories relevant to this project** — not a fixed AI/fintech/security list, but whatever categories this name actually competes in. Apply it as a *modifier on an otherwise-strong name*, not a first-class score: a strong name sitting in a crowded space routes to "advance only with trademark review," never an automatic kill. This builds on **Step 9: Check marketplace friction** — Step 9 gathers the signal, this gate interprets it as a soft modifier. Don't re-run Step 9's checklist here.
 
 ### Balanced-sheet verdict (optional presentation format)
 

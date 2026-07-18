@@ -16,9 +16,10 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "p1_open": [], "p2_open": [], "p3_open": [],
+    "nits_open": ["New Sound Symbolism / Meaning & Strategic Fit sections sit after the Scoring Template, so Step 4 and Step 9 forward-reference them — locality only, not a defect (surfaced, not fixed)"]
   },
   "confidence": {
     "final_score": 88,
