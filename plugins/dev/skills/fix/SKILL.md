@@ -82,7 +82,7 @@ Example: issue "ENG-123: Fix broken logout button on mobile" → `fix/ENG-123-fi
 ```bash
 PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
 git -C "$PRIMARY" fetch origin
-git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/ENG-123-<short-title>" -b fix/ENG-123-<short-title>
+git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/ENG-123-<short-title>" -b fix/ENG-123-<short-title> origin/main
 # WORKDIR="$PRIMARY/.dev-worktrees/ENG-123-<short-title>" for the rest of the cycle
 ```
 

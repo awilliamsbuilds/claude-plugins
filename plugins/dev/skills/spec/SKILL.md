@@ -122,11 +122,12 @@ primary checkout and create the worktree there:
 
     PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
     git -C "$PRIMARY" fetch origin
-    git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch>
+    git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch> origin/main
 
 `<branch>` is `feature/<feature-name>` (Standard/Deep), `fix/<feature-name>` (Micro), or
 `arch/<feature-name>` (architecture). Top-level cycles branch from `origin/main` (the
-`worktree add -b` above; `origin/main` is current because of the fetch). For a **nested**
+`worktree add -b` above; the explicit `origin/main` start-point makes the new branch start
+from the fetched main tip regardless of what branch the primary tree is on). For a **nested**
 cycle (Step 1's Nesting Detection found a parent), point the new branch at the parent's
 HEAD instead — immediately after the worktree is created:
 

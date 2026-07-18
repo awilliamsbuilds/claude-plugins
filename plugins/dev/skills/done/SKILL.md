@@ -67,25 +67,37 @@ PR can't be merged automatically. Reason: [conflict / pending reviews].
 Resolve in GitHub, then run /dev:done again.
 ```
 
-Only when that check is clean, flip the worktree onto `$INTEGRATION` and merge:
+GitHub computes mergeability asynchronously, so immediately after PR creation the result can be `UNKNOWN`/`null` — if so, wait a few seconds and re-query; only STOP on a definite conflicting or blocked state, not on `UNKNOWN`.
+
+Only when that check is clean, free the feature branch and position on the integration tip. The steps differ by cycle type:
+
+**Worktree cycle** (`worktreePath` set — the normal case). Use a detached HEAD so the feature branch can be deleted and commits can be made toward `$INTEGRATION` WITHOUT checking out `$INTEGRATION` (which is usually checked out in the primary tree — git forbids the same branch in two worktrees):
 
 ```bash
 git -C "$WORKDIR" fetch origin
-git -C "$WORKDIR" checkout "$INTEGRATION"          # move the worktree off the feature branch
-gh_merge() { ( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch --head "<branch-name>" ); }
-gh_merge
-git -C "$WORKDIR" pull --ff-only origin "$INTEGRATION"   # now includes the merge
+git -C "$WORKDIR" checkout --detach                       # frees the feature branch; no branch-collision
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+git -C "$WORKDIR" fetch origin
+git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the merged integration tip
 ```
 
-This merges with a merge commit and deletes the remote branch.
+**Legacy in-place cycle** (`worktreePath` null, `WORKDIR` = the primary tree). There is no second worktree, so a normal branch checkout is safe:
 
-All post-merge commits in this stage (Steps 3–5, 7) land in `$WORKDIR` on `$INTEGRATION` and
-push through one helper, defined once and reused for every push:
+```bash
+git -C "$WORKDIR" fetch origin
+git -C "$WORKDIR" checkout "$INTEGRATION"
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+git -C "$WORKDIR" pull --ff-only origin "$INTEGRATION"
+```
+
+This merges with a merge commit and deletes the remote + local feature branch.
+
+All post-merge commits in this stage (Steps 3–5, 7) are made in `$WORKDIR` and pushed to `$INTEGRATION` through one helper, defined once and reused for every push. It pushes via an explicit `HEAD:$INTEGRATION` refspec, which works whether `HEAD` is detached (worktree cycle) or on the branch (legacy):
 
 ```bash
 push_integration() {
-  git -C "$WORKDIR" push origin "$INTEGRATION" || {
-    git -C "$WORKDIR" pull --rebase origin "$INTEGRATION" && git -C "$WORKDIR" push origin "$INTEGRATION"
+  git -C "$WORKDIR" push origin "HEAD:$INTEGRATION" || {
+    git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" rebase "origin/$INTEGRATION" && git -C "$WORKDIR" push origin "HEAD:$INTEGRATION"
   }
 }
 ```
