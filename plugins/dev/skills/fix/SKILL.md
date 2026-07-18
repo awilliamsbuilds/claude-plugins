@@ -80,8 +80,13 @@ Where `short-title` is kebab-case derived from the issue title (2-4 words, strip
 Example: issue "ENG-123: Fix broken logout button on mobile" → `fix/ENG-123-fix-logout-button`
 
 ```bash
-git checkout -b fix/ENG-123-<short-title>
+PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+git -C "$PRIMARY" fetch origin
+git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/ENG-123-<short-title>" -b fix/ENG-123-<short-title>
+# WORKDIR="$PRIMARY/.dev-worktrees/ENG-123-<short-title>" for the rest of the cycle
 ```
+
+This mirrors `dev:spec` Step 6 — the cycle is isolated in its own worktree from the start; `worktreePath` is recorded when spec initializes state.json. No shared-tree fallback.
 
 ## Step 4: Store Linear Issue Reference
 
