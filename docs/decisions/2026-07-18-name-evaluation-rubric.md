@@ -21,3 +21,14 @@ Folded Lexicon's name-*evaluation* methodology into the `craft-name` skill so it
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 1f801bdec0e90d3bd4ed76f137562309302de4bc on branch feature/name-evaluation-rubric
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-18*
+
+**Spec:** Confidence 88% (Ready) matched actual clarity — Build needed no plan updates and Validate came back clean, so the score wasn't inflated. The two auto-filled dimensions (happy_path, dependencies) were both correct: happy_path was fully inferable from the skill's own existing process, and dependencies were genuinely trivial (single-file, input-only source). 3 questions asked, well under the 10 cap — appropriate for a well-scoped single-file change.
+**Shape:** Skipped — correct call (Markdown skill-content change, no UI surface).
+**Plan:** Accurate, no mid-build updates. The four tasks were correctly ordered as sequential edits to one file with only Task 4 carrying a true logical dependency; `files_read_in_build` = 2 (SKILL.md + state) confirms the plan was specific enough that Build didn't need to go hunting.
+**Validate:** 1 / 3 loops — clean after one loop (2 Nits fixed, 1 surfaced-and-accepted). The diff-only fresh-subagent framing worked well: reviewers caught real label-drift and a phoneme/letter conflation without the benefit of session history. No P1/P2 slipped through — consistent with a prose-only diff.
+**Flow:** Standard tier was right — enough conceptual surface (generalization principle, three gates, reconciliation risk) to warrant real Plan/Validate stages, not Micro. No unnecessary stages. Active work (plan_start → validate_end) was ~19 min; the ~2-day spec span was wall-clock gap, not effort.
+**Token efficiency:** No outliers. `files_read_in_build` = 2 is minimal; `visual_screens_shown` = 0 as expected for a no-UI cycle. `stage_timestamps` fully populated.
+**Suggestions:** One process observation, not a skill-edit request: this cycle ran entirely against a live concurrent session that owned the working tree on another branch, forcing every write (pr state.json, and all of done's main-branch commits) into isolated `git worktree`s. The dev:pr / dev:done skills assume the feature branch (or main) is the checked-out tree and use bare `git`/`git branch -d`; they have no guidance for the concurrent-session case. Worth considering whether dev:pr/dev:done should detect "current branch != expected branch" and either warn or default to a worktree. Deferred — not editing a skill from inside a cross-branch run.
