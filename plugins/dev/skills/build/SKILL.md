@@ -18,6 +18,21 @@ This skill supersedes `superpowers:test-driven-development` and `superpowers:sys
 **Anti-Pattern: "The Plan Needs Updates, I'll Just Do It While Building."**
 If implementation reveals the plan needs changes, stop, update plan.md, commit the update, then continue. Plan and code stay in sync.
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 ## Step 1: Artifact Gate
 
 May be invoked with an artifact-path argument (`plan.md` path, or `spec.md` for Micro tier). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments — matching the kebab-case convention feature names are always created with (see `dev:spec`'s "derive from the stated intent, kebab-case"). If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
@@ -56,7 +71,7 @@ Build is complete when:
 - Third-party integrations where test setup is disproportionately complex: comment the tradeoff in the code
 
 **When a Test Fails Unexpectedly:**
-If a test fails that you didn't expect to fail — not the TDD red-phase, but an existing test breaking, or a new test failing for a reason other than "not implemented yet" — stop before patching. Read the full error and stack trace. Check what changed since it last passed (`git diff`, recent commits). Form one specific hypothesis for the cause. Make the smallest change that tests that hypothesis. If it doesn't resolve it, form a new hypothesis rather than stacking a second change on top of the first.
+If a test fails that you didn't expect to fail — not the TDD red-phase, but an existing test breaking, or a new test failing for a reason other than "not implemented yet" — stop before patching. Read the full error and stack trace. Check what changed since it last passed (`git -C "$WORKDIR" diff`, recent commits). Form one specific hypothesis for the cause. Make the smallest change that tests that hypothesis. If it doesn't resolve it, form a new hypothesis rather than stacking a second change on top of the first.
 
 If 3 hypotheses fail: stop — this is a genuine blocker, not a symptom to keep patching. In standard mode, surface the 3 failed hypotheses to the user and wait for guidance; do not attempt a 4th fix unprompted. If the user's guidance points to the plan or approach being wrong rather than the code, follow the Backtrack Trigger (Step 4) to correct plan.md before continuing. **Autopilot mode:** this is one of autopilot's genuine-blocker stop conditions (see `dev:autopilot` Step 2) — stop and surface the failed hypotheses rather than attempting a 4th fix.
 
@@ -81,8 +96,8 @@ What this enables, what it forecloses, what it requires next.
 
 Each plan task corresponds to one decision document. Commit per document:
 ```bash
-git add docs/dev/<feature>/<decision>.md
-git commit -m "arch: document <decision title>"
+git -C "$WORKDIR" add docs/dev/<feature>/<decision>.md
+git -C "$WORKDIR" commit -m "arch: document <decision title>"
 ```
 
 Build is complete when all plan tasks are checked off and each major decision has a committed document.
@@ -121,8 +136,8 @@ Update state.json:
 - Record `metrics.stage_timestamps.build_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.build_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
-git add docs/dev/<feature>/state.json
-git commit -m "build: complete <feature> implementation"
+git -C "$WORKDIR" add docs/dev/<feature>/state.json
+git -C "$WORKDIR" commit -m "build: complete <feature> implementation"
 ```
 
 In standard mode, notify:

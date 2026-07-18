@@ -7,6 +7,25 @@ description: "Stage 7 of the /dev workflow. Merges the PR, generates a decision 
 
 **Announce:** "I'm using dev:done to merge, document, and close out the cycle."
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
+Define `INTEGRATION` — the branch this cycle's post-merge commits land on: `main` if
+`state.json.parentFeature` is null; otherwise the parent feature's branch, read from
+`docs/dev/<parentFeature>/state.json.branch`.
+
 ## Purpose
 
 Close the feature cycle: merge the PR, create a permanent decision log, run the retrospective, and clean up.
@@ -35,17 +54,52 @@ Note the pre-merge commit SHA (used in decision log for artifact archiving).
 
 ## Step 2: Merge PR
 
-```bash
-gh pr merge <pr-number> --merge --delete-branch
-```
+First, check mergeability without touching the worktree's checkout:
 
-This merges with a merge commit and deletes the remote branch.
+```bash
+gh pr view <pr-number> --json mergeable,mergeStateStatus
+```
 
 If the PR can't be auto-merged (conflicts or required reviews pending): STOP and display:
 
 ```
 PR can't be merged automatically. Reason: [conflict / pending reviews].
 Resolve in GitHub, then run /dev:done again.
+```
+
+GitHub computes mergeability asynchronously, so immediately after PR creation the result can be `UNKNOWN`/`null` — if so, wait a few seconds and re-query; only STOP on a definite conflicting or blocked state, not on `UNKNOWN`.
+
+Only when that check is clean, free the feature branch and position on the integration tip. The steps differ by cycle type:
+
+**Worktree cycle** (`worktreePath` set — the normal case). Use a detached HEAD so the feature branch can be deleted and commits can be made toward `$INTEGRATION` WITHOUT checking out `$INTEGRATION` (which is usually checked out in the primary tree — git forbids the same branch in two worktrees):
+
+```bash
+git -C "$WORKDIR" fetch origin
+git -C "$WORKDIR" checkout --detach                       # frees the feature branch; no branch-collision
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+git -C "$WORKDIR" fetch origin
+git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the merged integration tip
+```
+
+**Legacy in-place cycle** (`worktreePath` null, `WORKDIR` = the primary tree). There is no second worktree, so a normal branch checkout is safe:
+
+```bash
+git -C "$WORKDIR" fetch origin
+git -C "$WORKDIR" checkout "$INTEGRATION"
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+git -C "$WORKDIR" pull --ff-only origin "$INTEGRATION"
+```
+
+This merges with a merge commit and deletes the remote + local feature branch.
+
+All post-merge commits in this stage (Steps 3–5, 7) are made in `$WORKDIR` and pushed to `$INTEGRATION` through one helper, defined once and reused for every push. It pushes via an explicit `HEAD:$INTEGRATION` refspec, which works whether `HEAD` is detached (worktree cycle) or on the branch (legacy):
+
+```bash
+push_integration() {
+  git -C "$WORKDIR" push origin "HEAD:$INTEGRATION" || {
+    git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" rebase "origin/$INTEGRATION" && git -C "$WORKDIR" push origin "HEAD:$INTEGRATION"
+  }
+}
 ```
 
 ## Step 3: Update Product Plan (if product-scale, top-level or nested)
@@ -57,7 +111,13 @@ For the governing product plan found:
 - Find this feature's line item (match by feature name)
 - Change `- [ ]` to `- [x]`
 - Update the header: increment cycles completed count
-- Commit: `chore: mark <feature> complete in product plan` (to `main` for a top-level plan; to the parent feature's own branch for a nested plan, matching wherever that file already lives)
+- Commit (to `$INTEGRATION` — `main` for a top-level plan, the parent feature's own branch for a nested plan, matching wherever that file already lives):
+
+```bash
+git -C "$WORKDIR" add <file>
+git -C "$WORKDIR" commit -m "chore: mark <feature> complete in product plan"
+push_integration
+```
 
 ## Step 4: Update Component Registry (feature cycles only)
 
@@ -65,13 +125,19 @@ If `cycle_type == "feature"` and the feature added or modified components:
 - Read `CLAUDE.md`
 - Update the `## Component Registry` table: add new components, update modified ones
 - Set "Last updated" date to today
-- Commit to main: `chore: update Component Registry — <feature>`
+- Commit to `$INTEGRATION`:
+
+```bash
+git -C "$WORKDIR" add CLAUDE.md
+git -C "$WORKDIR" commit -m "chore: update Component Registry — <feature>"
+push_integration
+```
 
 For architecture cycles: skip this step.
 
 ## Step 5: Generate Decision Log
 
-Write to `docs/decisions/YYYY-MM-DD-<feature>.md` (committed to main):
+Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEGRATION`):
 
 ```markdown
 # [Feature Name] — Decision Log
@@ -97,18 +163,18 @@ Spec, design, and plan committed at: <pre-merge-sha> on branch feature/<name>
 ```
 
 ```bash
-git add docs/decisions/YYYY-MM-DD-<feature>.md
-git commit -m "docs: add decision log for <feature>"
-git push
+git -C "$WORKDIR" add docs/decisions/YYYY-MM-DD-<feature>.md
+git -C "$WORKDIR" commit -m "docs: add decision log for <feature>"
+push_integration
 ```
 
 ## Step 6: Run dev:reflect
 
-Invoke `dev:reflect` with the full state context. dev:reflect appends its output as `## Retrospective` to the decision log.
+Invoke `dev:reflect` with the full state context. dev:reflect appends its output as `## Retrospective` to the decision log at `$WORKDIR/docs/decisions/<file>.md`, committing and pushing (via `push_integration`) from `$WORKDIR` on `$INTEGRATION`.
 
 Pass to dev:reflect:
 - The full state.json (all metrics)
-- The decision log path
+- The decision log path (`$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md`)
 - The spec, plan, and validation artifact paths
 
 ## Step 7: Clean Up
@@ -116,17 +182,23 @@ Pass to dev:reflect:
 Delete the feature's working directory (all committed artifacts travel with the branch which is now merged):
 
 ```bash
-rm -rf docs/dev/<feature>/
-git add -A docs/dev/<feature>/
-git commit -m "chore: clean up /dev working directory for <feature>"
-git push
+rm -rf "$WORKDIR/docs/dev/<feature>/"
+git -C "$WORKDIR" add -A docs/dev/<feature>/
+git -C "$WORKDIR" commit -m "chore: clean up /dev working directory for <feature>"
+push_integration
 ```
 
-Delete local branch — **only if `state.json.worktreePath` is not set**:
+Then remove the worktree — `done` owns teardown, so this happens now rather than being
+deferred. Run from the primary checkout, not `$WORKDIR` (you can't remove a worktree from
+inside itself):
+
 ```bash
-git branch -d feature/<feature-name>
+git -C "$PRIMARY" worktree remove --force "$WORKDIR"
+git -C "$PRIMARY" worktree prune
 ```
-If `worktreePath` is set, the branch is still checked out inside that worktree — `git branch -d` will fail ("cannot delete branch ... checked out at ..."). Skip this deletion entirely; worktree cleanup (branch included) is deferred to `ExitWorktree`, called explicitly by the user later, per this cycle's design (`/clear` and normal stage completion never call it automatically).
+
+For a **legacy in-place cycle** (`worktreePath` null), there is no worktree to remove — skip
+the removal and, as before, delete the local branch with `git -C "$PRIMARY" branch -d <branch>`.
 
 (Remote branch was deleted in Step 2 by `--delete-branch`.)
 

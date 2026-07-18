@@ -7,6 +7,21 @@ description: "Stage 5 of the /dev workflow. Runs code review and security review
 
 **Announce:** "I'm using dev:validate to review and fix issues before the PR."
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 **First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `validate_start`, recorded in Step 6. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
 
 ## Purpose
@@ -40,7 +55,7 @@ Confirm this matches `validate.loops_max` in state.json. Update if mismatched.
 ### Feature Cycle — Parallel Reviews
 
 Dispatch both reviews as fresh `general-purpose` subagents, in parallel — do not wait for one to complete before starting the other. Each subagent receives only:
-- The diff since Build started (`git diff BASE_SHA..HEAD_SHA`, where `BASE_SHA` is the commit recorded at the end of Plan / start of Build, and `HEAD_SHA` is the current branch tip)
+- The diff since Build started (`git -C "$WORKDIR" diff BASE_SHA..HEAD_SHA`, where `BASE_SHA` is the commit recorded at the end of Plan / start of Build, and `HEAD_SHA` is the current branch tip)
 - `spec.md`'s Success Criteria
 - `plan.md`'s task list (or the Implementation Note for Micro tier)
 - The specific checklist below for its review type
@@ -175,8 +190,8 @@ Update state.json:
 - Set `artifacts.validation` to path
 
 ```bash
-git add docs/dev/<feature>/validation.md docs/dev/<feature>/state.json
-git commit -m "validate: complete validation — N loops, [clean/N issues remain]"
+git -C "$WORKDIR" add docs/dev/<feature>/validation.md docs/dev/<feature>/state.json
+git -C "$WORKDIR" commit -m "validate: complete validation — N loops, [clean/N issues remain]"
 ```
 
 In standard mode, notify:

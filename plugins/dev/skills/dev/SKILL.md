@@ -36,7 +36,9 @@ If present: continue to Step 3.
 
 ## Step 3: Check for In-Progress Session
 
-Scan for `docs/dev/*/state.json` files in the current project.
+Compute `PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")`, then scan for state.json in
+both locations: `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and
+`$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles). Deduplicate by feature name.
 
 **If one or more found:**
 
@@ -58,9 +60,13 @@ Spec ✓  Shape ✓  Plan →  Build  Validate  PR  Done
 If multiple sessions: list them all, ask which one to continue with.
 
 **User choices:**
-- **Resume:** proceed to the current stage (read from state.json `stage`)
-- **Restart:** delete the current state.json and `docs/dev/<feature>/` directory, start over from spec
-- **Abandon:** delete state.json and working directory, delete the feature branch, exit
+- **Resume:** proceed to the current stage (read from state.json `stage`). Resume resolves
+  `WORKDIR` via the canonical block (worktree first, else primary) before proceeding to the
+  stage — the user is never asked to `cd`.
+- **Restart:** delete the cycle's state.json and `docs/dev/<feature>/` from the resolved WORKDIR (the worktree if `worktreePath` is set, else the primary tree). If `worktreePath` is set, run `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — which also removes the worktree's copy of `docs/dev/<feature>/`. Start over from spec.
+- **Abandon:** remove this cycle entirely, then exit.
+  - If `worktreePath` is set: `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — this deletes the worktree (including its `docs/dev/<feature>/` and state.json) and frees the feature branch, which was checked out only there; then delete it with `git -C "$PRIMARY" branch -D <branch>`.
+  - If `worktreePath` is null (legacy in-place cycle): delete `$PRIMARY/docs/dev/<feature>/` (state.json included). The feature branch is the primary tree's current checkout, so it cannot be deleted from here — tell the user to delete it manually after switching branches, rather than switching their tree for them.
 
 **If no in-progress session found:** proceed to Step 4.
 

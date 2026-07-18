@@ -111,6 +111,8 @@ mkdir -p docs/dev
 mkdir -p docs/decisions
 touch docs/dev/.gitkeep
 touch docs/decisions/.gitkeep
+# Ensure /dev worktrees are ignored (create .gitignore if absent; append only if missing)
+grep -qxF '.dev-worktrees/' .gitignore 2>/dev/null || echo '.dev-worktrees/' >> .gitignore
 ```
 
 ### Create or Update CLAUDE.md
@@ -158,6 +160,7 @@ Write to `docs/dev/config.json` in the user's project:
     "spec_max_questions": 10,
     "spec_min_confidence": 85
   },
+  "worktree_root": ".dev-worktrees",
   "changelog": "<detected-path-or-null>",
   "changelog_versioned": "<true-or-false>"
 }
@@ -168,7 +171,7 @@ Set `changelog` to the detected path or `null`. Set `changelog_versioned` to `tr
 ### Commit
 
 ```bash
-git add docs/dev/.gitkeep docs/decisions/.gitkeep docs/dev/config.json CLAUDE.md
+git add docs/dev/.gitkeep docs/decisions/.gitkeep docs/dev/config.json CLAUDE.md .gitignore
 git commit -m "Initialize /dev workflow"
 ```
 

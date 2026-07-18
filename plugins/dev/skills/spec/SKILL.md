@@ -83,7 +83,7 @@ For feature-scale: check if the single request describes multiple independent su
 - If the Nesting Detection result from Step 1 found a parent feature: write/update `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones).
 - Otherwise: write/update the top-level `docs/dev/product-plan.md`.
 - Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If the target file already exists, append the new items as a new milestone — don't overwrite existing ones.
-- **Commit it immediately, before proceeding** — same as Step 2's product-scale path: `git add` the file and `git commit -m "docs: record product plan for <product-name>"` (to `main` if top-level, to the parent's branch if nested — that branch is already checked out). This must happen now, not deferred to Step 6 — if Step 6's worktree offer is accepted, `EnterWorktree` only carries *committed* history into the new worktree; an uncommitted product-plan.md would be silently orphaned in the original directory.
+- **Commit it immediately, before proceeding** — same as Step 2's product-scale path: `git add` the file and `git commit -m "docs: record product plan for <product-name>"` (to `main` if top-level, to the parent's branch if nested — that branch is already checked out). This must happen now, not deferred to Step 6 — uncommitted files in the original directory stay there when the worktree is created, so product-plan.md must be committed to be available in the new worktree.
 - This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable, committed artifact.
 
 As questions surface requirements throughout this stage: when a requirement isn't essential to the stated goal, name it explicitly and ask: "Is [requirement] in scope for this cycle?" Default to out.
@@ -116,19 +116,31 @@ Set `skipped[]` in state.json immediately based on tier:
 
 Create the branch before asking any questions. All artifacts commit to this branch.
 
-**Worktree offer:** first, check whether this feature is an item in *any* product plan — the top-level `docs/dev/product-plan.md`, or (per Step 1's Nesting Detection) a nested `docs/dev/<parent>/product-plan.md`. If it is:
-- **Standard mode:** offer isolation — "This is part of a multi-cycle plan — want me to isolate it in its own worktree? (protects it from other work happening in this directory while it's in progress)" and wait for consent.
-- **Autopilot mode:** auto-accept without asking, per `dev:autopilot`'s no-gate principle (see `dev:autopilot` Step 2) — it's the beneficial, non-destructive default.
-- If accepted: call `EnterWorktree`. If this cycle is top-level (no parent), branch fresh from `origin/main` as the tool defaults to — nothing further needed. If this cycle is nested (Step 1 found a parent feature), the new worktree's branch must instead point at the parent feature's own branch HEAD: read the parent's `state.json.branch` field, then — immediately after `EnterWorktree` creates the new worktree and before any other work happens in it — run `git reset --hard <parent-branch>` inside the new worktree. (`reset --hard`, not `rebase`: the new branch was just created with zero unique commits, so there's nothing to replay — a hard reset onto the parent branch is the simplest unambiguous way to make the new branch start from the parent's current tip.)
-- If `EnterWorktree` is unavailable in this harness, or declined: fall through to the plain-branch behavior below unchanged. `worktreePath` stays `null` either way if not used.
+**Create the cycle worktree (always).** Every cycle runs in its own git worktree so
+concurrent sessions in this repo never contend for the shared working tree. Compute the
+primary checkout and create the worktree there:
 
-```bash
-git checkout -b feature/<feature-name>
-# For Micro: git checkout -b fix/<feature-name>
-# For architecture cycles: git checkout -b arch/<feature-name>
-```
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    git -C "$PRIMARY" fetch origin
+    git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch> origin/main
 
-(Skip this plain `git checkout -b` if a worktree was created above — `EnterWorktree` already created and switched to the branch.)
+`<branch>` is `feature/<feature-name>` (Standard/Deep), `fix/<feature-name>` (Micro), or
+`arch/<feature-name>` (architecture). Top-level cycles branch from `origin/main` (the
+`worktree add -b` above; the explicit `origin/main` start-point makes the new branch start
+from the fetched main tip regardless of what branch the primary tree is on). For a **nested**
+cycle (Step 1's Nesting Detection found a parent), point the new branch at the parent's
+HEAD instead — immediately after the worktree is created:
+
+    git -C "$PRIMARY/.dev-worktrees/<feature-name>" reset --hard <parent-branch>
+
+(read `<parent-branch>` from the parent's `state.json.branch`).
+
+Set `WORKDIR="$PRIMARY/.dev-worktrees/<feature-name>"`. All artifacts and git commands for
+the rest of this cycle run under `$WORKDIR` (`git -C "$WORKDIR" …`). The user's primary
+checkout and shell location are never switched.
+
+If `git worktree add` fails (path exists, disk, etc.), STOP and report the error — never
+fall back to `git checkout -b` in the primary tree.
 
 Feature name: derive from the stated intent, kebab-case, 2-4 words.
 
@@ -188,13 +200,15 @@ Initialize `docs/dev/<feature-name>/state.json`:
 
 If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill those confidence dimensions as true and set initial score accordingly (audience = 5%, technical_constraints = 5%).
 
-Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to the worktree's path if the Worktree Offer above created one (or `null` if working in-place).
+Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
 Commit the initial state.json:
 ```bash
-git add docs/dev/<feature-name>/state.json
-git commit -m "spec: initialize /dev session for <feature-name>"
+git -C "$WORKDIR" add docs/dev/<feature-name>/state.json
+git -C "$WORKDIR" commit -m "spec: initialize /dev session for <feature-name>"
 ```
+
+All subsequent spec commits (spec.md and other artifacts) also use `git -C "$WORKDIR"`.
 
 ## Step 7: Guided Questioning
 
@@ -350,8 +364,8 @@ Update `docs/dev/<feature-name>/state.json`:
 - Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1
 
 ```bash
-git add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
-git commit -m "spec: write spec for <feature-name> (confidence: XX%)"
+git -C "$WORKDIR" add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
+git -C "$WORKDIR" commit -m "spec: write spec for <feature-name> (confidence: XX%)"
 ```
 
 ## Step 12: User Review Gate (Standard mode)
