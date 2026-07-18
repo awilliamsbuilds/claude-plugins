@@ -18,6 +18,21 @@ This skill supersedes `superpowers:test-driven-development` and `superpowers:sys
 **Anti-Pattern: "The Plan Needs Updates, I'll Just Do It While Building."**
 If implementation reveals the plan needs changes, stop, update plan.md, commit the update, then continue. Plan and code stay in sync.
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 ## Step 1: Artifact Gate
 
 May be invoked with an artifact-path argument (`plan.md` path, or `spec.md` for Micro tier). If given, derive `<feature>` from the path instead of requiring it already be known from conversation context. If no argument is given, fall back to today's behavior. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments — matching the kebab-case convention feature names are always created with (see `dev:spec`'s "derive from the stated intent, kebab-case"). If it doesn't match, treat the argument as invalid and fall back to today's behavior rather than using the parsed value.
@@ -81,8 +96,8 @@ What this enables, what it forecloses, what it requires next.
 
 Each plan task corresponds to one decision document. Commit per document:
 ```bash
-git add docs/dev/<feature>/<decision>.md
-git commit -m "arch: document <decision title>"
+git -C "$WORKDIR" add docs/dev/<feature>/<decision>.md
+git -C "$WORKDIR" commit -m "arch: document <decision title>"
 ```
 
 Build is complete when all plan tasks are checked off and each major decision has a committed document.
@@ -121,8 +136,8 @@ Update state.json:
 - Record `metrics.stage_timestamps.build_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.build_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
-git add docs/dev/<feature>/state.json
-git commit -m "build: complete <feature> implementation"
+git -C "$WORKDIR" add docs/dev/<feature>/state.json
+git -C "$WORKDIR" commit -m "build: complete <feature> implementation"
 ```
 
 In standard mode, notify:
