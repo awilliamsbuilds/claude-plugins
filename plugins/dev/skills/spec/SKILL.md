@@ -363,8 +363,8 @@ Update `docs/dev/<feature-name>/state.json`:
 - Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1
 
 ```bash
-git add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
-git commit -m "spec: write spec for <feature-name> (confidence: XX%)"
+git -C "$WORKDIR" add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
+git -C "$WORKDIR" commit -m "spec: write spec for <feature-name> (confidence: XX%)"
 ```
 
 ## Step 12: User Review Gate (Standard mode)

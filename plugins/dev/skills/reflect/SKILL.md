@@ -7,6 +7,23 @@ description: "Retrospective sub-skill. Reviews the completed /dev cycle, surface
 
 **Announce:** "I'm using dev:reflect to review this cycle and surface improvements."
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
+When `dev:reflect` is invoked by `dev:done`, `WORKDIR` is already the cycle worktree flipped to the integration branch — this resolution is idempotent and yields the same directory.
+
 ## Purpose
 
 Look back at the completed cycle, surface what worked and what didn't, and identify actionable improvements to the /dev plugin itself.
@@ -89,9 +106,9 @@ cat >> docs/decisions/YYYY-MM-DD-<feature>.md << 'EOF'
 ...content from Step 3...
 EOF
 
-git add docs/decisions/YYYY-MM-DD-<feature>.md
-git commit -m "docs: append retrospective to <feature> decision log"
-git push
+git -C "$WORKDIR" add docs/decisions/YYYY-MM-DD-<feature>.md
+git -C "$WORKDIR" commit -m "docs: append retrospective to <feature> decision log"
+git -C "$WORKDIR" push
 ```
 
 ## Step 5: Skill Update Gate
