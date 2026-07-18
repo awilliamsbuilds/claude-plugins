@@ -576,6 +576,29 @@ If the target feeling is soft, a soft onset *and* a soft coda is exactly right; 
 
 The per-vowel qualities in the **Open vowel sounds** subsection (under "What Makes a Name Feel Good to Say") still apply and are consistent with the front/back vowel rows above — no need to restate them here.
 
+## Meaning & Strategic Fit: the Read and the Three Gates
+
+Sound is most of the job, but not all of it. Alongside how a name *sounds*, ask what its *meaning* signals — and whether that meaning matches the intended story and the Step 1 target feeling. A name can be phonetically excellent and semantically off: it says the wrong thing, or points at the wrong category, before anyone learns what the product does. This meaning-fit read is advisory, not scored — a quick sanity check, not a second rubric.
+
+The three gates below are **soft flags a human weighs, not automatic disqualifiers.** A phonetically excellent name that trips a gate is still presented as a finalist, with the flag called out so the trade-off stays visible. (This is a deliberate departure from stricter naming rubrics that treat these as hard Kill/Hold gates — this skill keeps its advisory "here are the trade-offs" tone.)
+
+### Off-category pull gate
+
+Flag when the name's *meaning* drags toward the wrong category and overpowers the project's intended story. Common illustrations — not the whole set:
+
+- Medical / biology reads (e.g. **Artery**, **Vital**, **Florence**) on a product that isn't medical.
+- Strong borrowed place-names (e.g. **Cairo**, **Geneva**) whose pre-existing identity swamps the brand.
+
+Generalize the rule to **any category-pull stronger than this project's intended story.** Flag it; the human decides whether the pull is a liability or an asset.
+
+### Scale gate (conditional)
+
+Flag when a name sounds tool- or feature-sized rather than platform-sized — a dimension distinct from sound quality. This is **only** a liability when the thing being named is meant to be a platform or master brand. For a single-purpose app or an intended sub-brand, tool-sized is *correct* — keep this gate quiet, or route a too-small-for-a-platform name to "good sub-brand," not "problem."
+
+### Ownability gate
+
+A trademark + marketplace-clutter read in **the categories relevant to this project** — not a fixed AI/fintech/security list, but whatever categories this name actually competes in. Apply it as a *modifier on an otherwise-strong name*, not a first-class score: a strong name sitting in a crowded space routes to "advance only with real trademark review," never an automatic kill. This builds on **Step 9: Check marketplace friction** — Step 9 gathers the signal, this gate interprets it as a soft modifier. Don't re-run Step 9's checklist here.
+
 ## Warning Signs
 
 Be careful when a name:
