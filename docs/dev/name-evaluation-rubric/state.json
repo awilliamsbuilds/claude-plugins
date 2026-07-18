@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "feature": "name-evaluation-rubric",
+  "branch": "feature/name-evaluation-rubric",
+  "mode": "standard",
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
+  "skipped": ["shape"],
+  "startedAt": "2026-07-16T01:38:05Z",
+  "artifacts": {
+    "spec": "docs/dev/name-evaluation-rubric/spec.md",
+    "design": null,
+    "plan": "docs/dev/name-evaluation-rubric/plan.md",
+    "validation": "docs/dev/name-evaluation-rubric/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/27",
+    "pr_number": 27
+  },
+  "validate": {
+    "loops_run": 1,
+    "loops_max": 3,
+    "p1_open": [], "p2_open": [], "p3_open": [],
+    "nits_open": ["New Sound Symbolism / Meaning & Strategic Fit sections sit after the Scoring Template, so Step 4 and Step 9 forward-reference them — locality only, not a defect (surfaced, not fixed)"]
+  },
+  "confidence": {
+    "final_score": 88,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true, "scope": true, "success_criteria": true,
+      "happy_path": true, "edge_cases": true, "out_of_scope": true,
+      "ui_needed": true, "technical_constraints": true,
+      "audience": true, "dependencies": true
+    },
+    "auto_filled": ["happy_path", "dependencies"]
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": null,
+  "metrics": {
+    "spec_questions_asked": 3,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 2,
+    "stage_timestamps": {
+      "spec_start": "2026-07-16T01:38:05Z",
+      "spec_end": "2026-07-18T02:24:30Z",
+      "plan_start": "2026-07-18T02:27:17Z",
+      "plan_end": "2026-07-18T02:30:27Z",
+      "build_start": "2026-07-18T02:37:46Z",
+      "build_end": "2026-07-18T02:40:57Z",
+      "validate_start": "2026-07-18T02:41:58Z",
+      "validate_end": "2026-07-18T02:45:59Z",
+      "pr_created": "2026-07-18T02:47:39Z"
+    }
+  }
+}

@@ -400,6 +400,8 @@ For each candidate, score 1–5:
 
 Give extra weight to ease, rhythm, repeatability, and sentence fit. For any candidate that joins two whole words, a low seam-clarity score is disqualifying on its own — a bad seam should not be averaged away by strong scores elsewhere, since a good concept with a colliding seam is exactly how a name like "Headroom" clears every other filter and still fails in the mouth.
 
+Then read each surviving finalist on two more axes the mouth-feel table doesn't cover. Read its *sound* against the Step 1 target feeling using **Sound Symbolism: Phoneme → Sensation** (does the onset–center–coda match the adjectives this project chose?), and read its *meaning* against the gates in **Meaning & Strategic Fit: the Read and the Three Gates**. Keep the mouth-feel scores as-is — this is a second read on top of them, not a replacement.
+
 ### Step 5: Run the natural-language test
 
 Say each finalist aloud in sentences.
@@ -507,6 +509,8 @@ Do not rely only on exact matches. Look for similarity in:
 - Category.
 - Visual impression.
 
+What this pass turns up feeds the **Ownability gate** in *Meaning & Strategic Fit* as a soft modifier: heavy clutter in the project's categories routes an otherwise-strong name to "advance only with trademark review," not to an automatic kill.
+
 ### Step 10: Choose the name with the best total experience
 
 The best name may not be the most descriptive name.
@@ -544,61 +548,70 @@ Suggested weighting:
 
 Adjust weights based on the project.
 
-## Quick Phonetic Heuristics
+## Sound Symbolism: Phoneme → Sensation
 
-Use these as loose guides, not hard rules.
+Each sound class inside a name carries a *neutral sensation* — not a verdict. Whether a given sensation is a strength or a defect is decided entirely by the 3–5 target adjectives you chose in **Step 1: Define the target feeling**. There is no universally "good" or "bad" sound. Hard clipped edges suit a name that wants command and speed, and fight a name that wants calm and warmth; a soft nasal or open ending is on-target for a wellness or playful brand and off-target for a security platform. **Read every row below as a signal, not a good/bad rating.**
 
-### Softer / friendlier sounds
+| Phoneme class | Reads as (neutral signal) |
+|---|---|
+| Voiceless stops /t/ /k/ /p/ | sharp, fast, precise, clipped |
+| Voiced stops /d/ /b/ /g/ | grounded, weighty, solid |
+| /s/ fricative | precise, clean, technical |
+| /v/ fricative | active, energetic, modern |
+| Nasals /m/ /n/ & liquids /l/ /r/ | soft, smooth, slow, diffuse |
+| Soft / open endings (-a, -o, -er, final /l/ or /n/) | gentle, unresolved, open |
+| Crisp stop endings (-t, -k, -p, -d) | decisive, closed, punchy |
+| Consonant clusters (e.g. -rth-, -str-) | friction, effort, slowness |
+| Front vowels /i/ /e/ | small, fast, light, bright |
+| Back vowels /o/ /u/ /a/ | large, slow, heavy, expansive |
 
-- M
-- N
-- L
-- R
-- S
-- V
-- W
+### Onset–center–coda test
 
-These can feel smooth, warm, premium, or approachable.
+Score three parts of the name *separately* against the target feeling: the **onset** (opening consonant), the **center** (middle), and the **coda** (ending). A name is coherent when all three point at the same sensation the target adjectives call for — and incoherent when they pull apart. The test is coherence with the chosen feeling, not hardness.
 
-### Stronger / punchier sounds
+The classic failure is a *mismatch with the target*, not "soft ending = weak":
 
-- B
-- D
-- G
-- K
-- P
-- T
+- A crisp onset undercut by a soft, open ending is a defect **only when the target wants decisiveness** — the name promises punch, then trails off.
+- A hard clipped ending fighting a smooth onset is the defect **when the target wants warmth** — the name opens gently, then snaps shut.
 
-These can feel more physical, active, durable, or forceful.
+If the target feeling is soft, a soft onset *and* a soft coda is exactly right; nothing about an open ending is a weakness on its own.
 
-### Futuristic / energetic letters
+**Futuristic letters (X / Z / K / V):** as *spellings* (distinct from the phoneme sensations in the table above), these add a techy/futuristic edge that is on-target for some feelings and reads artificial or dated in excess. Use them deliberately, matched to the target — not as a default source of "energy."
 
-- X
-- Z
-- V
-- K
+The per-vowel qualities in the **Open vowel sounds** subsection (under "What Makes a Name Feel Good to Say") still apply and are consistent with the front/back vowel rows above — no need to restate them here.
 
-Use carefully. They can add edge, but too much can feel artificial or dated.
+## Meaning & Strategic Fit: the Read and the Three Gates
 
-### Smooth endings
+Sound is most of the job, but not all of it. Alongside how a name *sounds*, ask what its *meaning* signals — and whether that meaning matches the intended story and the Step 1 target feeling. A name can be phonetically excellent and semantically off: it says the wrong thing, or points at the wrong category, before anyone learns what the product does. This meaning-fit read is advisory, not scored — a quick sanity check, not a second rubric.
 
-- -a
-- -o
-- -er
-- -us
-- -um
+The three gates below are **soft flags a human weighs, not automatic disqualifiers.** A phonetically excellent name that trips a gate is still presented as a finalist, with the flag called out so the trade-off stays visible. (This is a deliberate departure from stricter naming rubrics that treat these as hard Kill/Hold gates — this skill keeps its advisory "here are the trade-offs" tone.)
 
-Smooth endings can make a name easier to say repeatedly.
+### Off-category pull gate
 
-### Crisp endings
+Flag when the name's *meaning* drags toward the wrong category and overpowers the project's intended story. Common illustrations — not the whole set:
 
-- -t
-- -k
-- -x
-- -p
-- -d
+- Medical / biology reads (e.g. **Artery**, **Vital**, **Florence**) on a product that isn't medical.
+- Strong borrowed place-names (e.g. **Cairo**, **Geneva**) whose pre-existing identity swamps the brand.
 
-Crisp endings add punch but may reduce softness.
+Generalize the rule to **any category-pull stronger than this project's intended story.** Flag it; the human decides whether the pull is a liability or an asset.
+
+### Scale gate (conditional)
+
+Flag when a name sounds tool- or feature-sized rather than platform-sized — a dimension distinct from sound quality. This is **only** a liability when the thing being named is meant to be a platform or master brand. For a single-purpose app or an intended sub-brand, tool-sized is *correct* — keep this gate quiet, or route a too-small-for-a-platform name to "good sub-brand," not "problem."
+
+### Ownability gate
+
+A trademark + marketplace-clutter read in **the categories relevant to this project** — not a fixed AI/fintech/security list, but whatever categories this name actually competes in. Apply it as a *modifier on an otherwise-strong name*, not a first-class score: a strong name sitting in a crowded space routes to "advance only with trademark review," never an automatic kill. This builds on **Step 9: Check marketplace friction** — Step 9 gathers the signal, this gate interprets it as a soft modifier. Don't re-run Step 9's checklist here.
+
+### Balanced-sheet verdict (optional presentation format)
+
+One way to present a finalist — not mandatory — is a three-part balanced sheet:
+
+1. **Two genuine strengths** — real and specific, drawn from sound and/or meaning (not filler praise).
+2. **The governing liability** — the single thing most likely to sink the name: a tripped gate flag, a colliding seam, a clutter risk.
+3. **The gated recommendation** — advisory, one of: *advance* / *advance only with trademark review* / *good sub-brand* / *reconsider* — with the trade-off named rather than hidden.
+
+This is one option, not a requirement. It pairs naturally with the three gates above and with the existing **Scoring Template**.
 
 ## Warning Signs
 
@@ -669,6 +682,8 @@ Ask:
 If the answer is yes, the name has a real chance to become memorable.
 
 Do not let a strong conceptual fit push a finalist to the top of the recommendation before it has passed the repetition test and, if it's a compound, the seam test out loud. A name that is conceptually perfect and phonetically weak (see the compound-word seam test) should be presented with that trade-off named explicitly, not recommended as the clear winner.
+
+When presenting a finalist, you may use the **balanced-sheet verdict** form (see *Meaning & Strategic Fit*) — two genuine strengths, the governing liability, then the gated recommendation — and name any tripped gate flags for the user to weigh. The sound side stays primary; the balanced sheet augments the "would someone enjoy saying this?" rule rather than replacing it.
 
 ## Sources and Further Reading
 
