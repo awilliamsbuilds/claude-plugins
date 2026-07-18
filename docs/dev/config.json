@@ -2,5 +2,6 @@
   "autopilot": {
     "spec_max_questions": 10,
     "spec_min_confidence": 85
-  }
+  },
+  "worktree_root": ".dev-worktrees"
 }
