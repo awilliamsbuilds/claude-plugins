@@ -3,8 +3,11 @@
   "feature": "product-plan-worktree-safe",
   "branch": "fix/product-plan-worktree-safe",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": [
+    "spec",
+    "build"
+  ],
   "skipped": [
     "shape",
     "plan"
@@ -55,7 +58,9 @@
     "files_read_in_build": 1,
     "stage_timestamps": {
       "spec_start": "2026-07-18T18:18:37Z",
-      "spec_end": "2026-07-18T18:23:41Z"
+      "spec_end": "2026-07-18T18:23:41Z",
+      "build_start": "2026-07-18T18:27:01Z",
+      "build_end": "2026-07-18T18:30:49Z"
     }
   }
 }
