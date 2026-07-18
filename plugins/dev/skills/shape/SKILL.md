@@ -7,6 +7,21 @@ description: "Stage 2 of the /dev workflow. Produces design.md — user flows, c
 
 **Announce:** "I'm using dev:shape to create the design document."
 
+## Resolve the working directory (do this first)
+
+This stage never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. For the rest of this stage: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 **First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `shape_start`, recorded in Step 10. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
 
 ## Purpose
@@ -197,8 +212,8 @@ Update state.json:
 - Record `metrics.stage_timestamps.shape_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.shape_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash
-git add docs/dev/<feature>/design.md docs/dev/<feature>/state.json
-git commit -m "shape: write design for <feature>"
+git -C "$WORKDIR" add docs/dev/<feature>/design.md docs/dev/<feature>/state.json
+git -C "$WORKDIR" commit -m "shape: write design for <feature>"
 ```
 
 ## Step 11: User Review Gate (Standard mode)
