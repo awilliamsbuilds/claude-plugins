@@ -36,7 +36,9 @@ If present: continue to Step 3.
 
 ## Step 3: Check for In-Progress Session
 
-Scan for `docs/dev/*/state.json` files in the current project.
+Compute `PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")`, then scan for state.json in
+both locations: `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and
+`$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles). Deduplicate by feature name.
 
 **If one or more found:**
 
@@ -58,9 +60,14 @@ Spec ✓  Shape ✓  Plan →  Build  Validate  PR  Done
 If multiple sessions: list them all, ask which one to continue with.
 
 **User choices:**
-- **Resume:** proceed to the current stage (read from state.json `stage`)
-- **Restart:** delete the current state.json and `docs/dev/<feature>/` directory, start over from spec
-- **Abandon:** delete state.json and working directory, delete the feature branch, exit
+- **Resume:** proceed to the current stage (read from state.json `stage`). Resume resolves
+  `WORKDIR` via the canonical block (worktree first, else primary) before proceeding to the
+  stage — the user is never asked to `cd`.
+- **Restart:** delete the cycle's state.json and `docs/dev/<feature>/`, then if `worktreePath` is
+  set, `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` and `worktree prune`;
+  start over from spec.
+- **Abandon:** same worktree removal; the feature branch was checked out only in that worktree, so
+  removing it frees the branch — then `git -C "$PRIMARY" branch -D <branch>`; exit.
 
 **If no in-progress session found:** proceed to Step 4.
 
