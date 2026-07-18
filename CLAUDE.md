@@ -57,7 +57,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-03*
+*Last updated by /dev · 2026-07-18*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -82,3 +82,4 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `plugin-manager:add-plugin` | plugins/plugin-manager/skills/add-plugin/SKILL.md | Create and manage plugins in this repo |
 | `ux-toolkit:ux-copywriter` | plugins/ux-toolkit/skills/ux-copywriter/SKILL.md | Expert UX copywriting — write, review, audit copy |
 | `ux-toolkit:ux-designer` | plugins/ux-toolkit/skills/ux-designer/SKILL.md | UX strategy and visual design craft |
+| `naming:craft-name` | plugins/naming/skills/craft-name/SKILL.md | Generate and evaluate names by mouth-feel, meaning, and strategic fit |
