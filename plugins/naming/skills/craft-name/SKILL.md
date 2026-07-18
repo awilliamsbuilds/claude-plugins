@@ -544,61 +544,37 @@ Suggested weighting:
 
 Adjust weights based on the project.
 
-## Quick Phonetic Heuristics
+## Sound Symbolism: Phoneme → Sensation
 
-Use these as loose guides, not hard rules.
+Each sound class inside a name carries a *neutral sensation* — not a verdict. Whether a given sensation is a strength or a defect is decided entirely by the 3–5 target adjectives you chose in **Step 1: Define the target feeling**. There is no universally "good" or "bad" sound. Hard clipped edges suit a name that wants command and speed, and fight a name that wants calm and warmth; a soft nasal or open ending is on-target for a wellness or playful brand and off-target for a security platform. **Read every row below as a signal, not a good/bad rating.**
 
-### Softer / friendlier sounds
+| Phoneme class | Reads as (neutral signal) |
+|---|---|
+| Voiceless stops /t/ /k/ /p/ | sharp, fast, precise, clipped |
+| Voiced stops /d/ /b/ /g/ | grounded, weighty, solid |
+| /s/ fricative | precise, clean, technical |
+| /v/ fricative | active, energetic, modern |
+| Nasals /m/ /n/ & liquids /l/ /r/ | soft, smooth, slow, diffuse |
+| Soft / open endings (-a, -o, -er, final /l/ or /n/) | gentle, unresolved, open |
+| Crisp stop endings (-t, -k, -p, -d) | decisive, closed, punchy |
+| Consonant clusters (e.g. -rth-, -str-) | friction, effort, slowness |
+| Front vowels /i/ /e/ | small, fast, light, bright |
+| Back vowels /o/ /u/ /a/ | large, slow, heavy, expansive |
 
-- M
-- N
-- L
-- R
-- S
-- V
-- W
+### Onset–center–coda test
 
-These can feel smooth, warm, premium, or approachable.
+Score three parts of the name *separately* against the target feeling: the **onset** (opening consonant), the **center** (middle), and the **coda** (ending). A name is coherent when all three point at the same sensation the target adjectives call for — and incoherent when they pull apart. The test is coherence with the chosen feeling, not hardness.
 
-### Stronger / punchier sounds
+The classic failure is a *mismatch with the target*, not "soft ending = weak":
 
-- B
-- D
-- G
-- K
-- P
-- T
+- A crisp onset undercut by a soft, open ending is a defect **only when the target wants decisiveness** — the name promises punch, then trails off.
+- A hard clipped ending fighting a smooth onset is the defect **when the target wants warmth** — the name opens gently, then snaps shut.
 
-These can feel more physical, active, durable, or forceful.
+If the target feeling is soft, a soft onset *and* a soft coda is exactly right; nothing about an open ending is a weakness on its own.
 
-### Futuristic / energetic letters
+**Futuristic letters (X / Z / K / V):** these add a techy/futuristic edge that is on-target for some feelings and reads artificial or dated in excess. Use them deliberately, matched to the target — not as a default source of "energy."
 
-- X
-- Z
-- V
-- K
-
-Use carefully. They can add edge, but too much can feel artificial or dated.
-
-### Smooth endings
-
-- -a
-- -o
-- -er
-- -us
-- -um
-
-Smooth endings can make a name easier to say repeatedly.
-
-### Crisp endings
-
-- -t
-- -k
-- -x
-- -p
-- -d
-
-Crisp endings add punch but may reduce softness.
+The per-vowel qualities in the **Open vowel sounds** subsection (under "What Makes a Name Feel Good to Say") still apply and are consistent with the front/back vowel rows above — no need to restate them here.
 
 ## Warning Signs
 
