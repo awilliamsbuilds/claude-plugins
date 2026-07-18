@@ -3,15 +3,15 @@
   "feature": "name-evaluation-rubric",
   "branch": "feature/name-evaluation-rubric",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-16T01:38:05Z",
   "artifacts": {
     "spec": "docs/dev/name-evaluation-rubric/spec.md",
     "design": null,
     "plan": "docs/dev/name-evaluation-rubric/plan.md",
-    "validation": null,
+    "validation": "docs/dev/name-evaluation-rubric/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -48,7 +48,9 @@
       "plan_start": "2026-07-18T02:27:17Z",
       "plan_end": "2026-07-18T02:30:27Z",
       "build_start": "2026-07-18T02:37:46Z",
-      "build_end": "2026-07-18T02:40:57Z"
+      "build_end": "2026-07-18T02:40:57Z",
+      "validate_start": "2026-07-18T02:41:58Z",
+      "validate_end": "2026-07-18T02:45:59Z"
     }
   }
 }
