@@ -400,6 +400,8 @@ For each candidate, score 1–5:
 
 Give extra weight to ease, rhythm, repeatability, and sentence fit. For any candidate that joins two whole words, a low seam-clarity score is disqualifying on its own — a bad seam should not be averaged away by strong scores elsewhere, since a good concept with a colliding seam is exactly how a name like "Headroom" clears every other filter and still fails in the mouth.
 
+Then read each surviving finalist on two more axes the mouth-feel table doesn't cover. Read its *sound* against the Step 1 target feeling using **Sound Symbolism: Phoneme → Sensation** (does the onset–center–coda match the adjectives this project chose?), and read its *meaning* against the gates in **Meaning & Strategic Fit: the Read and the Three Gates**. Keep the mouth-feel scores as-is — this is a second read on top of them, not a replacement.
+
 ### Step 5: Run the natural-language test
 
 Say each finalist aloud in sentences.
@@ -506,6 +508,8 @@ Do not rely only on exact matches. Look for similarity in:
 - Meaning.
 - Category.
 - Visual impression.
+
+What this pass turns up feeds the **Ownability gate** in *Meaning & Strategic Fit* as a soft modifier: heavy clutter in the project's categories routes an otherwise-strong name to "advance only with real trademark review," not to an automatic kill.
 
 ### Step 10: Choose the name with the best total experience
 
@@ -678,6 +682,8 @@ Ask:
 If the answer is yes, the name has a real chance to become memorable.
 
 Do not let a strong conceptual fit push a finalist to the top of the recommendation before it has passed the repetition test and, if it's a compound, the seam test out loud. A name that is conceptually perfect and phonetically weak (see the compound-word seam test) should be presented with that trade-off named explicitly, not recommended as the clear winner.
+
+When presenting a finalist, you may use the **balanced-sheet verdict** form (see *Meaning & Strategic Fit*) — two genuine strengths, the governing liability, then the gated recommendation — and name any tripped gate flags for the user to weigh. The sound side stays primary; the balanced sheet augments the "would someone enjoy saying this?" rule rather than replacing it.
 
 ## Sources and Further Reading
 
