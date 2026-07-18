@@ -599,6 +599,16 @@ Flag when a name sounds tool- or feature-sized rather than platform-sized — a 
 
 A trademark + marketplace-clutter read in **the categories relevant to this project** — not a fixed AI/fintech/security list, but whatever categories this name actually competes in. Apply it as a *modifier on an otherwise-strong name*, not a first-class score: a strong name sitting in a crowded space routes to "advance only with real trademark review," never an automatic kill. This builds on **Step 9: Check marketplace friction** — Step 9 gathers the signal, this gate interprets it as a soft modifier. Don't re-run Step 9's checklist here.
 
+### Balanced-sheet verdict (optional presentation format)
+
+One way to present a finalist — not mandatory — is a three-part balanced sheet:
+
+1. **Two genuine strengths** — real and specific, drawn from sound and/or meaning (not filler praise).
+2. **The governing liability** — the single thing most likely to sink the name: a tripped gate flag, a colliding seam, a clutter risk.
+3. **The gated recommendation** — advisory, one of: *advance* / *advance only with trademark review* / *good sub-brand* / *reconsider* — with the trade-off named rather than hidden.
+
+This is one option, not a requirement. It pairs naturally with the three gates above and with the existing **Scoring Template**.
+
 ## Warning Signs
 
 Be careful when a name:
