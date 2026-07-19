@@ -20,3 +20,15 @@
 
 ## Artifacts (archived)
 Spec and validation committed at: dd3d9dcef1e4365225ba421164ce56363783cd0b on branch fix/product-plan-worktree-safe. (Shape and Plan were skipped — micro-tier feature.)
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-18*
+
+**Spec:** Confidence 90/Ready matched actual clarity — 1 question asked, 0 auto-filled dimensions, and Build required no plan revisions, so the score was well-calibrated.
+**Shape:** Skipped (correct — single-file Markdown skill change, no UI).
+**Plan:** Skipped; the micro-tier spec's Implementation Note carried a complete, copy-ready procedure, and Build read just 1 file — the note was precise enough to stand in for a plan.
+**Validate:** 1/1 loop, clean — no P1/P2, no fix commit. Spec/Plan couldn't realistically have caught the two items surfaced (a pre-existing P3 out of scope, and a cosmetic nit).
+**Flow:** Tier (micro) and cycle_type (feature) were right; no unnecessary stages. Stage work was fast (spec 5min, build 4min, validate 3min); the ~1h40m gap before PR creation was idle time, not friction.
+**Token efficiency:** No outliers — files_read_in_build=1, visual_screens_shown=0.
+**Suggestions:**
+- **dev:done Step 2 detached-HEAD merge bug (hit this cycle):** `( cd "$WORKDIR" && gh pr merge <pr> --merge --delete-branch )` runs from a detached-HEAD worktree, and `gh`'s `--delete-branch` post-merge cleanup fails with "could not determine current branch," aborting before it deletes the remote branch — even though the merge itself succeeds. The remote branch had to be deleted manually with `git push origin --delete`. Consider dropping `--delete-branch` from the `gh pr merge` call and deleting the remote branch explicitly (the skill already deletes the local branch itself), which is detached-HEAD-safe.
