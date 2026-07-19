@@ -76,7 +76,8 @@ Only when that check is clean, free the feature branch and position on the integ
 ```bash
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout --detach                       # frees the feature branch; no branch-collision
-( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge )      # merge only — NOT --delete-branch (see note below)
+git -C "$WORKDIR" push origin --delete <branch>           # delete the remote feature branch explicitly (detached-HEAD-safe)
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the merged integration tip
 ```
@@ -86,11 +87,14 @@ git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the mer
 ```bash
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout "$INTEGRATION"
-( cd "$WORKDIR" && gh pr merge <pr-number> --merge --delete-branch )
+( cd "$WORKDIR" && gh pr merge <pr-number> --merge )      # merge only — NOT --delete-branch (see note below)
+git -C "$WORKDIR" push origin --delete <branch>           # delete the remote feature branch explicitly
 git -C "$WORKDIR" pull --ff-only origin "$INTEGRATION"
 ```
 
-This merges with a merge commit and deletes the remote + local feature branch.
+This merges with a merge commit; the **remote** feature branch is deleted here in Step 2, and the **local** feature branch in Step 7.
+
+**Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its branch cleanup *after* the server-side merge and reads the *current* branch to do it. On the worktree cycle's detached HEAD that read fails ("could not determine current branch"), and `gh` aborts **before** deleting the remote branch — leaking both the remote and local branch even though the merge itself succeeded. `gh pr merge --merge` on its own never reads the current branch, so the merge is detached-HEAD-safe; deleting both branches with explicit `git` plumbing is deterministic regardless of what HEAD points at. Do not re-add `--delete-branch`.
 
 All post-merge commits in this stage (Steps 3–5, 7) are made in `$WORKDIR` and pushed to `$INTEGRATION` through one helper, defined once and reused for every push. It pushes via an explicit `HEAD:$INTEGRATION` refspec, which works whether `HEAD` is detached (worktree cycle) or on the branch (legacy):
 
@@ -195,12 +199,19 @@ inside itself):
 ```bash
 git -C "$PRIMARY" worktree remove --force "$WORKDIR"
 git -C "$PRIMARY" worktree prune
+git -C "$PRIMARY" branch -D <branch>          # delete the local feature branch (freed when WORKDIR detached)
 ```
 
-For a **legacy in-place cycle** (`worktreePath` null), there is no worktree to remove — skip
-the removal and, as before, delete the local branch with `git -C "$PRIMARY" branch -d <branch>`.
+The local-branch delete uses `-D` (force), not `-d`: the branch is already merged via the
+PR just merged in Step 2, but `-d`'s merge check is against `$PRIMARY`'s *current* HEAD —
+which may be an unrelated branch or a not-yet-updated `main` — so `-d` would spuriously
+refuse. `-D` is safe and deterministic here.
 
-(Remote branch was deleted in Step 2 by `--delete-branch`.)
+For a **legacy in-place cycle** (`worktreePath` null), there is no worktree to remove — skip
+the removal and delete the local branch with `git -C "$PRIMARY" branch -d <branch>` (here
+`$PRIMARY`'s HEAD *is* the freshly pulled `$INTEGRATION`, so the `-d` merge check passes).
+
+(Remote branch was deleted in Step 2 via `git push origin --delete <branch>`.)
 
 ## Step 8: Display
 
