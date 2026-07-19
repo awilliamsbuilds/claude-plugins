@@ -79,7 +79,11 @@ delete_feature_branch() {
     echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:done."
     return 1
   fi
-  git -C "$WORKDIR" push origin --delete <branch> 2>/dev/null || true  # remote — idempotent (no-op if already gone)
+  git -C "$WORKDIR" push origin --delete <branch> 2>/dev/null || {     # remote — tolerate already-gone, surface real failures
+    git -C "$WORKDIR" ls-remote --exit-code --heads origin <branch> >/dev/null 2>&1 \
+      && echo "WARNING: remote branch '<branch>' still exists but could not be deleted (protected or insufficient token scope) — delete it manually." \
+      || true                                                          #   ref is gone → nothing to do
+  }
   git -C "$PRIMARY" branch -D <branch> 2>/dev/null || true             # local  — freed by the detach; idempotent
 }
 ```
