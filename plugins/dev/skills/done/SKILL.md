@@ -69,7 +69,24 @@ Resolve in GitHub, then run /dev:done again.
 
 GitHub computes mergeability asynchronously, so immediately after PR creation the result can be `UNKNOWN`/`null` — if so, wait a few seconds and re-query; only STOP on a definite conflicting or blocked state, not on `UNKNOWN`.
 
-Only when that check is clean, free the feature branch and position on the integration tip. The steps differ by cycle type:
+Only when that check is clean, free the feature branch and position on the integration tip.
+
+Branch deletion is centralized in one guarded helper. It **refuses to delete anything unless the PR actually merged** — so a `gh pr merge` that fails (branch protection, a required check that flipped, stale mergeability, a transient API error) can never delete an unmerged branch. It then removes the remote and local feature branch idempotently (both safe to re-run):
+
+```bash
+delete_feature_branch() {
+  if [ "$(gh pr view <pr-number> --json state -q .state)" != "MERGED" ]; then
+    echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:done."
+    return 1
+  fi
+  git -C "$WORKDIR" push origin --delete <branch> 2>/dev/null || true  # remote — idempotent (no-op if already gone)
+  git -C "$PRIMARY" branch -D <branch> 2>/dev/null || true             # local  — freed by the detach; idempotent
+}
+```
+
+A non-zero return is a **hard STOP** for the stage — do not proceed to Steps 3+ with an unmerged PR. `branch -D` (force) is correct here *because* the helper has already confirmed the PR merged; the branch tip is in `$INTEGRATION`, and `-d`'s merge check would otherwise run against `$PRIMARY`'s possibly-unrelated HEAD and spuriously refuse.
+
+The merge steps differ by cycle type:
 
 **Worktree cycle** (`worktreePath` set — the normal case). Use a detached HEAD so the feature branch can be deleted and commits can be made toward `$INTEGRATION` WITHOUT checking out `$INTEGRATION` (which is usually checked out in the primary tree — git forbids the same branch in two worktrees):
 
@@ -77,7 +94,7 @@ Only when that check is clean, free the feature branch and position on the integ
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout --detach                       # frees the feature branch; no branch-collision
 ( cd "$WORKDIR" && gh pr merge <pr-number> --merge )      # merge only — NOT --delete-branch (see note below)
-git -C "$WORKDIR" push origin --delete <branch>           # delete the remote feature branch explicitly (detached-HEAD-safe)
+delete_feature_branch || exit 1                           # verifies MERGED, then deletes remote + local; STOP on non-zero
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the merged integration tip
 ```
@@ -88,11 +105,11 @@ git -C "$WORKDIR" checkout --detach "origin/$INTEGRATION"  # detached at the mer
 git -C "$WORKDIR" fetch origin
 git -C "$WORKDIR" checkout "$INTEGRATION"
 ( cd "$WORKDIR" && gh pr merge <pr-number> --merge )      # merge only — NOT --delete-branch (see note below)
-git -C "$WORKDIR" push origin --delete <branch>           # delete the remote feature branch explicitly
+delete_feature_branch || exit 1                           # verifies MERGED, then deletes remote + local; STOP on non-zero
 git -C "$WORKDIR" pull --ff-only origin "$INTEGRATION"
 ```
 
-This merges with a merge commit; the **remote** feature branch is deleted here in Step 2, and the **local** feature branch in Step 7.
+This merges with a merge commit; `delete_feature_branch` then removes the remote and local feature branch — but only after confirming the PR merged.
 
 **Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its branch cleanup *after* the server-side merge and reads the *current* branch to do it. On the worktree cycle's detached HEAD that read fails ("could not determine current branch"), and `gh` aborts **before** deleting the remote branch — leaking both the remote and local branch even though the merge itself succeeded. `gh pr merge --merge` on its own never reads the current branch, so the merge is detached-HEAD-safe; deleting both branches with explicit `git` plumbing is deterministic regardless of what HEAD points at. Do not re-add `--delete-branch`.
 
@@ -199,19 +216,13 @@ inside itself):
 ```bash
 git -C "$PRIMARY" worktree remove --force "$WORKDIR"
 git -C "$PRIMARY" worktree prune
-git -C "$PRIMARY" branch -D <branch>          # delete the local feature branch (freed when WORKDIR detached)
 ```
 
-The local-branch delete uses `-D` (force), not `-d`: the branch is already merged via the
-PR just merged in Step 2, but `-d`'s merge check is against `$PRIMARY`'s *current* HEAD —
-which may be an unrelated branch or a not-yet-updated `main` — so `-d` would spuriously
-refuse. `-D` is safe and deterministic here.
-
 For a **legacy in-place cycle** (`worktreePath` null), there is no worktree to remove — skip
-the removal and delete the local branch with `git -C "$PRIMARY" branch -d <branch>` (here
-`$PRIMARY`'s HEAD *is* the freshly pulled `$INTEGRATION`, so the `-d` merge check passes).
+the removal.
 
-(Remote branch was deleted in Step 2 via `git push origin --delete <branch>`.)
+(Both the remote and local feature branch were already deleted in Step 2 by
+`delete_feature_branch`, after it confirmed the PR merged.)
 
 ## Step 8: Display
 
