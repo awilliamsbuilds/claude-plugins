@@ -3,14 +3,14 @@
   "feature": "spec-challenger",
   "branch": "feature/spec-challenger",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
-  "skipped": [],
+  "stage": "plan",
+  "completed": ["spec"],
+  "skipped": ["shape"],
   "startedAt": "2026-07-21T22:23:15Z",
   "artifacts": {
     "spec": "docs/dev/spec-challenger/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/spec-challenger/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -44,7 +44,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-21T22:23:15Z",
-      "spec_end": "2026-07-21T23:31:05Z"
+      "spec_end": "2026-07-21T23:31:05Z",
+      "plan_start": "2026-07-21T23:33:12Z",
+      "plan_end": "2026-07-21T23:40:06Z"
     }
   }
 }
