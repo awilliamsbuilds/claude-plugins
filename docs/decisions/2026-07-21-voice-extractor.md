@@ -23,3 +23,14 @@ A `voice-extractor` skill in the `writing` plugin that captures how a specific p
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: c4624d53db736ecc0ff364513ac48df64452e019 on branch feature/voice-extractor
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-21*
+
+**Spec:** Confidence 90/Ready matched actual clarity — no mid-build plan updates, only 2 files read in Build. The one auto-filled dimension (`dependencies`) was correct.
+**Shape:** Skipped — correct; a markdown skill has no interface to design.
+**Plan:** Accurate, no mid-build updates. The plan pre-empted the spec's inaccurate `marketplace.json` constraint, so Build hit no surprises.
+**Validate:** 1 loop / 3 — clean after one pass. But 4 of 6 findings were security issues (untrusted-input handling, path-traversal slug, secret scrub) on a skill whose filesystem-write capability and untrusted external inputs (chats/files/URLs) were both known at Spec time.
+**Flow:** Tier (standard) and the Shape skip were both correct; no unnecessary stages.
+**Token efficiency:** No outliers. Spec was the longest stage (~13 min) but that's where the confidence was earned.
+**Suggestions:** When Spec/Plan identify a mutating capability (filesystem write, network POST) fed by untrusted external input, prompt for injection/traversal/secret-handling defenses at that stage rather than leaving them all for Validate to catch.
