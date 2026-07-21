@@ -11,7 +11,7 @@ description: "No-gate orchestrator for the /dev workflow. Chains all stages end-
 
 Chain all applicable stages end-to-end without stopping for user approval. Trade interactivity for speed. Use when you trust the spec enough to let the AI run the full cycle.
 
-**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through.
+**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through.
 
 ## Step 1: Initialize
 
@@ -60,6 +60,8 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 4. Continue — do not pause
 
 **Validate: extended auto-fix.** After the loop limit, attempt one additional auto-fix pass. If P1/P2 remain → STOP: surface the issues and require human input.
+
+**Spec challenger: bounded revision loop.** `dev:spec` Step 12a's blockers drive an auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration. Concerns are logged in the spec and passed through — never revised. If blockers remain after the cap → STOP: surface them and require human input. **Scope blockers bypass the loop entirely and STOP immediately.** A right-sizing blocker is not text-fixable — a cycle cannot be split by editing prose. The loop handles only clarity, consistency, and grounding.
 
 ## Step 3: Stage Execution
 
