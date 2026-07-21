@@ -38,13 +38,13 @@
   "parentFeature": null,
   "worktreePath": ".dev-worktrees/spec-challenger",
   "metrics": {
-    "spec_questions_asked": 3,
-    "spec_revisions": 0,
+    "spec_questions_asked": 4,
+    "spec_revisions": 1,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-21T22:23:15Z",
-      "spec_end": "2026-07-21T23:11:28Z"
+      "spec_end": "2026-07-21T23:31:05Z"
     }
   }
 }
