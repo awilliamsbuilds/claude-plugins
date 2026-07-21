@@ -3,8 +3,8 @@
   "feature": "depersonalize-writing",
   "branch": "feature/depersonalize-writing",
   "mode": "standard",
-  "stage": "plan",
-  "completed": ["spec"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T03:42:34Z",
   "artifacts": {
@@ -40,12 +40,14 @@
   "metrics": {
     "spec_questions_asked": 4,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 4,
     "stage_timestamps": {
       "spec_start": "2026-07-21T03:42:34Z",
       "spec_end": "2026-07-21T03:54:08Z",
       "plan_start": "2026-07-21T04:20:32Z",
-      "plan_end": "2026-07-21T04:28:56Z"
+      "plan_end": "2026-07-21T04:28:56Z",
+      "build_start": "2026-07-21T04:31:41Z",
+      "build_end": "2026-07-21T05:18:09Z"
     }
   }
 }
