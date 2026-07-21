@@ -38,6 +38,7 @@ Read once:
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
 - `metrics.spec_revisions` — how many times spec.md was revised after its first draft (post-approval-gate churn)
+- `challenge.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the cold review's findings and their disposition. **A missing `challenge` block means the challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
 - `validate.loops_run` / `validate.loops_max`
@@ -51,7 +52,18 @@ Extract key metrics from state.json:
 Analyze the cycle across these dimensions. Note findings briefly — one sentence each unless something is significant:
 
 **Spec quality:**
-- **`metrics.spec_revisions` is the strongest single signal here — read it first.** A high count means the spec kept changing after it "felt done": the user (or self-review) had to catch edge cases and nuances the grounding inventory (spec Step 7) and self-review (spec Step 11) missed. Crucially, this is **independent of `final_score`** — a spec can read 95%/Ready and still have churned five times, because the score measures internal coherence, not whether the spec's picture of the codebase was correct. If `spec_revisions` is high, say so plainly and look at *what kind* of thing kept getting added (missing couplings? unscoped entities? absence claims never checked?) — that points at which grounding pass is weak.
+- **`metrics.spec_revisions` is the strongest single signal here — read it first.** A high count means the spec kept changing after it "felt done": the user had to catch edge cases and nuances the grounding inventory (spec Step 7) and the cold review (spec Step 12a) missed. Crucially, this is **independent of `final_score`** — a spec can read 95%/Ready and still have churned five times, because the score measures internal coherence, not whether the spec's picture of the codebase was correct. If `spec_revisions` is high, say so plainly and look at *what kind* of thing kept getting added (missing couplings? unscoped entities? absence claims never checked?) — that points at which grounding pass is weak.
+- `challenge.blockers` and `spec_revisions` measure different nets, and they are only diagnostic when read together:
+
+  | `challenge.blockers` | `spec_revisions` | Reading |
+  |---|---|---|
+  | low | low | Process healthy |
+  | high | low | Step 11 is weak, but the challenger is catching it — working as designed |
+  | low | high | Challenger's brief is too narrow — tune the lenses |
+  | high | high | Step 7 grounding is weak upstream; both nets catching spillover |
+
+- `challenge.dismissed` is the instrument that reveals whether the challenger has become noise the user learns to skip. A cycle where nearly everything was dismissed is a signal about the brief, not about the spec.
+- **This reading is qualitative — do not introduce numeric thresholds.** No real distribution of these counters exists yet, so any cutoff would be guesswork presented as a finding.
 - Did the confidence score (final_score) reflect actual clarity? Cross-check it against `spec_revisions` and any mid-build plan updates — a high score with high churn means the score was overconfident, not that the spec was good.
 - Were auto-filled dimensions `confidence.auto_filled[]` correct? (If they caused problems in Build → auto-fill was wrong)
 - Did spec_questions_asked reach the max? (If yes and confidence was still Low → initial request needed more context before starting)
