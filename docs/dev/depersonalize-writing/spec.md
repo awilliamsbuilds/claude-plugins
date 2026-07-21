@@ -28,6 +28,11 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   lookups from `humanize`'s Voice Calibration step. `humanize`'s job narrows to de-AI'ing text
   into a natural, varied human default voice; it no longer reads or resolves personal voice
   skills. (Voice is composed on top by the platform skills or by the user combining skills.)
+- **Strip TRM / company references from the plugin.** Genericize `humanize`'s audience line
+  ("For any TRMer drafting prose" → a neutral audience, e.g. "anyone drafting prose"). No `trm`
+  or `trm-brand-voice` reference remains in any skill that ships in the plugin. (There is no
+  `trm-brand-voice` skill in the repo — only a dangling reference in `voice`'s frontmatter, which
+  leaves with the migration below.)
 - **Composition in the platform skills.** `email` and `linkedin` produce output by composing:
   (1) the shared channel best-practices for the relevant channel/format, (2) a `humanize` de-AI
   pass, and (3) the resolved personal voice (or a clean default if none).
@@ -58,11 +63,12 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   - **Post** — native feed post. Hook-driven, one idea (today's default; existing post types + hooks).
   - **Article** — long-form native article. Titled, sectioned, evergreen; distinct from a feed post.
 - **Migrate Adam out (local, no-gap):**
-  - `voice` → copy the skill directory **as-is** (`SKILL.md` + `references/voice-profile.md` +
-    `references/platform-guide.md`) to `~/.claude/skills/voice-adam/`, created before the in-plugin
-    `voice` skill is removed. The `references/` folder is **preserved** — it's the skill's own
-    internal organization; consumers load `voice-adam` at the skill level and don't depend on its
-    layout. Add `Writing voice: voice-adam` to Adam's `~/.claude/CLAUDE.md`.
+  - `voice` → copy the skill directory to `~/.claude/skills/voice-adam/`, created before the
+    in-plugin `voice` skill is removed. `references/` is copied **verbatim** (preserved as the
+    skill's own internal organization; consumers load `voice-adam` at the skill level and don't
+    depend on its layout). `SKILL.md` gets only minimal frontmatter edits — rename `name: voice`
+    → `name: voice-adam` and drop the dangling `trm-brand-voice` pointer lines. Add
+    `Writing voice: voice-adam` to Adam's `~/.claude/CLAUDE.md`.
   - `web-copy` → `~/.claude/skills/web-copy/` (local personal skill), created before the in-plugin
     `web-copy` skill is removed. Its voice reference is repointed to the same resolution logic.
 - **Delete from the plugin** once the local copies + pointer + shared best-practices file exist:
@@ -76,7 +82,9 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   voice at the skill level, so no split-out reference files are required anywhere.
 - Re-running extraction or reformatting to build `voice-adam`; the existing voice skill directory
   (`SKILL.md` + its `references/`) is copied verbatim to the new location.
-- The `trm-brand-voice` skill referenced in `voice/SKILL.md` (separate company-voice concern).
+- Authoring or managing a `trm-brand-voice` skill (it doesn't exist in this repo; this cycle only
+  removes the dangling reference to it). Scrubbing TRM from Adam's *personal* `voice-adam`
+  examples — those are his genuine voice content and stay; only the plugin is depersonalized.
 - Web-copy channel best practices in the *shared* plugin reference. Web-copy leaves the plugin
   this cycle; the shared file covers email + the three LinkedIn formats only.
 - A structured registry file (e.g. `voice-registry.json`) — the pointer lives in CLAUDE.md.
@@ -99,6 +107,8 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   `grep -ri "Adam"` across `plugins/writing/skills/{email,linkedin,humanize}` and the shared
   best-practices file returns no personal-voice content; `voice/` and `web-copy/` no longer exist
   in the plugin.
+- **No TRM/company references ship in the plugin** — `grep -rin "trm" plugins/writing/skills/`
+  returns nothing after the `humanize` genericization and the `voice`/`web-copy` deletions.
 - `linkedin` routes to message / post / article guidance from an up-front format choice.
 - On Adam's machine: `email`/`linkedin` resolve `voice-adam` via his CLAUDE.md pointer and produce
   output materially identical to today's; local `web-copy` still works.
