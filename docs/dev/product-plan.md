@@ -1,8 +1,8 @@
 # Writing Plugin Voice — Product Plan
-*Created: 2026-07-21 · Cycles completed: 0/2*
+*Created: 2026-07-21 · Cycles completed: 1/2*
 
 ## Milestone 1: Voice tooling
-- [ ] voice-extractor (feature) — a skill that extracts a person's voice from Claude
+- [x] voice-extractor (feature) — a skill that extracts a person's voice from Claude
   chats, pasted samples, files, and URLs, and writes a per-person voice skill to
   `~/.claude/skills/voice-<name>/SKILL.md` (local, survives plugin updates). Supports a
   refine/update mode on re-invocation.
