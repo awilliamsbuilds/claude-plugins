@@ -458,7 +458,7 @@ Full list with before/after examples in [references/ai-patterns.md](references/a
 | Pattern | Watch for |
 |---|---|
 | AI vocabulary | delve, tapestry, testament, pivotal, underscore, vibrant, intricate, landscape (abstract), foster, garner, crucial, showcasing, highlight (verb), align with, transformative, seamless, robust, leverage (as verb), empower, unlock, streamline, elevate, realm, essentially, certainly, overall, absolutely, typically, various, meticulous, bolstered, causal, empirical, correlate |
-| Chatbot paste artifacts | oaicite, contentReference, oai_citation, turn0search0, [cite: N], [span_N], grok_card, ppl-ai-file-upload, :::writing, stray utm_source= in a pasted URL — remove on sight |
+| Chatbot paste artifacts | oaicite, contentReference, oai_citation, turn0search0, [cite: N], [span_N], grok_card, ppl-ai-file-upload, :::writing — remove on sight; plus a stray utm_source= left in a pasted URL (a pasted-and-forgotten tell, not a ban on intentional tracking params) |
 | Significance inflation | stands/serves as, marking a pivotal moment, underscores, reflects broader, indelible mark, shaping the, setting the stage for |
 | Copula avoidance | "serves as," "stands as," "functions as," "represents" instead of "is/are" |
 | Em dash overuse | — used where a comma or period would be cleaner |
