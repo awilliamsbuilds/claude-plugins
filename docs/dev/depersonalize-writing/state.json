@@ -3,8 +3,8 @@
   "feature": "depersonalize-writing",
   "branch": "feature/depersonalize-writing",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T03:42:34Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/depersonalize-writing/plan.md",
     "validation": "docs/dev/depersonalize-writing/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/33",
+    "pr_number": 33
   },
   "validate": {
     "loops_run": 1,
@@ -53,7 +53,8 @@
       "build_start": "2026-07-21T04:31:41Z",
       "build_end": "2026-07-21T05:18:09Z",
       "validate_start": "2026-07-21T13:07:08Z",
-      "validate_end": "2026-07-21T13:11:48Z"
+      "validate_end": "2026-07-21T13:11:48Z",
+      "pr_created": "2026-07-21T13:15:09Z"
     }
   }
 }
