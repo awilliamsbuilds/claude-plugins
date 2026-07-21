@@ -90,3 +90,79 @@ Before writing anything, show the user **5–8 short, characteristic excerpts** 
 Then **STOP and wait.** Ask the user to tell you which excerpts actually sound like the
 subject and which are you pattern-matching. **Do not write the output skill before the user
 responds.** This gate is non-skippable — a confirmed excerpt set is the input to Phase F.
+
+## Phase E — Confirm output path
+
+Default output path: **`~/.claude/skills/voice-<name>/SKILL.md`** — a personal skill,
+invocable anywhere, untouched by plugin updates. State the path and confirm it with the user
+before any write. Only write once the path is agreed.
+
+## Phase F — Write the generated voice skill
+
+Write the output file at the confirmed path, using only the **confirmed** excerpt set from
+Phase D. The generated file must follow this exact structure:
+
+1. **YAML frontmatter** — `name: voice-<name>` and a rich `description` (with trigger phrases
+   like "write in <name>'s voice", "draft this as <name>") so it's an invocable personal
+   skill. Include `user-invocable: true`.
+2. **Prose voice description** — how you'd describe the subject's writing to another writer,
+   in a short paragraph.
+3. **Do:** specific, actionable traits — **each with a real excerpt** from the subject's own
+   messages/samples. No trait without an example.
+4. **Don't:** the generic-AI tics that make writing obvious *and* this person's specific
+   non-traits, named concretely (actual phrases and constructions to avoid — not vague
+   categories).
+5. **Calibration:** how the voice flexes across contexts (e.g. cover letter vs. recruiter
+   email vs. LinkedIn message; careful vs. casual register).
+6. **Before/after:** 2–3 short passages in default AI-assistant voice, each rewritten in the
+   subject's voice, so the difference is visible rather than described.
+7. **Evidence-provenance note:** record how thin or rich the evidence was, e.g. "Built from
+   9 chats + 2 writing samples — weight the careful register cautiously." This tells
+   downstream use how much to trust the profile.
+
+**The output must be self-sufficient.** Another Claude with no access to the subject's
+history must be able to draft from it: every "Do" trait carries a concrete example, and vague
+guidance like "conversational but professional" is banned.
+
+## Phase G — Test-draft & iterate
+
+After writing, draft **one short sample** in the new voice (ask the user for a quick scenario,
+e.g. a cover letter for a role they describe) so they can sanity-check it. If it reads off,
+cut and retry — 2–3 rounds is normal. Don't defend a draft the subject says isn't them.
+
+## Refine / update mode
+
+Entered from Phase A when `~/.claude/skills/voice-<name>/SKILL.md` already exists. Instead of
+rebuilding from scratch:
+
+1. Read the existing file. Gather the **new** samples/chats the user is adding (Phases B–C
+   still apply to the new material).
+2. Fold new evidence into the existing **Do / Don't / Calibration** sections; revise the
+   **evidence-provenance note** to reflect the larger sample.
+3. **Preserve confirmed traits** from the prior file unless new evidence contradicts them.
+   Never overwrite the file wholesale.
+4. **Surface what changed** — tell the user which traits were added, sharpened, or removed
+   and why, so they can veto.
+5. Run the Phase D evidence gate on materially new or changed traits, then Phase G test-draft.
+
+## Edge cases
+
+- **Thin / unavailable input.** If "Search and reference past chats" is off or returns
+  little, or the only material is clipped chat messages, **stop and ask** the user to enable
+  past chats and/or paste real human-directed prose. Explain that chat-only samples read
+  curt — a profile built on them produces terse, throat-clearing-free drafts that misfire in
+  careful contexts. **Do not silently proceed** on weak input.
+- **Flattery drift.** The most common failure is describing a writer sharper and more
+  charming than the person actually is. Self-check that every "Do" trait cites a real excerpt
+  and reads like the subject, not a charmier version of them. If the user says a line doesn't
+  sound like them, cut it and retry (2–3 rounds normal).
+- **Unreachable sources.** URLs that fail to fetch and files the Read tool can't parse are
+  **reported and skipped** — non-fatal. Continue with the remaining sources and note in the
+  provenance line what couldn't be reached.
+
+## Final self-check
+
+Before declaring done, confirm the output is a **valid personal skill** at
+`~/.claude/skills/voice-<name>/SKILL.md`: valid YAML frontmatter (`name`, `description`,
+`user-invocable: true`), every "Do" trait backed by a real excerpt, and the
+evidence-provenance note present.
