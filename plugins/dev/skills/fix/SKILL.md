@@ -103,6 +103,6 @@ In state.json, set:
 
 Initialize state.json with the pre-filled confidence dimensions from Step 2. Set `stage` to `"spec"`.
 
-Continue with dev:spec from **Step 7: Guided Questioning** — but start from the pre-filled state. Show only unscored dimensions as questions. Show the confidence meter from the start (pre-filled score).
+Continue with dev:spec from **Step 7: Ground the Spec in the Codebase**, then **Step 8: Guided Questioning** — but start from the pre-filled state. Grounding still runs: a fix operates on existing code, so verifying the issue's as-is claims against the codebase is load-bearing, not optional. Show only unscored dimensions as questions. Show the confidence meter from the start (pre-filled score).
 
 When spec is complete, the rest of the /dev flow continues normally (shape if UI, plan, build, validate, PR, done).

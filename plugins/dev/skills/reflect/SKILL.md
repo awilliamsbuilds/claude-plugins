@@ -1,6 +1,6 @@
 ---
 name: dev:reflect
-description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, and appends a Retrospective section to the decision log. Called by dev:done automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
+description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:done automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
 ---
 
 # dev:reflect — Retrospective
@@ -37,10 +37,11 @@ Read once:
 
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
+- `metrics.spec_revisions` — how many times spec.md was revised after its first draft (post-approval-gate churn)
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
 - `validate.loops_run` / `validate.loops_max`
-- `stage_timestamps` — compute duration per stage
+- `stage_timestamps` — compute duration per stage. Note: `spec_end` is re-stamped on every spec revision, so `spec_end − spec_start` covers the full authoring-plus-revision span, not just the first draft.
 - `confidence.final_score` and `confidence.auto_filled[]`
 - `tier`
 - Any stage backtracks (stages in completed[] out of typical order)
@@ -50,7 +51,8 @@ Extract key metrics from state.json:
 Analyze the cycle across these dimensions. Note findings briefly — one sentence each unless something is significant:
 
 **Spec quality:**
-- Did the confidence score (final_score) reflect actual clarity? (If Build triggered many plan updates → spec was probably overconfident)
+- **`metrics.spec_revisions` is the strongest single signal here — read it first.** A high count means the spec kept changing after it "felt done": the user (or self-review) had to catch edge cases and nuances the grounding inventory (spec Step 7) and self-review (spec Step 11) missed. Crucially, this is **independent of `final_score`** — a spec can read 95%/Ready and still have churned five times, because the score measures internal coherence, not whether the spec's picture of the codebase was correct. If `spec_revisions` is high, say so plainly and look at *what kind* of thing kept getting added (missing couplings? unscoped entities? absence claims never checked?) — that points at which grounding pass is weak.
+- Did the confidence score (final_score) reflect actual clarity? Cross-check it against `spec_revisions` and any mid-build plan updates — a high score with high churn means the score was overconfident, not that the spec was good.
 - Were auto-filled dimensions `confidence.auto_filled[]` correct? (If they caused problems in Build → auto-fill was wrong)
 - Did spec_questions_asked reach the max? (If yes and confidence was still Low → initial request needed more context before starting)
 
@@ -97,7 +99,24 @@ Format:
 **Suggestions:** [list of actionable suggestions, or "none"]
 ```
 
-## Step 4: Append to Decision Log
+## Step 4: Invite User Observations (standard mode)
+
+Retrospective is never a silent, model-only exercise, and **a clean automated review is not a reason to skip the user — it is the most important time to include them.** The metrics only see what they measure; the human sees where the friction actually was (e.g. "most of the spec stage was me raising edge cases the skill had missed" — invisible to every counter). Do not conclude the cycle on the strength of a tidy metric sheet.
+
+Show the user the draft retrospective from Step 3, then ask explicitly — **even when Suggestions is "none":**
+
+```
+Here's my read of this cycle. Before I log it — do you have observations I missed?
+Anything that felt off, slow, or repetitive, or that you found yourself having to catch?
+```
+
+Wait for a real response. Do **not** append the retrospective or hand back to `dev:done` before giving the user this turn — skipping the user and moving straight to the next stage is the exact failure this step exists to prevent.
+
+Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change then flows into Step 6's skill-update gate exactly like an automated suggestion — so a "nothing found" review can still produce a real improvement once the human weighs in.
+
+**Autopilot mode:** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue.
+
+## Step 5: Append to Decision Log
 
 ```bash
 cat >> docs/decisions/YYYY-MM-DD-<feature>.md << 'EOF'
@@ -111,7 +130,7 @@ git -C "$WORKDIR" commit -m "docs: append retrospective to <feature> decision lo
 git -C "$WORKDIR" push
 ```
 
-## Step 5: Skill Update Gate
+## Step 6: Skill Update Gate
 
 For each actionable suggestion (e.g., "add auth checklist to dev:shape"):
 
