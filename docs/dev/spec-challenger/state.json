@@ -41,7 +41,7 @@
     "spec_questions_asked": 4,
     "spec_revisions": 1,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 1,
     "stage_timestamps": {
       "spec_start": "2026-07-21T22:23:15Z",
       "spec_end": "2026-07-21T23:31:05Z",
