@@ -26,7 +26,7 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
-**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to Step 13 to re-display it for approval. Do not re-run Steps 2–12 from scratch.
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
 
 **Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
 1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
@@ -481,16 +481,37 @@ Determine the next-stage command the same way as before (Shape if UI needed, Pla
 ```
 Spec written and committed to docs/dev/<feature-name>/spec.md.
 
+[Step 12a's verdict, verbatim]
+
+Reply `apply` to take all suggested fixes, apply them selectively, edit directly, or dismiss.
+
 Please review it and let me know if you'd like any changes before we continue.
 
 Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-Wait for explicit user approval. If changes requested: update spec.md, re-run Step 11, then **re-stamp `metrics.stage_timestamps.spec_end`** (run `date -u +%Y-%m-%dT%H:%M:%SZ` again) and **increment `metrics.spec_revisions`** before re-committing — so the recorded spec span covers the full authoring-plus-revision work, and Reflect can see the churn directly instead of inferring it from a frozen timestamp. Re-commit, re-display gate.
+Wait for explicit user approval. If changes are requested, take the path that matches where the change came from:
 
-The user raising missed edge cases and nuances here is exactly the churn `spec_revisions` exists to surface: a high count means the grounding inventory (Step 7) and self-review (Step 11) missed things the human had to catch — a signal for Reflect, not a failure to hide by freezing the clock at the first draft.
+**Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
+- update `spec.md` with the accepted suggested fixes
+- increment `challenge.applied` by the number of findings applied
+- increment `challenge.dismissed` by the number of surfaced findings the user declined
+- re-stamp `metrics.stage_timestamps.spec_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` again)
+- **do not** increment `metrics.spec_revisions`
+- commit:
+  ```bash
+  git -C "$WORKDIR" add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
+  git -C "$WORKDIR" commit -m "spec: apply challenger fixes for <feature-name>"
+  ```
+- re-display the gate **without re-dispatching** Step 12a (its re-run rule)
 
-When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage. Commit the state update.
+**Path B — user-originated changes** (anything the challenger did not surface): update spec.md, re-run Step 11, then **re-stamp `metrics.stage_timestamps.spec_end`** (run `date -u +%Y-%m-%dT%H:%M:%SZ` again) and **increment `metrics.spec_revisions`** before re-committing — so the recorded spec span covers the full authoring-plus-revision work, and Reflect can see the churn directly instead of inferring it from a frozen timestamp. Re-commit, re-display gate.
 
-**Autopilot mode:** No gate. After self-review, update state and notify orchestrator to proceed.
+The split exists because `spec_revisions` means churn the *human* had to catch after the spec felt done. Folding challenger catches into it would drive the number up precisely when the feature is working, and leave `dev:reflect` unable to tell which net caught the defect.
+
+The user raising missed edge cases and nuances here (Path B) is exactly the churn `spec_revisions` exists to surface: a high count means the grounding inventory (Step 7) and the cold review (Step 12a) missed things the human had to catch — a signal for Reflect, not a failure to hide by freezing the clock at the first draft.
+
+When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage, and carry any pending `challenge.*` writes from Step 12a into this same commit (per Step 12a's "which commit carries the counters"). Commit the state update.
+
+**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed.
