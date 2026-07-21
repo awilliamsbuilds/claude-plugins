@@ -12,7 +12,7 @@
     },
     {
       "name": "writing",
-      "description": "Multi-context writing toolkit — humanize AI text, write in your voice, web copy, LinkedIn posts, and email",
+      "description": "Multi-context writing toolkit — humanize AI text, write LinkedIn messages/posts/articles and personal email, and extract a reusable personal voice, composing your installed voice",
       "source": "./plugins/writing"
     },
     {

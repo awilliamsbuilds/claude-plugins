@@ -74,12 +74,11 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification |
 | `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
-| `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting |
-| `writing:voice` | plugins/writing/skills/voice/SKILL.md | Adam's personal voice-dna reference |
-| `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill |
-| `writing:web-copy` | plugins/writing/skills/web-copy/SKILL.md | Web copy writing with framework selection |
-| `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn post writing with 2026 hook formulas |
+| `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting (voice-neutral; no personal-voice coupling) |
+| `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill; offers a `Writing voice:` pointer |
+| `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn writing with an up-front message/post/article format gate |
 | `writing:email` | plugins/writing/skills/email/SKILL.md | Personal email writing |
+| `writing` shared refs | plugins/writing/references/channel-best-practices.md · voice-resolution.md | Voice-neutral channel best-practices + the pointer→convention→default voice-resolution procedure, loaded by `email` and `linkedin` |
 | `plugin-manager:add-plugin` | plugins/plugin-manager/skills/add-plugin/SKILL.md | Create and manage plugins in this repo |
 | `ux-toolkit:ux-copywriter` | plugins/ux-toolkit/skills/ux-copywriter/SKILL.md | Expert UX copywriting — write, review, audit copy |
 | `ux-toolkit:ux-designer` | plugins/ux-toolkit/skills/ux-designer/SKILL.md | UX strategy and visual design craft |
