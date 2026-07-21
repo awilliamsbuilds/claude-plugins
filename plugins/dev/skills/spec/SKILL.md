@@ -386,14 +386,11 @@ Approach: [one paragraph describing the change]
 *Grounding inventory: [the as-is claims checked this stage and how — e.g. "grep 'reads voice' across plugins/writing → email, linkedin, web-copy, humanize; grep -ri 'trm' → humanize audience line + voice frontmatter", or "none — greenfield / no existing code relied on"]*
 ```
 
-## Step 11: Artifact Self-Review
+## Step 11: Placeholder Scan
 
-After writing spec.md, check with fresh eyes:
-1. **Placeholder scan** — any "TBD", "TODO", incomplete sections? Fix them inline.
-2. **Internal consistency** — do any sections contradict each other?
-3. **Scope check** — focused enough for a single build cycle, or needs decomposition?
-4. **Ambiguity check** — can any requirement be interpreted two ways? Pick one, state it explicitly.
-5. **Grounding check** — every claim the spec makes about existing code is backed by a check you actually ran this stage (Step 7's inventory), not memory. Any set the spec names ("the consumers are…") was enumerated from a sweep, not recall. Any "must be absent / must be generic" success criterion was greped for presence. Internal consistency (#2) is not enough — a spec can be perfectly self-consistent and wrong about the codebase.
+Internal consistency, scope right-sizing, ambiguity, and grounding are no longer checked here — a reviewer who just wrote the spec cannot check it against a reader who was not in the room. Step 12a dispatches a cold reviewer for those four. This step is the cheap cleanup pass only.
+
+After writing spec.md, check with fresh eyes: **Placeholder scan** — any "TBD", "TODO", or incomplete sections? Fix them inline.
 
 Fix issues inline. No need to re-review after fixing.
 
