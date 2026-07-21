@@ -187,13 +187,19 @@ Full pattern list with before/after examples. Based on [Wikipedia:Signs of AI wr
 
 ### 9. Negative Parallelisms and Tailing Negations
 
-**Problem:** "Not only...but..." and "It's not just about...it's..." are overused. Clipped tailing-negation fragments ("no guessing," "no wasted motion") are also AI tells.
+**Problem:** "Not only...but..." and "It's not just about...it's..." are overused. Clipped tailing-negation fragments ("no guessing," "no wasted motion") are also AI tells. A third variant is **reversed-emphasis "X rather than Y"** — elevating X by demoting a Y nobody was proposing (e.g. "prioritizing empirical consolidation rather than ideological purity"). It manufactures contrast to sound decisive; usually the Y half can be cut and X stated plainly.
 
 **Before:**
 > It's not just about the beat riding under the vocals; it's part of the aggression and atmosphere. It's not merely a song, it's a statement.
 
 **After:**
 > The heavy beat adds to the aggressive tone.
+
+**Before ("X rather than Y"):**
+> The team focused on shipping working software rather than chasing theoretical perfection.
+
+**After:**
+> The team focused on shipping working software.
 
 **Before (tailing negation):**
 > The options come from the selected item, no guessing.
