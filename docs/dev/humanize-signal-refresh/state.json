@@ -3,8 +3,8 @@
   "feature": "humanize-signal-refresh",
   "branch": "feature/humanize-signal-refresh",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T21:14:57Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/humanize-signal-refresh/plan.md",
     "validation": "docs/dev/humanize-signal-refresh/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/36",
+    "pr_number": 36
   },
   "validate": {
     "loops_run": 1,
@@ -50,7 +50,8 @@
       "build_start": "2026-07-21T21:32:06Z",
       "build_end": "2026-07-21T21:34:51Z",
       "validate_start": "2026-07-21T21:36:52Z",
-      "validate_end": "2026-07-21T21:40:01Z"
+      "validate_end": "2026-07-21T21:40:01Z",
+      "pr_created": "2026-07-21T21:42:41Z"
     }
   }
 }
