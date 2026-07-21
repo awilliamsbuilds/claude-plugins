@@ -58,7 +58,7 @@ Analyze the cycle across these dimensions. Note findings briefly — one sentenc
   | `challenge.blockers` | `spec_revisions` | Reading |
   |---|---|---|
   | low | low | Process healthy |
-  | high | low | The author's own passes (spec Steps 7 and 11) are weak, but the challenger is catching it — working as designed |
+  | high | low | The author's own grounding pass (spec Step 7) is weak, but the challenger is catching it — working as designed |
   | low | high | Challenger's brief is too narrow — tune the lenses |
   | high | high | Step 7 grounding is weak upstream; both nets catching spillover |
 
