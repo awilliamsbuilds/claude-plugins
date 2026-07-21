@@ -2,45 +2,14 @@
 
 Personal Claude Code plugin repo for awilliamsbuilds. Registered as the `local-plugins` marketplace via `github` source type in `~/.claude/settings.json`.
 
-## Repo Structure
+**This file is agent-facing configuration, auto-loaded every session.** The human-facing front door — what each plugin is, how to install and enable them, the plugin catalog, and the repo's directory layout — lives in [README.md](README.md); it is the single source of truth for those, so don't duplicate them here. Keep this file to the operational guardrails the agent needs in context and the `/dev` Component Registry below.
 
-```
-awilliamsbuilds/claude-plugins/
-├── .claude-plugin/
-│   └── marketplace.json           # Registry — lists all plugins
-└── plugins/
-    └── <plugin-name>/
-        ├── .claude-plugin/
-        │   └── plugin.json        # Plugin metadata
-        └── skills/
-            └── <skill-name>/
-                └── SKILL.md       # Skill instructions and triggers
-```
+## Adding a Plugin or Skill
 
-## Installed Plugins
+Use the `add-plugin` skill — it owns the full workflow (the human walkthrough is in [README.md](README.md#adding-a-plugin)). Two guardrails worth having in context:
 
-| Plugin | Skills | Description |
-|--------|--------|-------------|
-| `ux-toolkit` | `ux-designer`, `ux-copywriter` | UX design strategy and interface copywriting |
-| `humanize` | `humanize` | AI pattern detection and voice rewriting |
-| `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
-| `dev` | `dev`, `dev:init`, `dev:start`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done) |
-
-## Adding a Plugin
-
-1. Feature branch: `add-plugin/<name>`
-2. Create `plugins/<name>/.claude-plugin/plugin.json`
-3. Create `plugins/<name>/skills/<skill-name>/SKILL.md` with YAML frontmatter
-4. Add entry to `.claude-plugin/marketplace.json` (read file first to get SHA before updating)
-5. PR → merge → delete branch
-6. Enable in `~/.claude/settings.json`: `"<name>@local-plugins": true`
-7. Run `/plugin update` in Claude Code
-
-Use the `add-plugin` skill — it knows the full workflow.
-
-## Adding a Skill to an Existing Plugin
-
-Same as above but skip steps 2 and 4. Only create SKILL.md and PR.
+- Adding a **plugin** touches `plugins/<name>/.claude-plugin/plugin.json`, one `skills/<skill>/SKILL.md`, and a new entry in `.claude-plugin/marketplace.json`. Adding a **skill** to an existing plugin only touches a new `SKILL.md` — skip the plugin.json and marketplace steps.
+- Before updating `.claude-plugin/marketplace.json`, read it first (to get its current SHA if editing via the GitHub API) rather than blind-writing it.
 
 ## Git Workflow
 
