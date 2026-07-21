@@ -1,5 +1,5 @@
 # Writing Plugin Voice — Product Plan
-*Created: 2026-07-21 · Cycles completed: 1/2*
+*Created: 2026-07-21 · Cycles completed: 2/2*
 
 ## Milestone 1: Voice tooling
 - [x] voice-extractor (feature) — a skill that extracts a person's voice from Claude
@@ -8,7 +8,7 @@
   refine/update mode on re-invocation.
 
 ## Milestone 2: Depersonalize writing plugin
-- [ ] depersonalize-writing (feature) — make the `writing` plugin shareable: migrate
+- [x] depersonalize-writing (feature) — make the `writing` plugin shareable: migrate
   Adam's `voice` skill out to a local skill (`~/.claude/skills/voice-adam/`, produced via
   voice-extractor's convention), decouple `email`/`linkedin`/`web-copy` from the hardcoded
   `../voice/references/voice-profile.md` path so they accept any named voice, and ship a
