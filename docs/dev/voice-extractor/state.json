@@ -3,9 +3,10 @@
   "feature": "voice-extractor",
   "branch": "feature/voice-extractor",
   "mode": "standard",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -15,7 +16,7 @@
     "spec": "docs/dev/voice-extractor/spec.md",
     "design": null,
     "plan": "docs/dev/voice-extractor/plan.md",
-    "validation": null,
+    "validation": "docs/dev/voice-extractor/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -62,7 +63,9 @@
       "plan_start": "2026-07-21T02:59:00Z",
       "plan_end": "2026-07-21T03:01:45Z",
       "build_start": "2026-07-21T03:02:44Z",
-      "build_end": "2026-07-21T03:05:15Z"
+      "build_end": "2026-07-21T03:05:15Z",
+      "validate_start": "2026-07-21T03:06:31Z",
+      "validate_end": "2026-07-21T03:11:34Z"
     }
   }
 }
