@@ -3,20 +3,20 @@
   "feature": "humanize-signal-refresh",
   "branch": "feature/humanize-signal-refresh",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T21:14:57Z",
   "artifacts": {
     "spec": "docs/dev/humanize-signal-refresh/spec.md",
     "design": null,
     "plan": "docs/dev/humanize-signal-refresh/plan.md",
-    "validation": null,
+    "validation": "docs/dev/humanize-signal-refresh/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
@@ -48,7 +48,9 @@
       "plan_start": "2026-07-21T21:21:18Z",
       "plan_end": "2026-07-21T21:24:09Z",
       "build_start": "2026-07-21T21:32:06Z",
-      "build_end": "2026-07-21T21:34:51Z"
+      "build_end": "2026-07-21T21:34:51Z",
+      "validate_start": "2026-07-21T21:36:52Z",
+      "validate_end": "2026-07-21T21:40:01Z"
     }
   }
 }
