@@ -182,6 +182,11 @@ Initialize `docs/dev/<feature-name>/state.json`:
     "loops_max": 3,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
+  "challenge": {
+    "run": false, "blockers": 0, "concerns": 0,
+    "applied": 0, "dismissed": 0,
+    "loops_run": 0, "loops_max": 3
+  },
   "confidence": {
     "final_score": 0,
     "final_level": "Low",
@@ -214,6 +219,8 @@ Initialize `docs/dev/<feature-name>/state.json`:
 If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill those confidence dimensions as true and set initial score accordingly (audience = 5%, technical_constraints = 5%).
 
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
+
+Set `challenge.loops_max` from the tier detected in Step 5 — micro 1 / standard 3 / deep 5. Unlike `validate.loops_max`, this cannot be left to lazy reconciliation at a later stage: the challenger (Step 12a) runs inside this skill, so the cap must be correct here.
 
 Commit the initial state.json:
 ```bash
