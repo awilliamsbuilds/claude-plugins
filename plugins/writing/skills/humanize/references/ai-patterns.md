@@ -64,6 +64,9 @@ Full pattern list with before/after examples. Based on [Wikipedia:Signs of AI wr
   - [50. Press Release AI Patterns](#50-press-release-ai-patterns)
   - [51. One-Pager AI Patterns](#51-one-pager-ai-patterns)
   - [52. Webpage and Sales Deck AI Patterns](#52-webpage-and-sales-deck-ai-patterns)
+- [Encyclopedic Tells](#encyclopedic-tells)
+  - [53. Title-as-Proper-Noun Lead](#53-title-as-proper-noun-lead)
+  - [54. Tables Where Prose Belongs](#54-tables-where-prose-belongs)
 
 ---
 
@@ -986,3 +989,34 @@ If a bullet describes a capability rather than an outcome the reader cares about
 - Solution slide leads with features: lead with the outcome the buyer cares about, then explain how the product delivers it
 - "Our team has X years of combined experience" — irrelevant credential; replace with what that experience produced
 - Generic competitive positioning: "we're the only platform that..." claims require evidence; vague differentiation is worse than no differentiation because it sounds like a claim but proves nothing
+
+---
+
+## Encyclopedic Tells
+
+### 53. Title-as-Proper-Noun Lead
+
+**Words to watch:** `[Title] refers to…`, `[Title] is a curated compilation/list of…`, `'List of…' is…`
+
+**Problem:** AI opens a piece by defining the piece's own title as if it were a standalone encyclopedia entity — restating the heading as a subject and glossing it, instead of starting with the actual point. It reads like the lead sentence of a reference article grafted onto a blog post, email, or deck.
+
+**Before:**
+> Remote Onboarding refers to the process by which organizations integrate new employees who work outside a central office.
+
+**After:**
+> New hires who never set foot in an office still need to feel like part of the team by week one. Here's how we get them there.
+
+---
+
+### 54. Tables Where Prose Belongs
+
+**Problem:** AI reaches for a table to present material that reads better as a sentence or two of connected reasoning. Tables are fine when the data is genuinely tabular — repeated records with shared fields you'd actually want to scan or sort. Flag only the table that stands in for a paragraph: two rows and two columns restating a simple comparison, or a "Feature / Benefit" grid that hides the argument the prose should be making.
+
+**Before:**
+> | Approach | Result |
+> |----------|--------|
+> | Manual review | Slow but thorough |
+> | Automated review | Fast but shallow |
+
+**After:**
+> Manual review is slow but thorough; automating it makes the pass fast but shallow. We run both — automation first to catch the obvious, humans second for judgment.
