@@ -12,7 +12,7 @@ Follow this order every time.
 
 1. **Registered pointer.** If `~/.claude/CLAUDE.md` contains a line of the form
    `Writing voice: <skill-name-or-path>`, use it. The value may name an installed skill
-   (e.g. `voice-adam`) or point to a voice located anywhere. Load that voice at the skill
+   (e.g. `voice-jordan`) or point to a voice located anywhere. Load that voice at the skill
    level and stop here.
 
 2. **Convention.** If there is no pointer, discover installed `voice-*` skills using Claude's
