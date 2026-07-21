@@ -5,12 +5,14 @@
   "mode": "standard",
   "stage": "spec",
   "completed": [],
-  "skipped": [],
+  "skipped": [
+    "shape"
+  ],
   "startedAt": "2026-07-21T02:39:39Z",
   "artifacts": {
     "spec": "docs/dev/voice-extractor/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/voice-extractor/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -54,7 +56,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-21T02:39:39Z",
-      "spec_end": "2026-07-21T02:52:20Z"
+      "spec_end": "2026-07-21T02:52:20Z",
+      "plan_start": "2026-07-21T02:59:00Z",
+      "plan_end": "2026-07-21T03:01:45Z"
     }
   }
 }
