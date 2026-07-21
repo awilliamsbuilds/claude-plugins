@@ -10,14 +10,24 @@ description: >
 
 Write personal emails that sound like a person wrote them.
 
-## Step 1 — Voice context
+## Step 1 — Load email best-practices
+
+Always load `../../references/channel-best-practices.md` and apply its **`## Email`** section —
+regardless of which voice is resolved below. These govern subject line, structure, one-ask
+discipline, length, and the avoid-list. A fresh installer with no voice still gets current
+email best-practices from here.
+
+## Step 2 — Voice context
 
 > "Which voice should I write in?
-> A) Adam's personal voice — I'll load your voice profile
+> A) Your installed personal voice — I'll resolve and load it
 > B) Your own voice — describe how you typically write, or share an example
 > C) Start fresh — I'll keep it clean and direct"
 
-**If A:** Load `../voice/references/voice-profile.md` and `../voice/references/platform-guide.md`. Apply the external email section of the platform guide directly. Key rules: formal but not stiff, one paragraph per purpose, no preamble before the point, no "I hope this email finds you well."
+**If A:** Resolve the voice by following `../../references/voice-resolution.md` (registered
+pointer → installed `voice-*` convention → default). Load the resolved voice skill *at the
+skill level* and apply it. If resolution yields no voice, fall through to a clean default —
+never error, never assume a specific person's voice.
 
 **If B:** Ask for one example of how they typically write. Calibrate to that.
 
@@ -25,7 +35,7 @@ Write personal emails that sound like a person wrote them.
 
 ---
 
-## Step 2 — Relationship calibration
+## Step 3 — Relationship calibration
 
 Ask if it's not clear from context:
 
@@ -39,7 +49,7 @@ This determines warmth, formality, and how much context-setting is appropriate. 
 
 ---
 
-## Step 3 — Email type
+## Step 4 — Email type
 
 | Type | Notes |
 |------|-------|
@@ -53,7 +63,10 @@ This determines warmth, formality, and how much context-setting is appropriate. 
 
 ---
 
-## Step 4 — Write
+## Step 5 — Write
+
+Order: apply the email best-practices (Step 1) and the resolved voice (Step 2) → draft →
+humanize pass.
 
 **Structure:**
 - One paragraph per purpose — don't combine context, the ask, and a question into one block
@@ -64,9 +77,14 @@ This determines warmth, formality, and how much context-setting is appropriate. 
 - Match the relationship. Friends get short emails. Professional contacts get concise ones. Nobody needs three paragraphs for a simple ask.
 - If it's getting long, that's usually a sign the ask isn't clear yet.
 
+**Humanize de-AI pass:** after drafting, run the draft through the `humanize` skill's Email
+rules to strip AI tells (greeting/closing formulas, corporate filler, buried ask, over-length,
+stacked sign-offs) before delivering. Apply `humanize` to the output — don't re-derive its
+rules here.
+
 ---
 
-## Step 5 — Output format
+## Step 6 — Output format
 
 Deliver:
 - **Full email** with subject line

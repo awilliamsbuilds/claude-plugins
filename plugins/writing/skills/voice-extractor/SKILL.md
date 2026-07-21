@@ -14,8 +14,8 @@ description: |
 
   This skill BUILDS a voice skill through an interactive extraction flow (gather → sort
   signal from artifact → show evidence and wait for confirmation → write → test-draft).
-  It is distinct from writing:voice (Adam's fixed personal voice, used to write in that
-  one voice) and from writing:humanize (which strips generic-AI patterns from text).
+  It is distinct from an installed personal `voice-*` skill (used to write in that one
+  person's voice) and from writing:humanize (which strips generic-AI patterns from text).
   Reach for this when the goal is to CAPTURE a person's voice into a new reusable skill.
 user-invocable: true
 ---
@@ -122,10 +122,10 @@ path confirmation into the same message as the Phase D evidence gate ("here are 
 — confirm which sound right, and I'll write to `<path>`").
 
 **Warn on overlap.** A generated `voice-<name>` skill carries triggers like "write in
-<name>'s voice." If that would collide with an existing voice skill — notably the repo's
-`writing:voice` (Adam's personal voice) when the subject is Adam or the slug is `me`/`adam` —
-flag it and offer a more specific slug (e.g. `adam-outreach`) so the two don't contend for the
-same invocation.
+<name>'s voice." If that would collide with an existing `voice-<name>` skill already installed
+(same subject or slug — e.g. a `voice-adam` when the subject is Adam or the slug is
+`me`/`adam`), flag it and offer a more specific slug (e.g. `adam-outreach`) so the two don't
+contend for the same invocation.
 
 ## Phase F — Write the generated voice skill
 
@@ -168,6 +168,29 @@ captures a real person's voice.
 After writing, draft **one short sample** in the new voice (ask the user for a quick scenario,
 e.g. a cover letter for a role they describe) so they can sanity-check it. If it reads off,
 cut and retry — 2–3 rounds is normal. Don't defend a draft the subject says isn't them.
+
+## Phase H — Offer to register the voice pointer
+
+Once the voice skill is written and the test-draft looks right, **offer** (never silently
+write) to register it so the writing skills (`email`, `linkedin`) resolve this voice first. The
+writing skills read a single line in `~/.claude/CLAUDE.md`:
+
+```
+Writing voice: voice-<name>
+```
+
+- Present the **exact line** you'd add and ask before writing anything. Only write it on
+  explicit confirmation.
+- **If a `Writing voice:` line already exists**, offer to update it instead, and show the
+  before/after so the user can veto:
+  > "You already have `Writing voice: voice-old`. Update it to `Writing voice: voice-<name>`?
+  > (before → after)"
+- This is the only pointer this skill touches. It does not change the generated skill's
+  single-file output shape and adds no `references/` folder.
+
+Skip the offer only if the subject isn't the user's own writing voice (e.g. a third-party
+subject) — registering someone else's voice as *your* default rarely makes sense; mention it's
+available if they want it.
 
 ## Refine / update mode
 
