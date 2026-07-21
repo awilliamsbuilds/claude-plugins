@@ -21,3 +21,14 @@ Refreshed the `humanize` skill's pattern library with new AI-writing signal accu
 
 ## Artifacts (archived)
 Spec and plan committed at: e9677059e16e8765c5ba4567e6d116e06d982146 on branch feature/humanize-signal-refresh
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-21*
+
+**Spec:** Confidence (90/Ready) matched actual clarity — 0 revisions, no auto-filled dimensions, 2 questions asked. The grounding inventory (reading both skill files in full and diffing against a fresh fetch of the source article) did real work: every "verified absent" claim held through Build and Validate.
+**Shape:** Skipped — correct for a docs-only, no-UI change.
+**Plan:** Accurate, no mid-build updates. Naming exact files and line ranges per task kept `files_read_in_build` at 0.
+**Validate:** 1 loop / 3 max. Clean after one pass; two nits found and fixed, no P1/P2/P3.
+**Flow:** Tier (standard) was right; no unnecessary stages; straight-through 1→7 with no backtracks.
+**Token efficiency:** No outliers. Stage durations in a tight ~3–4½ min band.
+**Suggestions:** none. (User confirmed no additional observations.)
