@@ -3,8 +3,8 @@
   "feature": "humanize-signal-refresh",
   "branch": "feature/humanize-signal-refresh",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T21:14:57Z",
   "artifacts": {
@@ -46,7 +46,9 @@
       "spec_start": "2026-07-21T21:14:57Z",
       "spec_end": "2026-07-21T21:19:19Z",
       "plan_start": "2026-07-21T21:21:18Z",
-      "plan_end": "2026-07-21T21:24:09Z"
+      "plan_end": "2026-07-21T21:24:09Z",
+      "build_start": "2026-07-21T21:32:06Z",
+      "build_end": "2026-07-21T21:34:51Z"
     }
   }
 }
