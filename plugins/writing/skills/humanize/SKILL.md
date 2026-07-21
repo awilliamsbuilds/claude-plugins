@@ -4,7 +4,7 @@ description: |
   Remove signs of AI-generated writing and make text sound natural and human.
   Auto-detects content type (Blog, LinkedIn, Email, Slack, Marketing Collateral) and applies channel-specific rules.
   Use when the user asks to humanize, de-AI, or edit text to remove AI writing patterns, or asks to score / review / check text for AI tells.
-  **Audience:** For any TRMer drafting prose — blogs, emails, Slack posts, LinkedIn posts.
+  **Audience:** For anyone drafting prose — blogs, emails, Slack posts, LinkedIn posts.
 user-invocable: true
 license: "Based on Wikipedia:Signs_of_AI_writing (CC BY-SA 4.0). Adapted from blader/humanizer (MIT) and blog-post-humanizer."
 ---
@@ -84,14 +84,15 @@ When the content looks like marketing collateral, identify the specific sub-form
 
 ## Voice Calibration
 
-Before rewriting, try to establish the user's voice using the following priority order:
+Voice calibration is **optional and sample-based**. `humanize` does not read or resolve any
+voice skill — its job is to strip AI patterns and de-AI text into a natural, varied human
+voice. If a sample is provided, calibrate to it; if not, use a clean default voice. Never look
+up, load, or depend on a personal voice profile — a user with no voice installed gets full
+functionality and no errors.
 
-1. **Check for a local voice skill** — look for a voice profile in common locations:
-   - `~/.claude/skills/voice-*/references/voice-profile.md` (any installed voice skill)
-   - `~/.claude/skills/voice-*/references/platform-guide.md`
-   - If found, read it automatically and note: "Found your voice profile at [path] — calibrating to your style."
+Try to establish the user's voice using the following priority order:
 
-2. **Use a provided writing sample** — if the user has included one inline or referenced a file path, read it and extract:
+1. **Use a provided writing sample** — if the user has included one inline or referenced a file path, read it and extract:
    - Sentence length patterns (short and punchy? long and flowing? mixed?)
    - Word choice register (casual? academic? somewhere between?)
    - How they open paragraphs and posts
@@ -99,10 +100,10 @@ Before rewriting, try to establish the user's voice using the following priority
    - Punctuation habits (dashes? asides? semicolons?)
    - Phrases they would never use
 
-3. **Ask for a sample** — if no voice profile or sample is available, ask:
+2. **Ask for a sample** — if no sample is available, ask:
    > "To match your voice, paste a short sample of your own writing (a few sentences is enough), or share a file path. Or say 'skip' to proceed with a natural default voice."
 
-4. **Proceed with default voice** — if the user declines or says skip, rewrite in a natural, varied, human voice and note: "No voice sample provided — using a default human voice. Sharing a sample would improve the match."
+3. **Proceed with default voice** — if the user declines or says skip, rewrite in a natural, varied, human voice and note: "No voice sample provided — using a default human voice. Sharing a sample would improve the match."
 
 ### How to provide a sample
 - Inline: "Humanize this. Here's a sample of my writing: [sample]"
