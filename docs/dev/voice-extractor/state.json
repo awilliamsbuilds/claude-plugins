@@ -3,8 +3,10 @@
   "feature": "voice-extractor",
   "branch": "feature/voice-extractor",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": [
+    "build"
+  ],
   "skipped": [
     "shape"
   ],
@@ -58,7 +60,9 @@
       "spec_start": "2026-07-21T02:39:39Z",
       "spec_end": "2026-07-21T02:52:20Z",
       "plan_start": "2026-07-21T02:59:00Z",
-      "plan_end": "2026-07-21T03:01:45Z"
+      "plan_end": "2026-07-21T03:01:45Z",
+      "build_start": "2026-07-21T03:02:44Z",
+      "build_end": "2026-07-21T03:05:15Z"
     }
   }
 }
