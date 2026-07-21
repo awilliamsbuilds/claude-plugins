@@ -337,6 +337,26 @@ Replace curly quotes with straight quotes where the context calls for neutral te
 **After:**
 > The French Revolution began in 1789 when financial crisis and food shortages led to widespread unrest.
 
+**Copy-paste markup artifacts (highest confidence — remove on sight):**
+
+When text is pasted straight from a chatbot UI, render and citation tokens leak in with it. These are the single strongest tells in this whole library — a human writing by hand never produces them. Delete them wherever they appear.
+
+- **ChatGPT:** `oaicite`, `contentReference`, `oai_citation`, `turn0search0` (and other `turnNsearchN` / `turnNviewN` refs), a stray trailing `+1` after a linked phrase
+- **Gemini:** `[cite: 1]`, `[span_1]`, `[start_span]`, `[end_span]`
+- **Grok:** `grok_card`, `grok_render_citation_card_json`
+- **Perplexity:** `ppl-ai-file-upload`, `attached_file`
+- **Generic:** `:::writing` (and other `:::`-fenced UI blocks); `utm_source=` or other tracking params left in a pasted URL
+
+These tokens are channel-agnostic — a Slack paste and a blog paste leak the same artifacts — so they live here in the universal Chatbot Artifacts section rather than in any channel-specific block.
+
+One nuance on `utm_source=`: flag it as a *pasted-and-forgotten* tell, not a ban on tracking params. A deliberately built marketing link with `utm_source=` is legitimate; a `utm_source=chatgpt.com` (or similar) riding along on a URL nobody meant to tag is the giveaway.
+
+**Before:**
+> The Estates-General was convened in May 1789 :contentReference[oaicite:0]{index=0}. Food prices had spiked that spring [cite: 3].
+
+**After:**
+> The Estates-General was convened in May 1789. Food prices had spiked that spring.
+
 ---
 
 ### 21. Knowledge-Cutoff Disclaimers
