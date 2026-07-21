@@ -3,20 +3,20 @@
   "feature": "spec-challenger",
   "branch": "feature/spec-challenger",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T22:23:15Z",
   "artifacts": {
     "spec": "docs/dev/spec-challenger/spec.md",
     "design": null,
     "plan": "docs/dev/spec-challenger/plan.md",
-    "validation": null,
+    "validation": "docs/dev/spec-challenger/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 2,
     "loops_max": 3,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
@@ -48,7 +48,9 @@
       "plan_start": "2026-07-21T23:33:12Z",
       "plan_end": "2026-07-21T23:40:06Z",
       "build_start": "2026-07-21T23:46:14Z",
-      "build_end": "2026-07-21T23:51:03Z"
+      "build_end": "2026-07-21T23:51:03Z",
+      "validate_start": "2026-07-21T23:55:08Z",
+      "validate_end": "2026-07-21T23:59:22Z"
     }
   }
 }
