@@ -3,8 +3,8 @@
   "feature": "spec-challenger",
   "branch": "feature/spec-challenger",
   "mode": "standard",
-  "stage": "plan",
-  "completed": ["spec"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-21T22:23:15Z",
   "artifacts": {
@@ -46,7 +46,9 @@
       "spec_start": "2026-07-21T22:23:15Z",
       "spec_end": "2026-07-21T23:31:05Z",
       "plan_start": "2026-07-21T23:33:12Z",
-      "plan_end": "2026-07-21T23:40:06Z"
+      "plan_end": "2026-07-21T23:40:06Z",
+      "build_start": "2026-07-21T23:46:14Z",
+      "build_end": "2026-07-21T23:51:03Z"
     }
   }
 }
