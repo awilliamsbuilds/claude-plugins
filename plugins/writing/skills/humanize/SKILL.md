@@ -457,7 +457,8 @@ Full list with before/after examples in [references/ai-patterns.md](references/a
 
 | Pattern | Watch for |
 |---|---|
-| AI vocabulary | delve, tapestry, testament, pivotal, underscore, vibrant, intricate, landscape (abstract), foster, garner, crucial, showcasing, highlight (verb), align with, transformative, seamless, robust, leverage (as verb), empower, unlock, streamline, elevate, realm, essentially, certainly, overall, absolutely, typically, various |
+| AI vocabulary | delve, tapestry, testament, pivotal, underscore, vibrant, intricate, landscape (abstract), foster, garner, crucial, showcasing, highlight (verb), align with, transformative, seamless, robust, leverage (as verb), empower, unlock, streamline, elevate, realm, essentially, certainly, overall, absolutely, typically, various, meticulous, bolstered, causal, empirical, correlate |
+| Chatbot paste artifacts | oaicite, contentReference, oai_citation, turn0search0, [cite: N], [span_N], grok_card, ppl-ai-file-upload, :::writing — remove on sight; plus a stray utm_source= left in a pasted URL (a pasted-and-forgotten tell, not a ban on intentional tracking params) |
 | Significance inflation | stands/serves as, marking a pivotal moment, underscores, reflects broader, indelible mark, shaping the, setting the stage for |
 | Copula avoidance | "serves as," "stands as," "functions as," "represents" instead of "is/are" |
 | Em dash overuse | — used where a comma or period would be cleaner |
@@ -473,7 +474,8 @@ Full list with before/after examples in [references/ai-patterns.md](references/a
 | Excessive bold | **Bolded inline headers** followed by colons in every bullet |
 | -ing phrase padding | "...symbolizing X, reflecting Y, contributing to Z" tacked onto sentences |
 | Hyphenated word pairs | cross-functional, data-driven, client-facing, decision-making, high-quality, real-time |
-| AI phrases | "brutal clarity", "here's a breakdown", "not only...but also", "a testament to", "Below is:", "The truth is", "Read that again.", "And honestly?" |
+| AI phrases | "brutal clarity", "here's a breakdown", "not only...but also", "X rather than Y", "a testament to", "Below is:", "The truth is", "Read that again.", "And honestly?" |
+| Encyclopedic tells | title-as-proper-noun lead ("X refers to…"); a table used where prose belongs |
 | LinkedIn tells | one-line-per-paragraph, ALL-CAPS words, "Read that again.", "And honestly?", achievement post formula, fake dialogue format, information-withheld hook, engagement bait closers |
 | Email tells | "I hope this email finds you well", "Please don't hesitate to reach out", buried ask, 2-3x too long |
 | Slack tells | over-formal language, corporate filler, emoji overload, too long for the medium |

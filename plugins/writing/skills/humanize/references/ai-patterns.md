@@ -64,6 +64,9 @@ Full pattern list with before/after examples. Based on [Wikipedia:Signs of AI wr
   - [50. Press Release AI Patterns](#50-press-release-ai-patterns)
   - [51. One-Pager AI Patterns](#51-one-pager-ai-patterns)
   - [52. Webpage and Sales Deck AI Patterns](#52-webpage-and-sales-deck-ai-patterns)
+- [Encyclopedic Tells](#encyclopedic-tells)
+  - [53. Title-as-Proper-Noun Lead](#53-title-as-proper-noun-lead)
+  - [54. Tables Where Prose Belongs](#54-tables-where-prose-belongs)
 
 ---
 
@@ -157,7 +160,9 @@ Full pattern list with before/after examples. Based on [Wikipedia:Signs of AI wr
 
 ### 7. AI Vocabulary Words
 
-**High-frequency AI words:** actually, additionally, align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate/intricacies, key (adjective), landscape (abstract noun), pivotal, showcase, tapestry (abstract noun), testament, underscore (verb), valuable, vibrant, transformative, game-changing, seamless, robust, synergy, leverage (as verb), empower, unlock, streamline, holistic, dynamic, agile, disruptive, scalable, innovative, next-gen, cutting-edge, revolutionary, world-class, best-in-class, future-proof, paradigm, harness, navigate, multifaceted, nuanced, foster, cultivate, facilitate, utilize, comprehensive, albeit, whilst, theater (figurative use), plainly, superpower, journey (as metaphor), reality (as dramatic reveal — e.g. "the reality is"), elevate, realm, essentially, certainly, overall (as filler qualifier — e.g. "Overall, this works well"), absolutely (as affirmation opener — e.g. "Absolutely, here's how"), typically, various (as vague pluralizer — replace with the actual things)
+**High-frequency AI words:** actually, additionally, align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate/intricacies, key (adjective), landscape (abstract noun), pivotal, showcase, tapestry (abstract noun), testament, underscore (verb), valuable, vibrant, transformative, game-changing, seamless, robust, synergy, leverage (as verb), empower, unlock, streamline, holistic, dynamic, agile, disruptive, scalable, innovative, next-gen, cutting-edge, revolutionary, world-class, best-in-class, future-proof, paradigm, harness, navigate, multifaceted, nuanced, foster, cultivate, facilitate, utilize, comprehensive, albeit, whilst, theater (figurative use), plainly, superpower, journey (as metaphor), reality (as dramatic reveal — e.g. "the reality is"), elevate, realm, essentially, certainly, overall (as filler qualifier — e.g. "Overall, this works well"), absolutely (as affirmation opener — e.g. "Absolutely, here's how"), typically, various (as vague pluralizer — replace with the actual things), meticulous, meticulously, bolstered, causal, empirical, correlate
+
+**Era-awareness note:** This set grows over time — it is additive, not a fixed list. Older-era words still cluster in AI text, so they stay flagged; nothing here retires. Current-era emphasis leans on `emphasizing`, `enhance`, `highlight`, `showcase` (already above), and the Grok pseudo-scientific cluster `causal` / `empirical` / `correlate` is a recent addition. Treat new arrivals as *added to* the watch-list, never as replacements for what came before.
 
 **Problem:** These words appear far more in post-2023 AI text. They often cluster together.
 
@@ -185,13 +190,19 @@ Full pattern list with before/after examples. Based on [Wikipedia:Signs of AI wr
 
 ### 9. Negative Parallelisms and Tailing Negations
 
-**Problem:** "Not only...but..." and "It's not just about...it's..." are overused. Clipped tailing-negation fragments ("no guessing," "no wasted motion") are also AI tells.
+**Problem:** "Not only...but..." and "It's not just about...it's..." are overused. Clipped tailing-negation fragments ("no guessing," "no wasted motion") are also AI tells. A third variant is **reversed-emphasis "X rather than Y"** — elevating X by demoting a Y nobody was proposing (e.g. "prioritizing empirical consolidation rather than ideological purity"). It manufactures contrast to sound decisive; usually the Y half can be cut and X stated plainly.
 
 **Before:**
 > It's not just about the beat riding under the vocals; it's part of the aggression and atmosphere. It's not merely a song, it's a statement.
 
 **After:**
 > The heavy beat adds to the aggressive tone.
+
+**Before ("X rather than Y"):**
+> The team focused on shipping working software rather than chasing theoretical perfection.
+
+**After:**
+> The team focused on shipping working software.
 
 **Before (tailing negation):**
 > The options come from the selected item, no guessing.
@@ -336,6 +347,26 @@ Replace curly quotes with straight quotes where the context calls for neutral te
 
 **After:**
 > The French Revolution began in 1789 when financial crisis and food shortages led to widespread unrest.
+
+**Copy-paste markup artifacts (highest confidence — remove on sight):**
+
+When text is pasted straight from a chatbot UI, render and citation tokens leak in with it. These are the single strongest tells in this whole library — a human writing by hand never produces them. Delete them wherever they appear.
+
+- **ChatGPT:** `oaicite`, `contentReference`, `oai_citation`, `turn0search0` (and other `turnNsearchN` / `turnNviewN` refs), a stray trailing `+1` after a linked phrase
+- **Gemini:** `[cite: 1]`, `[span_1]`, `[start_span]`, `[end_span]`
+- **Grok:** `grok_card`, `grok_render_citation_card_json`
+- **Perplexity:** `ppl-ai-file-upload`, `attached_file`
+- **Generic:** `:::writing` (and other `:::`-fenced UI blocks); `utm_source=` or other tracking params left in a pasted URL
+
+These tokens are channel-agnostic — a Slack paste and a blog paste leak the same artifacts — so they live here in the universal Chatbot Artifacts section rather than in any channel-specific block.
+
+One nuance on `utm_source=`: flag it as a *pasted-and-forgotten* tell, not a ban on tracking params. A deliberately built marketing link with `utm_source=` is legitimate; a `utm_source=chatgpt.com` (or similar) riding along on a URL nobody meant to tag is the giveaway.
+
+**Before:**
+> The Estates-General was convened in May 1789 :contentReference[oaicite:0]{index=0}. Food prices had spiked that spring [cite: 3].
+
+**After:**
+> The Estates-General was convened in May 1789. Food prices had spiked that spring.
 
 ---
 
@@ -958,3 +989,34 @@ If a bullet describes a capability rather than an outcome the reader cares about
 - Solution slide leads with features: lead with the outcome the buyer cares about, then explain how the product delivers it
 - "Our team has X years of combined experience" — irrelevant credential; replace with what that experience produced
 - Generic competitive positioning: "we're the only platform that..." claims require evidence; vague differentiation is worse than no differentiation because it sounds like a claim but proves nothing
+
+---
+
+## Encyclopedic Tells
+
+### 53. Title-as-Proper-Noun Lead
+
+**Words to watch:** `[Title] refers to…`, `[Title] is a curated compilation/list of…`, `'List of…' is…`
+
+**Problem:** AI opens a piece by defining the piece's own title as if it were a standalone encyclopedia entity — restating the heading as a subject and glossing it, instead of starting with the actual point. It reads like the lead sentence of a reference article grafted onto a blog post, email, or deck.
+
+**Before:**
+> Remote Onboarding refers to the process by which organizations integrate new employees who work outside a central office.
+
+**After:**
+> New hires who never set foot in an office still need to feel like part of the team by week one. Here's how we get them there.
+
+---
+
+### 54. Tables Where Prose Belongs
+
+**Problem:** AI reaches for a table to present material that reads better as a sentence or two of connected reasoning. Tables are fine when the data is genuinely tabular — repeated records with shared fields you'd actually want to scan or sort. Flag only the table that stands in for a paragraph: two rows and two columns restating a simple comparison, or a "Feature / Benefit" grid that hides the argument the prose should be making.
+
+**Before:**
+> | Approach | Result |
+> |----------|--------|
+> | Manual review | Slow but thorough |
+> | Automated review | Fast but shallow |
+
+**After:**
+> Manual review is slow but thorough; automating it makes the pass fast but shallow. We run both — automation first to catch the obvious, humans second for judgment.
