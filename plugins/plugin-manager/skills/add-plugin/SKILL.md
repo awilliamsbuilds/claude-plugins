@@ -20,7 +20,7 @@ You are an expert on the `awilliamsbuilds/claude-plugins` GitHub repository and 
 | Plugin | Skills | Description |
 |--------|--------|-------------|
 | `ux-toolkit` | `ux-designer`, `ux-copywriter` | UX design strategy and interface copywriting |
-| `writing` | `humanize`, `voice`, `web-copy`, `linkedin`, `email` | Multi-context writing toolkit |
+| `writing` | `humanize`, `voice-extractor`, `linkedin`, `email` | Multi-context writing toolkit (voice-neutral; personal voice resolved via pointer/convention) |
 | `plugin-manager` | `add-plugin` | This skill — manages plugins in this repo |
 | `dev` | `dev`, `dev:init`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot` | Structured multi-stage development workflow |
 

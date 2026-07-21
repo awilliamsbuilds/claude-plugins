@@ -90,8 +90,8 @@ Choose from these proven structures — offer 2 options using different formulas
 - If instructional: label the takeaway ("Take-away:" or "Lesson:")
 - Do not end with "Follow me for more" or "What do you think?" as the whole close
 
-**Post — length:** 300–700 words for most posts. Long-form (600–1200) only if the idea
-genuinely requires it.
+**Post — length:** follow the length guidance in `channel-best-practices.md` (`## LinkedIn —
+Post` → Length and format). Go long only when the idea genuinely needs it.
 
 **Article — body:** a real title, then a few titled sections that each carry one part of the
 argument. Develop the idea fully; vary paragraph length; use firsthand experience and named
