@@ -26,7 +26,7 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
-**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 12), skip straight to Step 12 to re-display it for approval. Do not re-run Steps 2–11 from scratch.
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to Step 13 to re-display it for approval. Do not re-run Steps 2–12 from scratch.
 
 **Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
 1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
@@ -201,6 +201,7 @@ Initialize `docs/dev/<feature-name>/state.json`:
   "worktreePath": null,
   "metrics": {
     "spec_questions_asked": 0,
+    "spec_revisions": 0,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
     "stage_timestamps": {
@@ -222,7 +223,23 @@ git -C "$WORKDIR" commit -m "spec: initialize /dev session for <feature-name>"
 
 All subsequent spec commits (spec.md and other artifacts) also use `git -C "$WORKDIR"`.
 
-## Step 7: Guided Questioning
+## Step 7: Ground the Spec in the Codebase
+
+Before questioning locks in assumptions, verify what the code actually is. A spec written from a mental model of an existing codebase is the single most common source of missed edge cases. Every "X currently does Y," "A is coupled to B," "the convention is Z," or "nothing yet does W" is an **as-is claim** — and an unverified as-is claim is a guess wearing the costume of a fact.
+
+**This is not a full-repo audit — it's bounded by the spec's own claims.** Ground exactly what this cycle asserts about, touches, extends, integrates with, or assumes the absence of — no more. This makes the step self-scaling and future-proof: in a **greenfield** repo (no existing code this cycle relies on) there are no as-is claims and this step is a quick no-op; in an **existing** repo it scales with how much the spec leans on what's already there. The trigger is not "is this a refactor" — it is "does the spec make load-bearing claims about existing code," which is true for almost all non-greenfield work.
+
+Build the **grounding inventory** — three passes, each run against the real code *this stage* (grep/read), never from memory:
+
+1. **Verify every as-is claim.** For each thing the intent or scope asserts about the current system, run an actual check and record the result. If a claim turns out wrong or inverted — e.g. the spec says to *preserve* a coupling the goal actually exists to *remove* — correct the spec's framing before questioning proceeds.
+2. **Enumerate sets from code, not recall.** Whenever the spec names a set — "the consumers are X, Y, Z," "the callers of…," "the skills that read…" — produce that set with a sweep (`grep` for the actual dependency), not from what you remember. The sweep is the source of truth; a memory-named list is a hypothesis to check. This is what surfaces the member you didn't think of.
+3. **Ground the negative space of the goal.** For each success criterion of the form "X must be absent / must be generic / must not appear," grep for X's **presence** across the surface. "Installable by anyone" ⇒ sweep for anything person-, company-, or environment-specific. An absence nobody greps for is an absence nobody catches.
+
+Feed the findings into the questions that follow — questioning starts from verified facts, not assumptions — and record the inventory in the spec footer (Step 10). This gates confidence: per Step 8, confidence cannot cross the proceed threshold while any load-bearing as-is claim remains unverified, regardless of the weighted score.
+
+**Micro tier:** still do a lightweight version — verify the specific files and behavior the fix names actually exist and work as assumed. It is quick (≤2 files) but it is where a wrong assumption about the current code does the most damage.
+
+## Step 8: Guided Questioning
 
 Ask questions one at a time to fill the confidence dimensions. Show the confidence meter after each answer.
 
@@ -246,6 +263,15 @@ Ask questions one at a time to fill the confidence dimensions. Show the confiden
 - 🟢 High (65–84%): Default proceed threshold
 - ✅ Ready (85–100%): Ideal
 
+**Grounding gate (a precondition, not a weighted dimension).** Regardless of the weighted score, confidence is **capped just below the applicable proceed threshold** (below High in standard, below Ready in deep/autopilot) while any load-bearing as-is claim from Step 7's grounding inventory is still unverified. A strong, internally-coherent narrative must not read as ready-to-proceed on an unchecked picture of the codebase — that is the exact "95%-confident but wrong about what the code does" failure this guards against. Show the cap and the specific unverified claims:
+```
+Confidence: 91% — capped at 🟢 High
+ⓘ Cannot reach ✅ Ready: 2 as-is claims unverified
+   • "humanize does not read voice"  → not yet checked
+   • "web-copy is a consumer only"   → not yet checked
+```
+The cap lifts only once every load-bearing as-is claim has an actual check recorded against it. This gate is never auto-filled — a claim is verified by running a check, not by inference.
+
 **Display after each answer:**
 ```
 Confidence: 58% — Sufficient ↑ from 43%
@@ -256,7 +282,7 @@ Still needed for High: edge cases, out of scope, success criteria
 - One question per message — never two questions in one turn
 - Prefer multiple choice when options can be enumerated
 - Ask about the most impactful unscored dimension first
-- Don't try to track `metrics.spec_questions_asked` inline while questioning — it competes with the actual work and reliably gets skipped. It's reconciled once, retroactively, in Step 10.
+- Don't try to track `metrics.spec_questions_asked` inline while questioning — it competes with the actual work and reliably gets skipped. It's reconciled once, retroactively, in Step 11.
 
 **Proceed thresholds:**
 - Standard mode: continue until High (65%) reached. Offer early exit at Sufficient (40%): "We're at Sufficient (40%) — enough to proceed, though some things may surface later. Continue or keep going?"
@@ -265,7 +291,7 @@ Still needed for High: edge cases, out of scope, success criteria
 
 **Micro tier:** Only ask about intent and scope. Skip remaining questions. Write spec with Implementation Note section instead of separate plan.md.
 
-## Step 8: Comprehension Check (Standard mode only)
+## Step 9: Comprehension Check (Standard mode only)
 
 After confidence threshold is reached, before writing spec.md:
 
@@ -289,7 +315,7 @@ This is an understanding check, not a design review. User confirms or corrects t
 
 **Autopilot mode:** Skipped. Re-read the full Q&A, check for contradictions internally, continue.
 
-## Step 9: Write spec.md
+## Step 10: Write spec.md
 
 Write to `docs/dev/<feature-name>/spec.md`. Scale length to complexity — a simple feature may need five lines per section; a complex one may need a paragraph.
 
@@ -350,37 +376,39 @@ Approach: [one paragraph describing the change]
 ```markdown
 ---
 *Auto-filled dimensions: [list any dimensions inferred rather than answered directly, or "none"]*
+*Grounding inventory: [the as-is claims checked this stage and how — e.g. "grep 'reads voice' across plugins/writing → email, linkedin, web-copy, humanize; grep -ri 'trm' → humanize audience line + voice frontmatter", or "none — greenfield / no existing code relied on"]*
 ```
 
-## Step 10: Artifact Self-Review
+## Step 11: Artifact Self-Review
 
 After writing spec.md, check with fresh eyes:
 1. **Placeholder scan** — any "TBD", "TODO", incomplete sections? Fix them inline.
 2. **Internal consistency** — do any sections contradict each other?
 3. **Scope check** — focused enough for a single build cycle, or needs decomposition?
 4. **Ambiguity check** — can any requirement be interpreted two ways? Pick one, state it explicitly.
+5. **Grounding check** — every claim the spec makes about existing code is backed by a check you actually ran this stage (Step 7's inventory), not memory. Any set the spec names ("the consumers are…") was enumerated from a sweep, not recall. Any "must be absent / must be generic" success criterion was greped for presence. Internal consistency (#2) is not enough — a spec can be perfectly self-consistent and wrong about the codebase.
 
 Fix issues inline. No need to re-review after fixing.
 
-**Reconcile `metrics.spec_questions_asked`:** scroll back through this stage's own conversation and count every distinct question actually asked (plain-text questions and `AskUserQuestion` calls alike) — not the running counter, the real count. Set `spec_questions_asked` to that number in Step 11. An inline per-question increment competes with the actual work for attention and is easy to skip mid-flow; counting once, at the end, against what actually happened is more reliable.
+**Reconcile `metrics.spec_questions_asked`:** scroll back through this stage's own conversation and count every distinct question actually asked (plain-text questions and `AskUserQuestion` calls alike) — not the running counter, the real count. Set `spec_questions_asked` to that number in Step 12. An inline per-question increment competes with the actual work for attention and is easy to skip mid-flow; counting once, at the end, against what actually happened is more reliable.
 
-## Step 11: Update State + Commit
+## Step 12: Update State + Commit
 
 Update `docs/dev/<feature-name>/state.json`:
 - Set `confidence.final_score` and `confidence.final_level`
 - Set all dimension booleans correctly
 - Set `confidence.auto_filled` to list of auto-filled dimensions (or empty array)
-- Set `metrics.spec_questions_asked` to the count reconciled in Step 10
+- Set `metrics.spec_questions_asked` to the count reconciled in Step 11
 - Set `stage` to `"spec"` (stays as current stage until spec is approved)
 - Set `artifacts.spec` to the path
-- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1
+- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1. **This is not a one-time stamp:** the spec is not "done" here, it is done when the user approves it in Step 13 — so `spec_end` is **re-stamped on every revision** (Step 13's revision loop). The committed value must always reflect the *last* spec activity before approval, not the first draft. Leave `metrics.spec_revisions` at 0 for this initial write; Step 13 increments it per revision.
 
 ```bash
 git -C "$WORKDIR" add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
 git -C "$WORKDIR" commit -m "spec: write spec for <feature-name> (confidence: XX%)"
 ```
 
-## Step 12: User Review Gate (Standard mode)
+## Step 13: User Review Gate (Standard mode)
 
 Determine the next-stage command the same way as before (Shape if UI needed, Plan if no-ui, Build if Micro tier), and its exact argument (`docs/dev/<feature-name>/spec.md`).
 
@@ -393,7 +421,9 @@ Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/sp
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-Wait for explicit user approval. If changes requested: update spec.md, re-run Step 10, re-commit, re-display gate.
+Wait for explicit user approval. If changes requested: update spec.md, re-run Step 11, then **re-stamp `metrics.stage_timestamps.spec_end`** (run `date -u +%Y-%m-%dT%H:%M:%SZ` again) and **increment `metrics.spec_revisions`** before re-committing — so the recorded spec span covers the full authoring-plus-revision work, and Reflect can see the churn directly instead of inferring it from a frozen timestamp. Re-commit, re-display gate.
+
+The user raising missed edge cases and nuances here is exactly the churn `spec_revisions` exists to surface: a high count means the grounding inventory (Step 7) and self-review (Step 11) missed things the human had to catch — a signal for Reflect, not a failure to hide by freezing the clock at the first draft.
 
 When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage. Commit the state update.
 
