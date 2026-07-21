@@ -461,7 +461,7 @@ Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅
 
 **Mode behaviour — standard: advisory.** The verdict renders at the Step 13 gate, above the approval prompt. Nothing is auto-applied; the user decides. A forced pre-gate revision would resolve judgment calls by the reviewer's taste rather than the user's and hide the disagreement behind an already-clean spec, with no upside, because the decision-maker is present. In standard mode `challenge.loops_run` stays `0` — the loop is an autopilot-only mechanism.
 
-**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max`, incrementing `challenge.loops_run` per iteration. Concerns are logged and passed through, never revised. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
+**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration. Concerns are logged and passed through, never revised. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
 
 **Scope-blocker exception.** A right-sizing blocker is not text-fixable — a cycle cannot be split by editing prose. Scope blockers bypass the revision loop and STOP immediately in autopilot. The loop handles only clarity, consistency, and grounding. In standard mode a scope blocker is advisory like any other finding, and acting on it means rescoping through Step 4's decomposition path (a product plan), not an inline edit.
 
