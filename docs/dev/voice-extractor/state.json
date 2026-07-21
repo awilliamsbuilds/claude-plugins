@@ -3,10 +3,11 @@
   "feature": "voice-extractor",
   "branch": "feature/voice-extractor",
   "mode": "standard",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -17,8 +18,8 @@
     "design": null,
     "plan": "docs/dev/voice-extractor/plan.md",
     "validation": "docs/dev/voice-extractor/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/32",
+    "pr_number": 32
   },
   "validate": {
     "loops_run": 1,
@@ -65,7 +66,8 @@
       "build_start": "2026-07-21T03:02:44Z",
       "build_end": "2026-07-21T03:05:15Z",
       "validate_start": "2026-07-21T03:06:31Z",
-      "validate_end": "2026-07-21T03:11:34Z"
+      "validate_end": "2026-07-21T03:11:34Z",
+      "pr_created": "2026-07-21T03:13:38Z"
     }
   }
 }
