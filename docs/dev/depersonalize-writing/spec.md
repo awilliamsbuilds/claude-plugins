@@ -36,9 +36,10 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   1. **Registered pointer** — if `~/.claude/CLAUDE.md` declares `Writing voice: <skill-name-or-path>`, use it.
   2. **Convention** — otherwise use an installed `voice-*` skill, resolved via Claude's own skill
      discovery (not a filesystem glob): 0 → clean best-practice default; 1 → use it; 2+ → ask which.
-  3. **Load at the skill level** — load the resolved voice *skill* itself (a single self-contained
-     `SKILL.md`), never a hardcoded reference-file path. Option A's wording changes from "Adam's
-     personal voice" to "your installed personal voice."
+  3. **Load at the skill level** — load the resolved voice *skill* itself (self-contained, whether
+     a single `SKILL.md` or one that carries its own `references/`), never a hardcoded external
+     reference-file path. Option A's wording changes from "Adam's personal voice" to "your
+     installed personal voice."
 - **Registration pointer support.** Document a lightweight convention: an optional
   `Writing voice: <skill-name-or-path>` entry in `~/.claude/CLAUDE.md` that the writing skills
   honor first. It may name an installed skill or point to a voice anywhere. No new file format.
@@ -57,10 +58,11 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
   - **Post** — native feed post. Hook-driven, one idea (today's default; existing post types + hooks).
   - **Article** — long-form native article. Titled, sectioned, evergreen; distinct from a feed post.
 - **Migrate Adam out (local, no-gap):**
-  - `voice` → `~/.claude/skills/voice-adam/` as a **single self-contained `SKILL.md`**
-    consolidating Adam's voice profile and his personal platform notes (matching `voice-extractor`'s
-    convention), created before the in-plugin `voice` skill is removed. Add
-    `Writing voice: voice-adam` to Adam's `~/.claude/CLAUDE.md`.
+  - `voice` → copy the skill directory **as-is** (`SKILL.md` + `references/voice-profile.md` +
+    `references/platform-guide.md`) to `~/.claude/skills/voice-adam/`, created before the in-plugin
+    `voice` skill is removed. The `references/` folder is **preserved** — it's the skill's own
+    internal organization; consumers load `voice-adam` at the skill level and don't depend on its
+    layout. Add `Writing voice: voice-adam` to Adam's `~/.claude/CLAUDE.md`.
   - `web-copy` → `~/.claude/skills/web-copy/` (local personal skill), created before the in-plugin
     `web-copy` skill is removed. Its voice reference is repointed to the same resolution logic.
 - **Delete from the plugin** once the local copies + pointer + shared best-practices file exist:
@@ -72,8 +74,8 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
 - **A `references/` folder for `voice-extractor` (the "Milestone 3" question): not needed.** Its
   single-file `SKILL.md` is a robust, self-contained voice profile, and every consumer now loads
   voice at the skill level, so no split-out reference files are required anywhere.
-- Re-running extraction to build `voice-adam`; it is assembled by consolidating Adam's existing
-  curated `voice-profile.md` + `platform-guide.md` content into one `SKILL.md`.
+- Re-running extraction or reformatting to build `voice-adam`; the existing voice skill directory
+  (`SKILL.md` + its `references/`) is copied verbatim to the new location.
 - The `trm-brand-voice` skill referenced in `voice/SKILL.md` (separate company-voice concern).
 - Web-copy channel best practices in the *shared* plugin reference. Web-copy leaves the plugin
   this cycle; the shared file covers email + the three LinkedIn formats only.
@@ -88,8 +90,9 @@ working. It's Milestone 2 of the writing-plugin-voice product plan and depends o
 - A fresh installer with no voice skill and no pointer can use `email` and `linkedin` and gets
   clean output = current channel best practices + de-AI'd (via `humanize`) + a natural default
   voice, with **zero** references to Adam anywhere in the plugin.
-- Voice resolution honors pointer → convention → default and loads a **single self-contained
-  voice `SKILL.md`** at the skill level, wherever it is installed.
+- Voice resolution honors pointer → convention → default and loads a **self-contained voice skill**
+  at the skill level (a single `SKILL.md`, or one that carries its own `references/`), wherever it
+  is installed.
 - A voice outside the `voice-*` convention (different name/location) is picked up via the
   `Writing voice:` pointer.
 - The `writing` plugin source contains no personal voice profile and no Adam-specific skill —
@@ -140,16 +143,19 @@ and web-copy setup must keep working via local skills and a CLAUDE.md pointer.
   The PR contains the plugin decoupling (`email`, `linkedin`, `humanize`), the shared
   best-practices file, the LinkedIn format work, the pointer-reading logic, the `voice-extractor`
   pointer offer, deletions, and registry updates.
-- No skill reads a hardcoded voice reference-file path. Voice is loaded at the skill level; voice
-  skills are single self-contained `SKILL.md` files. `humanize` reads no voice at all.
+- No skill reads a hardcoded external voice reference-file path. Voice is loaded at the skill
+  level; a voice skill is self-contained (a single `SKILL.md`, or one that carries its own
+  `references/`). `humanize` reads no voice at all.
 - The shared best-practices file must be reachable by relative path from both `email` and
   `linkedin` after the `voice` skill is gone.
 - Best-practices content should be sourced from current guidance (research and/or reusable
   existing skills), not merely copied from the year-stamped current file.
 
 ## Dependencies
-- Depends on the completed `voice-extractor` cycle and its single-file `~/.claude/skills/voice-<name>/SKILL.md`
-  convention; `voice-extractor` gains only the optional CLAUDE.md-pointer offer this cycle.
+- Depends on the completed `voice-extractor` cycle and its `~/.claude/skills/voice-<name>/`
+  convention (voice-extractor emits a single self-contained `SKILL.md` for new voices; existing
+  hand-curated voices like Adam's may keep their own `references/`). `voice-extractor` gains only
+  the optional CLAUDE.md-pointer offer this cycle.
 - `email` and `linkedin` depend on the shared best-practices file existing before the `voice` skill
   is deleted, and compose the `humanize` skill at draft time.
 - Research into current channel best practices (and reusable existing skills/plugins) is a
