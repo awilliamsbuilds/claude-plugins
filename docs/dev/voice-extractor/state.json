@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "feature": "voice-extractor",
+  "branch": "feature/voice-extractor",
+  "mode": "standard",
+  "stage": "done",
+  "completed": [
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-07-21T02:39:39Z",
+  "artifacts": {
+    "spec": "docs/dev/voice-extractor/spec.md",
+    "design": null,
+    "plan": "docs/dev/voice-extractor/plan.md",
+    "validation": "docs/dev/voice-extractor/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/32",
+    "pr_number": 32
+  },
+  "validate": {
+    "loops_run": 1,
+    "loops_max": 3,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": []
+  },
+  "confidence": {
+    "final_score": 90,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": [
+      "dependencies"
+    ]
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": "docs/dev/product-plan.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/voice-extractor",
+  "metrics": {
+    "spec_questions_asked": 6,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 2,
+    "stage_timestamps": {
+      "spec_start": "2026-07-21T02:39:39Z",
+      "spec_end": "2026-07-21T02:52:20Z",
+      "plan_start": "2026-07-21T02:59:00Z",
+      "plan_end": "2026-07-21T03:01:45Z",
+      "build_start": "2026-07-21T03:02:44Z",
+      "build_end": "2026-07-21T03:05:15Z",
+      "validate_start": "2026-07-21T03:06:31Z",
+      "validate_end": "2026-07-21T03:11:34Z",
+      "pr_created": "2026-07-21T03:13:38Z"
+    }
+  }
+}

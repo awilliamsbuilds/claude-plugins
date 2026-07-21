@@ -57,7 +57,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-18*
+*Last updated by /dev · 2026-07-21*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -76,6 +76,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
 | `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting |
 | `writing:voice` | plugins/writing/skills/voice/SKILL.md | Adam's personal voice-dna reference |
+| `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill |
 | `writing:web-copy` | plugins/writing/skills/web-copy/SKILL.md | Web copy writing with framework selection |
 | `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn post writing with 2026 hook formulas |
 | `writing:email` | plugins/writing/skills/email/SKILL.md | Personal email writing |
