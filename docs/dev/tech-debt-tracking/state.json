@@ -22,7 +22,7 @@
   },
   "challenge": {
     "run": true, "blockers": 2, "concerns": 3,
-    "applied": 0, "dismissed": 0,
+    "applied": 5, "dismissed": 0,
     "loops_run": 0, "loops_max": 5
   },
   "confidence": {
@@ -49,7 +49,7 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-22T00:41:58Z",
-      "spec_end": "2026-07-22T02:56:23Z"
+      "spec_end": "2026-07-22T03:00:37Z"
     }
   }
 }

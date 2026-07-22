@@ -49,17 +49,24 @@ this one.
    `possibly related to:` cross-reference — never merge on topic similarity alone. Duplicates
    are visible and cheap to merge by hand; a wrong merge silently destroys an entry.
 
-4. **Flush at Done.** Items are buffered in the cycle directory during the cycle and written
-   to `docs/dev/tech-debt.md` by `dev:done` **before** Step 7's `rm -rf`. Done also closes
-   any entry this cycle paid, naming the paying cycle.
+4. **Flush at Done.** Items are buffered during the cycle in
+   `docs/dev/<feature>/debt-pending.md`, created on first write by whichever stage writes
+   first — `dev:build` runs before `dev:validate` and both produce entries, so the buffer
+   cannot be a section inside any one stage's artifact. `dev:done` flushes that buffer into
+   `docs/dev/tech-debt.md` **before** Step 7's `rm -rf`, and closes any entry this cycle
+   paid, naming the paying cycle.
 
 5. **Two ways to reach it:**
    - **Proactively at Spec.** `dev:spec` Step 7 already sweeps the codebase to build its
      grounding inventory. Where open debt intersects that inventory, surface it — the one
      moment the debt is actionable, because the cycle is about to be in those files anyway.
    - **On demand.** A new `dev:debt` skill: list open entries ranked by recurrence, show
-     closed entries, close an entry. All read and lifecycle logic lives here; the producing
+     closed entries, close an entry by hand. All read logic and all **manual** lifecycle
+     commands live here; `dev:done` owns **automatic** closing (Scope 4). The producing
      stages only ever append.
+
+   These two surfaces are separable, and should be built in that order — `dev:debt` first,
+   Spec-time surfacing second — so a Build that runs long still ships something coherent.
 
 6. **Migrate this repo's holding pen.** Convert the two hand-written entries in
    `docs/dev/tech-debt.md` into the new format and delete the file's holding-pen preamble. It
@@ -100,9 +107,11 @@ this one.
    the behavior that fails today.
 2. Zero repo-specific strings in the tracker machinery — no paths, org names, or marketplace
    names. Verified by sweeping the diff for presence, not by assuming absence.
-3. The write rule produces identical behavior in standard and autopilot mode. No tracker
-   state write may live on a gate path. (See Edge Cases — this is a defect shape with three
-   prior instances in this plugin.)
+3. The write rule produces identical behavior in standard and autopilot mode. Verified by
+   tracing every tracker write to the stage step that performs it and confirming that step is
+   not on a standard-mode-only gate path. This cycle adds no `state.json` counters; if Build
+   introduces one, the same trace applies to it. (See Edge Cases — this is a defect shape with
+   three prior instances in this plugin.)
 4. **Regression test against real history:** of the three items actually deferred across this
    repo's ten completed cycles, the two cosmetic ones — the "locality only" Scoring-Template
    nit and the `TMP`-path naming nit — must **not** qualify under the carrying-cost test. The
@@ -121,8 +130,8 @@ this one.
 1. `dev:validate` finishes a cycle with an unresolved P3 that its fix loop consciously chose
    not to fix.
 2. It applies the carrying-cost test. The item will make future work harder, so it is
-   buffered into the cycle directory with what is wrong, why it was deferred rather than
-   fixed, and what "done" looks like.
+   appended to `docs/dev/<feature>/debt-pending.md` with what is wrong, why it was deferred
+   rather than fixed, and what "done" looks like.
 3. `dev:done` flushes the buffer to `docs/dev/tech-debt.md` before deleting the cycle
    directory. A clear match against an existing entry increments its recurrence and appends
    this cycle's name; otherwise a new entry is created.
@@ -143,8 +152,11 @@ this one.
   autopilot, with a downstream reader that has no mode qualification. The carrying-cost test
   and the merge decision must therefore be self-applied by the writing stage, never gated on
   user confirmation, and no counter may be written only on a gate path.
-- **Repos initialized before this ships.** No `tech-debt.md` exists and `dev:init` will not
-  re-run. Spec surfacing must no-op silently; the first write creates the file.
+- **Repos initialized before this ships.** No `tech-debt.md` exists, and `dev:init` is only
+  *auto*-triggered when `config.json` is missing — so an already-initialized repo never gets
+  the file automatically. (`/dev:init` can still be run by hand; its Scenario D handles
+  re-invocation on an initialized repo.) Spec surfacing must no-op silently, and the first
+  write creates the file.
 - **Empty tracker.** Prints nothing during Spec grounding. `dev:debt` invoked directly on an
   empty or absent tracker says so plainly rather than erroring.
 - **Spec-time matching is approximate.** At Spec there is no plan and no definitive file
