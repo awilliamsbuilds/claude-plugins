@@ -116,3 +116,35 @@ silently assumed for the other. A plan whose tasks span the standard gate and au
 path should be required to name, per state key, which mode writes it — in the Interfaces block,
 where the plan already tracks producer/consumer. Candidate home: `dev:plan`'s isolation-principle
 section, or Task 7's consistency-pass template.
+
+### Suggestion outcome
+
+The suggestion above was challenged at the skill-update gate — *is this cycle-specific or a
+standing issue?* — and investigation redirected the fix. A pre-existing instance of the identical
+defect was already shipping, written before this cycle: `metrics.spec_revisions` is incremented
+only inside `dev:spec` Step 13's gate path, Step 13's autopilot branch writes no counter, yet
+autopilot **does** revise specs via its silent-backtrack rule (`autopilot/SKILL.md`), and
+`dev:reflect` reads `spec_revisions` with no mode qualification while calling it "the strongest
+single signal — read it first." Net: on every autopilot cycle, reflect's primary signal was
+structurally pinned at 0 regardless of actual spec churn.
+
+That reframed the finding. The proposed preventive fix (per-mode ownership discipline in
+`dev:plan`'s Interfaces block) was dropped in favour of closing the live defect:
+
+- `autopilot/SKILL.md` — the silent-backtrack rule now increments `metrics.spec_revisions` and
+  re-stamps `spec_end` when the backtracked artifact is `spec.md`, matching what Step 13's gate
+  does in standard mode.
+- `reflect/SKILL.md` — two pieces of standard-mode-only wording corrected ("post-approval-gate
+  churn"; "the user had to catch"), since neither is true of an autopilot backtrack.
+
+Design call behind it: an autopilot backtrack is the *same* signal as a human catching something
+at the gate — the spec changed after it felt done, diagnosing the same upstream weakness. Only
+*who* caught it differs. This is unlike `challenge.applied`, which fires before the spec is ever
+considered settled, which is why that one warranted its own counter and this one did not.
+
+Strongest evidence the issue is general rather than cycle-specific: this cycle *reproduced* the
+bug. The `challenge.applied` P2 was the same shape as the `spec_revisions` defect already sitting
+in the very file being edited, and the precedent went unnoticed while the new instance was written.
+
+Changes are applied to the working tree but **not yet shipped** — they need their own branch, PR,
+and `/plugin update`.
