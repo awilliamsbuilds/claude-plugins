@@ -39,7 +39,14 @@ Check which scenario applies and follow that path:
 **Scenario D — Already initialized** (`docs/dev/config.json` exists):
 - Read and display current config
 - Ask: "Update config or keep it as-is?"
-- If keep: exit with "Config unchanged. Run /dev to start a feature cycle."
+- If keep: before exiting, check for `docs/dev/tech-debt.md`. If it is absent, create it exactly
+  as in **Create Directories** below, `git add` it, and name it in the exit line — "Config
+  unchanged. Created docs/dev/tech-debt.md. Run /dev to start a feature cycle." If it already
+  exists, exit with "Config unchanged. Run /dev to start a feature cycle."
+  This is the only automatic path by which a repo initialized before the tracker shipped ever
+  gets the file: `dev:init` is auto-triggered only when `config.json` is missing, which is false
+  for exactly those repos. (`dev:done`'s flush creates the file too, but only once a cycle there
+  actually defers something.)
 - If update: re-run Phase 2
 
 ## Phase 2 — Plugin Setup
@@ -115,6 +122,28 @@ touch docs/decisions/.gitkeep
 grep -qxF '.dev-worktrees/' .gitignore 2>/dev/null || echo '.dev-worktrees/' >> .gitignore
 ```
 
+Then create the tech-debt tracker — **only when it is absent**, so re-running init never
+clobbers real entries. Do not `touch` it: an empty file is not ready to receive its first entry.
+Write the canonical header from `../../references/tech-debt.md` plus both section headings:
+
+```bash
+[ -f docs/dev/tech-debt.md ] || cat > docs/dev/tech-debt.md <<'EOF'
+# Tech Debt
+
+Deferred items discovered by `/dev` cycles — recorded rather than fixed, with enough context to
+act on later without re-deriving the finding. Written automatically by `dev:done` when a cycle
+completes; read, ranked, and closed via `/dev:debt`. Format and rules: the `/dev` plugin's
+`references/tech-debt.md`.
+
+## Open
+
+## Closed
+EOF
+```
+
+It lives at `docs/dev/`, beside `product-plan.md` and one level above the per-cycle directory
+`dev:done` Step 7 deletes — which is why it survives cycles.
+
 ### Create or Update CLAUDE.md
 
 **If CLAUDE.md is absent:** Create it with this template:
@@ -171,7 +200,7 @@ Set `changelog` to the detected path or `null`. Set `changelog_versioned` to `tr
 ### Commit
 
 ```bash
-git add docs/dev/.gitkeep docs/decisions/.gitkeep docs/dev/config.json CLAUDE.md .gitignore
+git add docs/dev/.gitkeep docs/decisions/.gitkeep docs/dev/config.json docs/dev/tech-debt.md CLAUDE.md .gitignore
 git commit -m "Initialize /dev workflow"
 ```
 
@@ -181,6 +210,7 @@ git commit -m "Initialize /dev workflow"
 ✓ /dev workflow initialized
 
   Created: docs/dev/  docs/decisions/
+  Created: docs/dev/tech-debt.md
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
   Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"

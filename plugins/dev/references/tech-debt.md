@@ -46,12 +46,18 @@ Plain Markdown, readable and editable by hand without tooling. An `## Open` sect
 `## Closed` section, both always present, both allowed to be empty. Entries are `###` headings
 under one of them.
 
+The H1 and the paragraph below it in this example are the **canonical header** — anything that
+creates the tracker (`dev:init` in a fresh repo, `dev:done` on first write in a repo that
+predates the tracker) writes exactly that header, so every tracker file looks the same
+regardless of how it came to exist.
+
 ```markdown
 # Tech Debt
 
 Deferred items discovered by `/dev` cycles — recorded rather than fixed, with enough context to
-act on later without re-deriving the finding. Written automatically by `dev:done` at the end of
-a cycle; read and closed via `/dev:debt`. Entry format: `plugins/dev/references/tech-debt.md`.
+act on later without re-deriving the finding. Written automatically by `dev:done` when a cycle
+completes; read, ranked, and closed via `/dev:debt`. Format and rules: the `/dev` plugin's
+`references/tech-debt.md`.
 
 ## Open
 
