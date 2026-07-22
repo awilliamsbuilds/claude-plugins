@@ -236,11 +236,22 @@ Before questioning locks in assumptions, verify what the code actually is. A spe
 
 **This is not a full-repo audit — it's bounded by the spec's own claims.** Ground exactly what this cycle asserts about, touches, extends, integrates with, or assumes the absence of — no more. This makes the step self-scaling and future-proof: in a **greenfield** repo (no existing code this cycle relies on) there are no as-is claims and this step is a quick no-op; in an **existing** repo it scales with how much the spec leans on what's already there. The trigger is not "is this a refactor" — it is "does the spec make load-bearing claims about existing code," which is true for almost all non-greenfield work.
 
-Build the **grounding inventory** — three passes, each run against the real code *this stage* (grep/read), never from memory:
+Build the **grounding inventory** — three passes, each run against the real code *this stage* (grep/read), never from memory — then a fourth pass that reads the inventory back out against known debt:
 
 1. **Verify every as-is claim.** For each thing the intent or scope asserts about the current system, run an actual check and record the result. If a claim turns out wrong or inverted — e.g. the spec says to *preserve* a coupling the goal actually exists to *remove* — correct the spec's framing before questioning proceeds.
 2. **Enumerate sets from code, not recall.** Whenever the spec names a set — "the consumers are X, Y, Z," "the callers of…," "the skills that read…" — produce that set with a sweep (`grep` for the actual dependency), not from what you remember. The sweep is the source of truth; a memory-named list is a hypothesis to check. This is what surfaces the member you didn't think of.
 3. **Ground the negative space of the goal.** For each success criterion of the form "X must be absent / must be generic / must not appear," grep for X's **presence** across the surface. "Installable by anyone" ⇒ sweep for anything person-, company-, or environment-specific. An absence nobody greps for is an absence nobody catches.
+4. **Cross-check open tech debt.** Read `docs/dev/tech-debt.md`'s `## Open` section and intersect each entry's `**Files:**` against the grounding inventory the three passes above just built. This is the one moment open debt is actionable — the cycle is about to be in those files anyway.
+
+   **On one or more matches**, print `N open debt items touch this cycle`, list them by **the recurrence ranking** from `../../references/tech-debt.md` with title and `**Done looks like:**`, and ask whether to fold any into scope. Folding one in means two writes: add it to the spec's Scope section, and append a bullet to `## To Close` in `docs/dev/<feature>/debt-pending.md` — creating the buffer from the contract's template if absent — naming the **exact** tracker entry title. `dev:done` Step 6a reads that section to close the entry.
+
+   **On no tracker file, an empty `## Open`, or zero matches: print nothing at all.** Not an empty list, not "0 items", not a warning, not an error.
+
+   The buffer's parent directory is guaranteed to exist here: `docs/dev/<feature>/` and `state.json` are created in Step 6, which runs before this step. That ordering is load-bearing — reordering Step 6 and Step 7 would break this write.
+
+   **Matching is best-effort.** At Spec there is no plan and no definitive file list, only the grounding inventory. A missed match costs nothing — `/dev:debt` remains available on demand. Do not widen the match to compensate.
+
+   **This pass never blocks the grounding gate.** Step 8's cap applies to unverified **as-is claims**; a surfaced debt item is not an as-is claim and must not cap anything.
 
 Feed the findings into the questions that follow — questioning starts from verified facts, not assumptions — and record the inventory in the spec footer (Step 10). This gates confidence: per Step 8, confidence cannot cross the proceed threshold while any load-bearing as-is claim remains unverified, regardless of the weighted score.
 
