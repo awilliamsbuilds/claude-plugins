@@ -77,11 +77,12 @@ Spec, design, and plan committed at: `46893dcc0c2e794a0f0f6d9399b964d13099af8c` 
 ## Retrospective
 *Reviewed by dev:reflect · 2026-07-22*
 
-**Spec:** `spec_revisions` reads **0** while `challenge.applied` reads **5** — the spec absorbed
-five substantive changes from the challenge round and the counter never moved. Since
-`spec_revisions` is the signal `dev:reflect` is told to read first, it currently under-reports
-churn for any cycle that runs spec-challenger. The 92/Ready score held up: no backtracks, no
-mid-build plan updates.
+**Spec:** `spec_revisions: 0` against `challenge.applied: 5` is the **healthy** reading, not a gap
+— `dev:spec` Step 13 deliberately excludes challenger-originated changes from `spec_revisions`
+(spec/SKILL.md:499, 509) so the counter measures churn the *human* had to catch, and
+`dev:reflect`'s blockers × revisions table reads high-blockers/low-revisions as "the challenger is
+catching it — working as designed." The 92/Ready score held up: no backtracks, no mid-build plan
+updates. *(Corrected after first draft — see Suggestion 1.)*
 
 **Shape:** Skipped correctly — no-ui cycle, all surfaces are terminal output.
 
@@ -93,8 +94,10 @@ format drift.
 **Validate:** 3/5 loops, clean at the end — but **the fixes were the defect source.** Loop 1's
 renumbering broke a cross-reference and misordered a guard; loop 2's guard rewrite introduced a P1
 that exits 128 on the healthy path, which would have made every normal cycle's `dev:done` Step 7
-read as a failure. Notably, `dev:validate` Step 6 *already codifies* the exit-code rule that loop 2
-violated — the rule is applied when reviewing a diff but not when authoring a fix.
+read as a failure. The shipped `validation.md` claimed this violated a rule `dev:validate` Step 6
+"already codifies" — **that rule does not exist**; a grep across all `dev:*` skills on merged
+`main` returns zero hits. The real gap is that Step 4's loop never verifies its own fixes, and
+nothing states the healthy-path exit-code rule anywhere.
 
 **Flow:** Tier `deep` was right; the extra loops earned their keep. Spec at 2h18m was ~60% of
 active cycle time, which is the correct shape for a cycle that changes seven skills at once.
@@ -104,8 +107,15 @@ then found 5 P1s across three loops. Worth watching whether Build speed is being
 Validate's expense on prose-heavy cycles.
 
 **Suggestions:**
-1. Count challenge-applied revisions into `metrics.spec_revisions` (or have `dev:reflect` read
-   `challenge.applied` alongside it) — reflect's headline metric is currently blind to the
-   spec-challenger stage.
-2. Apply `dev:validate` Step 6's rules at fix-authoring time, not just review time — two
-   consecutive loops shipped fixes that violated rules the skill already contains.
+1. **Withdrawn — the finding was an artifact of a stale plugin cache.** The first draft proposed
+   folding challenger revisions into `spec_revisions`; that would have regressed a deliberate
+   design decision shipped in PR #38. The cause: `/plugin update` had not been run since #38
+   merged, so the deployed cache was three skills behind `main` (`spec`, `reflect`, `autopilot`)
+   and this retrospective ran against a `dev:reflect` whose Step 2 predates the challenge-metric
+   cross-read entirely. **The real lesson is about the cache, not the counter:** a retrospective
+   run from a stale cache can manufacture findings that argue for undoing recent work. Worth
+   `/plugin update` before `/dev:done`, or a staleness check in `dev:reflect` itself.
+2. Recorded as a tracker entry rather than a skill edit, at the user's direction —
+   *"Validate's fix loop never verifies the fixes it writes"* in `docs/dev/tech-debt.md`. Two gaps:
+   Step 4's exit condition says nothing about the fixes just written, and the healthy-path
+   exit-code rule for shell snippets is stated nowhere in the plugin.
