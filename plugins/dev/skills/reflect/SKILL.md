@@ -37,7 +37,7 @@ Read once:
 
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
-- `metrics.spec_revisions` — how many times spec.md was revised after its first draft (post-approval-gate churn)
+- `metrics.spec_revisions` — how many times spec.md was revised after its first draft: the user's changes at the standard-mode gate, plus autopilot's silent backtracks
 - `challenge.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the cold review's findings and their disposition. **A missing `challenge` block means the challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
@@ -52,7 +52,7 @@ Extract key metrics from state.json:
 Analyze the cycle across these dimensions. Note findings briefly — one sentence each unless something is significant:
 
 **Spec quality:**
-- **`metrics.spec_revisions` is the strongest single signal here — read it first.** A high count means the spec kept changing after it "felt done": the user had to catch edge cases and nuances the grounding inventory (spec Step 7) and the cold review (spec Step 12a) missed. Crucially, this is **independent of `final_score`** — a spec can read 95%/Ready and still have churned five times, because the score measures internal coherence, not whether the spec's picture of the codebase was correct. If `spec_revisions` is high, say so plainly and look at *what kind* of thing kept getting added (missing couplings? unscoped entities? absence claims never checked?) — that points at which grounding pass is weak.
+- **`metrics.spec_revisions` is the strongest single signal here — read it first.** A high count means the spec kept changing after it "felt done" — edge cases and nuances the grounding inventory (spec Step 7) and the cold review (spec Step 12a) missed, caught by the user at the gate in standard mode or by a later stage's silent backtrack in autopilot. **Who** caught it differs by mode; the diagnosis does not. Crucially, this is **independent of `final_score`** — a spec can read 95%/Ready and still have churned five times, because the score measures internal coherence, not whether the spec's picture of the codebase was correct. If `spec_revisions` is high, say so plainly and look at *what kind* of thing kept getting added (missing couplings? unscoped entities? absence claims never checked?) — that points at which grounding pass is weak.
 - `challenge.blockers` and `spec_revisions` measure different nets, and they are only diagnostic when read together:
 
   | `challenge.blockers` | `spec_revisions` | Reading |

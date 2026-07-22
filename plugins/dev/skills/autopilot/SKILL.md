@@ -56,7 +56,12 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 **Backtrack is silent.** When a later stage discovers an earlier artifact gap:
 1. Fix the earlier artifact
 2. Commit the fix with message: `autopilot: backtrack — update <spec|plan> for <reason>`
-3. Update state.json accordingly
+3. Update state.json accordingly — and when the backtracked artifact is **spec.md**, increment
+   `metrics.spec_revisions` and re-stamp `metrics.stage_timestamps.spec_end`, exactly as
+   `dev:spec` Step 13's gate does in standard mode. Autopilot has no gate, so this is the only
+   path that records spec churn: without it `spec_revisions` is structurally always 0 in
+   autopilot, and `dev:reflect`'s primary signal reads clean on every autopilot cycle no matter
+   how much the spec actually churned.
 4. Continue — do not pause
 
 **Validate: extended auto-fix.** After the loop limit, attempt one additional auto-fix pass. If P1/P2 remain → STOP: surface the issues and require human input.
