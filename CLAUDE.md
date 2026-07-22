@@ -44,6 +44,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification; Step 12a cold-reviews it via a fresh subagent before the gate |
 | `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
+| `dev` shared refs | plugins/dev/references/tech-debt.md | Shared tech-debt contract — tracker/buffer formats, carrying-cost test, recurrence-merge, silent-degrade rule; loaded by `init`, `build`, `validate`, `reflect`, `done`, `debt`, `spec` |
 | `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting (voice-neutral; no personal-voice coupling) |
 | `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill; offers a `Writing voice:` pointer |
 | `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn writing with an up-front message/post/article format gate |
