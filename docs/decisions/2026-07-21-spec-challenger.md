@@ -79,3 +79,40 @@ trains the user to skip it.
 
 Spec and plan committed at: `ba6f798eaf6df4b8b599800c3e89da18e95007e7` on branch
 `feature/spec-challenger`. (Shape was skipped — no design.md.)
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-21*
+
+**Spec:** `spec_revisions: 1` against 95%/Ready — the score was not overconfident. The stage
+consumed 66% of the cycle (68 of 103 min), and most of that was the manual dogfood: a cold
+review run by hand on this very spec, returning 2 blockers and 4 concerns, all valid, all
+applied. Blocker 1 — the Step 13 amendment missing entirely from Scope, now §4a — was a genuine
+self-review blind spot: the author revised the reasoning mid-stage, then re-read the spec as
+complete while filling the gap from memory. That is the strongest evidence the feature works
+this cycle could have produced.
+
+**Shape:** Skipped — correct. Terminal output only, rendered at an existing gate.
+
+**Plan:** No mid-build tasks added, sequence held. But the plan **encoded one of the two P2s**:
+Task 3 step 14 stated "`applied`/`dismissed` are written by Step 13," while Task 5, in the same
+document, specified autopilot's no-gate path. The contradiction sat in one plan across two tasks
+and neither the Interfaces blocks nor Task 7's consistency pass caught it — Task 7 checked key
+spelling and step labels, not who owns each write per mode.
+
+**Validate:** 2 loops / 3 max, clean. Both P2s were the same shape — a rule written for the
+standard-mode gate, then relied upon by a mode that has no gate. Both violated stated success
+criteria, so Validate earned its keep.
+
+**Flow:** Tier was right, no unnecessary stages, no backtracks. This cycle's own `state.json`
+has no `challenge` block — it predates its own feature — so reflect exercised the "missing block
+means did not run" path for real on its first run. It worked.
+
+**Token efficiency:** `files_read_in_build: 1` looks low for a three-file edit, but the plan was
+unusually specific (15 numbered sub-steps for Task 3 alone), leaving Build little to discover.
+That reads as plan quality rather than under-reading.
+
+**Suggestions:** One. Both P2s came from state-write ownership being specified for one mode and
+silently assumed for the other. A plan whose tasks span the standard gate and autopilot's no-gate
+path should be required to name, per state key, which mode writes it — in the Interfaces block,
+where the plan already tracks producer/consumer. Candidate home: `dev:plan`'s isolation-principle
+section, or Task 7's consistency-pass template.
