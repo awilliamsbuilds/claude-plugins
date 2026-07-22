@@ -199,6 +199,12 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
    Set `**Files:**` to the paths the finding actually names — `dev:spec`'s cross-check keys its
    matching on that field. Tag each entry `*Source: dev:validate (P3|Nit) · <feature>*`.
 
+   **Escape any Markdown heading in the text you copy.** Finding text often quotes the code
+   under review, and in a Markdown-heavy repo that quote can itself start with `#`. Indent such
+   lines by two spaces or fence them, per the contract's field rules. The buffer is parsed by
+   heading, and a raw `## To Close` inside an entry body would read as a real section to
+   `dev:done`'s flush — which closes entries.
+
 3. Items that do not qualify are dropped, not recorded and not mentioned further.
 
 **Mode rule:** this step is unconditional and self-applied. It runs identically in standard and
@@ -218,9 +224,12 @@ Update state.json:
 
 ```bash
 git -C "$WORKDIR" add docs/dev/<feature>/validation.md docs/dev/<feature>/state.json
-# Step 5a's buffer, if this cycle recorded any — guarded, since most cycles defer nothing
-[ -f "$WORKDIR/docs/dev/<feature>/debt-pending.md" ] && \
+# Step 5a's buffer, if this cycle recorded any — guarded, since most cycles defer nothing.
+# `if`, not `[ … ] && …`: the latter exits non-zero on the common path, which reads as a
+# failed command to any harness that checks.
+if [ -f "$WORKDIR/docs/dev/<feature>/debt-pending.md" ]; then
   git -C "$WORKDIR" add docs/dev/<feature>/debt-pending.md
+fi
 git -C "$WORKDIR" commit -m "validate: complete validation — N loops, [clean/N issues remain]"
 ```
 

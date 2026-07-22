@@ -52,7 +52,7 @@ FYI — other skills (not part of the linear pathway):
 - dev:fix       — [registry description] — entry point when starting from a Linear issue instead of a blank spec
 - dev:autopilot — [registry description] — alternative to the gated flow above; runs all stages without stopping for approval
 - dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
-- dev:debt      — [registry description] — read-only view of deferred work; also closes an entry by hand
+- dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
 ```
 
 **If the Component Registry table or a specific row is missing:** fall back to these minimal descriptions rather than failing:

@@ -40,9 +40,12 @@ Check which scenario applies and follow that path:
 - Read and display current config
 - Ask: "Update config or keep it as-is?"
 - If keep: before exiting, check for `docs/dev/tech-debt.md`. If it is absent, create it exactly
-  as in **Create Directories** below, `git add` it, and name it in the exit line — "Config
-  unchanged. Created docs/dev/tech-debt.md. Run /dev to start a feature cycle." If it already
-  exists, exit with "Config unchanged. Run /dev to start a feature cycle."
+  as in **Create Directories** below and name it in the exit line — "Config unchanged. Created
+  docs/dev/tech-debt.md (untracked — commit it when convenient). Run /dev to start a feature
+  cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
+  checkout on `main`, and staging a file the user didn't ask for means their next unrelated
+  commit silently carries it. If it already exists, exit with "Config unchanged. Run /dev to
+  start a feature cycle."
   This is the only automatic path by which a repo initialized before the tracker shipped ever
   gets the file: `dev:init` is auto-triggered only when `config.json` is missing, which is false
   for exactly those repos. (`dev:done`'s flush creates the file too, but only once a cycle there

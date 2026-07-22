@@ -110,10 +110,12 @@ When working in existing code, you will encounter related problems. Apply this r
 
 Specifically: if a file you're modifying has grown too large, a broken abstraction you need to build on, or unclear boundaries in code you're touching — fix it as part of this build. Update plan.md with the additional change. Commit the improvement separately (one commit for the targeted fix, then continue with the original task).
 
-If the improvement is larger than can be handled within this cycle, don't do it now — and don't write it into plan.md, which `dev:done` Step 7 deletes without any stage reading it first. Instead, apply **the carrying-cost test** from `../../references/tech-debt.md`:
+If the improvement is larger than can be handled within this cycle, don't do it now — and don't write it into plan.md, which `dev:done` Step 7 deletes, and no stage reads that section before it goes. Instead, apply **the carrying-cost test** from `../../references/tech-debt.md`:
 
 - **Qualifies** → append an entry under `## To Record` in `$WORKDIR/docs/dev/<feature>/debt-pending.md`, creating the buffer from the contract's template if it doesn't exist. Set `**Files:**` to the files the improvement would touch — you know them precisely at this point, and `dev:spec`'s cross-check keys its matching on that field. Tag it `*Source: dev:build · <feature>*`.
 - **Doesn't qualify** → drop it. A one-off local cleanup isn't worth carrying.
+
+Escape any Markdown heading in text you copy into the entry — indent by two spaces or fence it, per the contract's field rules. The buffer is parsed by heading.
 
 Include the buffer in the commit for the task that surfaced the finding — don't add a commit of its own.
 
