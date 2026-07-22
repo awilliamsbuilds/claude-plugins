@@ -109,6 +109,7 @@ Format:
 **Flow:** [finding or "tier was right, no unnecessary stages"]
 **Token efficiency:** [finding or "no outliers detected"]
 **Suggestions:** [list of actionable suggestions, or "none"]
+**Deferred to tech debt:** [tracker entry title(s) recorded in Step 6, or "none"]
 ```
 
 ## Step 4: Invite User Observations (standard mode)
@@ -153,9 +154,17 @@ dev:reflect found a suggestion: [suggestion in one sentence].
 Would you like to update [dev:skill-name] based on this? (yes/no)
 ```
 
-Wait for explicit "yes" before touching any skill file. If "no", record the suggestion as deferred in the decision log.
+Wait for explicit "yes" before touching any skill file.
 
 If "yes": read the current SKILL.md, make the minimal targeted change, show the diff, ask for final confirmation before writing.
+
+**If "no" — or if the suggestion is never implemented for any other reason:** apply **the carrying-cost test** from `../../references/tech-debt.md`. If it qualifies, append an entry under `## To Record` in `$WORKDIR/docs/dev/<feature>/debt-pending.md`, creating the buffer from the contract's template if it doesn't exist. Set `**Files:**` to the skill file the suggestion would have changed, and tag it `*Source: dev:reflect · <feature>*`. Record the entry title in Step 3's `**Deferred to tech debt:**` line. If it doesn't qualify, drop it.
+
+**Where the buffer goes, and when.** `dev:reflect` runs from `dev:done` Step 6, and the flush is Step 6a — immediately after — so a buffer written here is still flushed into the tracker before Step 7's `rm -rf`. Do **not** add a commit for the buffer here: Step 5's commit has already run by this point, and the flush reads the buffer from disk rather than from git, so an uncommitted buffer flushes correctly. Step 7's `git add -A docs/dev/<feature>/` then stages its deletion.
+
+**Standalone invocation.** When `dev:reflect` is run on its own after the cycle directory is already gone, `$WORKDIR/docs/dev/<feature>/` does not exist and there is no buffer to write to. In that case append the entry directly to `## Open` in `docs/dev/tech-debt.md`, applying **the recurrence-merge procedure** from the contract, and creating the file with the canonical header if it is absent.
+
+**Mode rule:** Step 6's gate is standard-mode-only, but the carrying-cost write is **not** conditional on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot skips Step 4's user turn but still reaches Step 6's suggestions and records them the same way — this write must never sit behind the gate.
 
 **Never update a skill file without two explicit confirmations: one to proceed with the update, one after seeing the diff.**
 

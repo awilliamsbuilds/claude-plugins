@@ -202,6 +202,58 @@ Pass to dev:reflect:
 - The decision log path (`$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md`)
 - The spec, plan, and validation artifact paths
 
+## Step 6a: Flush Tech Debt
+
+Move this cycle's buffered tech debt into the durable tracker, and close any entry this cycle
+paid. The full format and the named procedures are in `../../references/tech-debt.md`.
+
+**The position of this step is load-bearing twice over:** after Step 6 so `dev:reflect`'s own
+entries are included, and before Step 7 so the flush happens ahead of
+`rm -rf "$WORKDIR/docs/dev/<feature>/"`. Do not move it.
+
+1. If `$WORKDIR/docs/dev/<feature>/debt-pending.md` does not exist, **skip this whole step
+   silently** — most cycles defer nothing. Read the buffer **from disk, not from git**:
+   `dev:reflect` writes to it after its own commit has already run, so the buffer can
+   legitimately be uncommitted or dirty at this point.
+
+2. If `$WORKDIR/docs/dev/tech-debt.md` does not exist, create it with the canonical header and
+   both `## Open` and `## Closed` headings before writing. (A repo initialized before the
+   tracker shipped never got the file from `dev:init` — this is the write-side half of that
+   edge case.)
+
+3. **For each `## To Record` entry:** apply **the recurrence-merge procedure**. On a clear
+   match, append this cycle's name to `Cycles:`, increment `Recurrence:`, and append new detail
+   to `**What's wrong:**`. Otherwise create a new entry — replacing the buffer's `*Source:*`
+   line with a proper Open meta line — appended **at the end of the `## Open` section**.
+
+   Appending only at the end is deliberate: `/dev` runs cycles in separate worktrees, so two can
+   finish near-simultaneously and both write this file. Combined with `push_integration`'s
+   existing fetch/rebase/retry, an append at the end is the shape that rebases cleanly. Add no
+   locking machinery.
+
+4. **For each `## To Close` bullet:** locate the named entry in `## Open`, move it verbatim to
+   `## Closed`, and rewrite its meta line to the Closed form — stamping today's date and this
+   cycle's feature name as the payer. If the named entry can't be found, note it in the Step 8
+   display rather than failing the stage.
+
+5. An absent or empty `## To Close` section is **normal, not an error.** `dev:spec`'s Step 7
+   cross-check is its only writer, and nothing closes automatically: a later cycle that fixes a
+   debt item incidentally leaves the entry open until someone closes it via `/dev:debt`. That's
+   the intended trade — a stale-open entry is recoverable, a wrongly-closed one is not.
+
+6. Commit and push through the existing helper:
+
+```bash
+git -C "$WORKDIR" add docs/dev/tech-debt.md
+git -C "$WORKDIR" commit -m "chore: record tech debt from <feature>"
+push_integration
+```
+
+Both prerequisites hold here: `push_integration` is defined at the end of Step 2, and
+`$WORKDIR` is detached at the merged `$INTEGRATION` tip by then. Do **not** add the buffer file
+to this `git add` — Step 7's `git add -A docs/dev/<feature>/` stages its deletion in the very
+next step.
+
 ## Step 7: Clean Up
 
 Delete the feature's working directory (all committed artifacts travel with the branch which is now merged):
@@ -236,7 +288,12 @@ the removal.
   PR #N merged and branch deleted
   Decision log: docs/decisions/YYYY-MM-DD-<feature>.md
   Retrospective appended (see decision log)
+  Tech debt: N recorded, M closed
 ```
+
+Omit the `Tech debt:` line entirely when both counts are zero. If Step 6a couldn't find an entry
+named by a `## To Close` bullet, add it here: `Tech debt: N recorded, M closed (couldn't find:
+"<title>")`.
 
 If a governing product plan exists (top-level or nested, per Step 3), replace the generic "start next cycle?" prompt with the exact-command precision the other stages' exit protocols use:
 
