@@ -1,5 +1,5 @@
 # claude-plugins — Product Plan
-*Created: 2026-07-21 · Cycles completed: 2/5*
+*Created: 2026-07-21 · Cycles completed: 3/5*
 
 Repo-level backlog of planned `/dev` cycles. Milestones are appended by `dev:spec` when a
 request decomposes into more than one cycle; items are checked off by `dev:done`.
@@ -18,7 +18,7 @@ request decomposes into more than one cycle; items are checked off by `dev:done`
   generic default. Depends on voice-extractor.
 
 ## Milestone 3: Tech debt tracking
-- [ ] tech-debt-tracking (feature) — a durable, per-repo tech debt tracker for the `/dev`
+- [x] tech-debt-tracking (feature) — a durable, per-repo tech debt tracker for the `/dev`
   plugin. Adds `docs/dev/tech-debt.md` (created by `dev:init`), a carrying-cost write rule
   applied by `validate`/`build`/`reflect` with recurrence-merge, a flush at `done` before
   the cycle directory is deleted, spec-time surfacing of debt touching the current cycle,
