@@ -3,8 +3,8 @@
   "feature": "tech-debt-tracking",
   "branch": "feature/tech-debt-tracking",
   "mode": "standard",
-  "stage": "plan",
-  "completed": ["spec"],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-22T00:41:58Z",
   "artifacts": {
@@ -51,7 +51,9 @@
       "spec_start": "2026-07-22T00:41:58Z",
       "spec_end": "2026-07-22T03:00:37Z",
       "plan_start": "2026-07-22T03:03:53Z",
-      "plan_end": "2026-07-22T03:10:52Z"
+      "plan_end": "2026-07-22T03:10:52Z",
+      "build_start": "2026-07-22T03:14:09Z",
+      "build_end": "2026-07-22T03:24:24Z"
     }
   }
 }
