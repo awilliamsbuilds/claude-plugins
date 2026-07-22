@@ -26,12 +26,13 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-21*
+*Last updated by /dev · 2026-07-22*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `dev:autopilot` | plugins/dev/skills/autopilot/SKILL.md | No-gate orchestrator for the /dev workflow |
 | `dev:build` | plugins/dev/skills/build/SKILL.md | Stage 4 — implements the plan |
+| `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand tech debt tracker — list open entries, show closed, close by hand |
 | `dev:dev` | plugins/dev/skills/dev/SKILL.md | Main entry point for the /dev workflow |
 | `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |

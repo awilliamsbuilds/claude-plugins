@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "feature": "tech-debt-tracking",
+  "branch": "feature/tech-debt-tracking",
+  "mode": "standard",
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
+  "skipped": ["shape"],
+  "startedAt": "2026-07-22T00:41:58Z",
+  "artifacts": {
+    "spec": "docs/dev/tech-debt-tracking/spec.md",
+    "design": null,
+    "plan": "docs/dev/tech-debt-tracking/plan.md",
+    "validation": "docs/dev/tech-debt-tracking/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/39",
+    "pr_number": 39
+  },
+  "validate": {
+    "loops_run": 3,
+    "loops_max": 5,
+    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+  },
+  "challenge": {
+    "run": true, "blockers": 2, "concerns": 3,
+    "applied": 5, "dismissed": 0,
+    "loops_run": 0, "loops_max": 5
+  },
+  "confidence": {
+    "final_score": 92,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true, "scope": true, "success_criteria": true,
+      "happy_path": true, "edge_cases": true, "out_of_scope": true,
+      "ui_needed": true, "technical_constraints": true,
+      "audience": true, "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "deep",
+  "product_plan": "docs/dev/product-plan.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/tech-debt-tracking",
+  "metrics": {
+    "spec_questions_asked": 14,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 10,
+    "stage_timestamps": {
+      "spec_start": "2026-07-22T00:41:58Z",
+      "spec_end": "2026-07-22T03:00:37Z",
+      "plan_start": "2026-07-22T03:03:53Z",
+      "plan_end": "2026-07-22T03:10:52Z",
+      "build_start": "2026-07-22T03:14:09Z",
+      "build_end": "2026-07-22T03:24:24Z",
+      "validate_start": "2026-07-22T03:28:52Z",
+      "validate_end": "2026-07-22T04:14:57Z",
+      "pr_created": "2026-07-22T13:11:54Z"
+    }
+  }
+}

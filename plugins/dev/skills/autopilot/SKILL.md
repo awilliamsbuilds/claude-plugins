@@ -64,6 +64,8 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
    how much the spec actually churned.
 4. Continue — do not pause
 
+**Debt surfacing: print, never ask.** `dev:spec` Step 7's fourth pass cross-checks open tech debt against the grounding inventory and, in standard mode, asks whether to fold matches into scope. In autopilot it **prints its matches into the run log and folds nothing in** — scope changes need a human. Nothing is written to `## To Close`. This is not a stop condition; the run continues normally. (The debt *writes* in `dev:build`, `dev:validate`, `dev:reflect`, and `dev:done` are unconditional and self-applied — they run identically here. Only the fold-in question is suppressed.)
+
 **Validate: extended auto-fix.** After the loop limit, attempt one additional auto-fix pass. If P1/P2 remain → STOP: surface the issues and require human input.
 
 **Spec challenger: bounded revision loop.** `dev:spec` Step 12a's blockers drive an auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` by the fixes each iteration lands. Concerns are counted in `challenge.concerns` and passed through — never revised, and never a reason to loop. If blockers remain after the cap → STOP: surface them and require human input. **Scope blockers bypass the loop entirely and STOP immediately.** A right-sizing blocker is not text-fixable — a cycle cannot be split by editing prose. The loop handles only clarity, consistency, and grounding.
