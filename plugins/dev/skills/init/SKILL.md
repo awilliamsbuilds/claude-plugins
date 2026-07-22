@@ -50,7 +50,9 @@ Check which scenario applies and follow that path:
   gets the file: `dev:init` is auto-triggered only when `config.json` is missing, which is false
   for exactly those repos. (`dev:done`'s flush creates the file too, but only once a cycle there
   actually defers something.)
-- If update: re-run Phase 2
+- If update: re-run Phase 2, which does commit — including the tracker. The difference from the
+  "keep" branch is consent, not the branch: the user asked for a re-init and gets its commit,
+  while "keep" was told to change nothing and must not leave a staged file behind.
 
 ## Phase 2 — Plugin Setup
 
@@ -213,7 +215,7 @@ git commit -m "Initialize /dev workflow"
 ✓ /dev workflow initialized
 
   Created: docs/dev/  docs/decisions/
-  Created: docs/dev/tech-debt.md
+  Created: docs/dev/tech-debt.md          — omit this line if the file already existed
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
   Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"

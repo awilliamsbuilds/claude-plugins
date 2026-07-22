@@ -193,9 +193,12 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
    Classification is by carrying cost, not by P3-vs-Nit — a Nit exposing a systemic convention
    gap qualifies, a P3 that is a local one-liner does not.
 
-2. For each item that qualifies, append an entry under `## To Record` in
+2. For each item that qualifies, append an entry **at the end of the `## To Record` section —
+   immediately before `## To Close`, never at end-of-file** — in
    `$WORKDIR/docs/dev/<feature>/debt-pending.md`, using the buffer format and entry field labels
    from the contract. Create the buffer from the contract's template first if it does not exist.
+   (`## To Close` is last in the template, and the flush parses it as bullets: a full `###` entry
+   landing there is silently ignored and dies with the cycle directory.)
    Set `**Files:**` to the paths the finding actually names — `dev:spec`'s cross-check keys its
    matching on that field. Tag each entry `*Source: dev:validate (P3|Nit) · <feature>*`.
 

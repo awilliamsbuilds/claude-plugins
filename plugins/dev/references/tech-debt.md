@@ -18,8 +18,15 @@ section inside any one stage's artifact, because `dev:build` runs before `dev:va
 both produce entries.
 
 Producing stages (`dev:build`, `dev:validate`, `dev:reflect`, `dev:spec`) only ever **append**
-to the buffer. `dev:done` is the only automatic writer of the tracker. `dev:debt` owns all
-reads and all manual lifecycle changes.
+to the buffer. Within a cycle, `dev:done` is the only automatic writer of the tracker — with one
+exception: `dev:reflect` invoked **standalone**, after the cycle directory is already gone, has
+no buffer to write to and appends to the tracker directly. `dev:debt` owns all reads and all
+manual lifecycle changes.
+
+**When appending to an existing buffer, insert at the end of the `## To Record` section —
+immediately before `## To Close` — never at end-of-file.** `## To Close` is last in the template,
+so an append at end-of-file lands a full `###` entry inside a section the flush parses as
+bullets. It is silently ignored there and dies with the cycle directory.
 
 ## The carrying-cost test
 
@@ -109,15 +116,22 @@ Rules the example encodes:
   `*First recorded: YYYY-MM-DD · Cycles: <a>, <b> · Recurrence: N*`
   Closed:
   `*Closed YYYY-MM-DD by cycle <name> · First recorded: YYYY-MM-DD · Recurrence: N*`
-- **Where a field ends.** A field's value runs from its `**Label:**` to the next `**Label:**`,
-  the next `###` heading, or the next `##` heading — whichever comes first. Blank lines, tables,
-  code fences, and lists *inside* a value are part of that value. Never terminate a field at a
-  blank line: real entries embed multi-paragraph reasoning and tables, and blank-line parsing
-  silently truncates exactly the context these entries exist to preserve. The **first line** of
-  a value is its summary, which is what list views print; everything after it is detail.
+- **Where a field ends.** A field's value runs from its label to the next **line-initial** field
+  label — one of `**What's wrong:**`, `**Why deferred:**`, `**Done looks like:**`, `**Files:**`,
+  `**Possibly related to:**` — or the next `###` or `##` heading, whichever comes first. Blank
+  lines, tables, code fences, lists, and **mid-line bold-colon spans** inside a value are part of
+  that value: real entries write things like `**Behavior is safe:**` as prose inside
+  `**What's wrong:**`, and those are not boundaries. Never terminate a field at a blank line
+  either — entries embed multi-paragraph reasoning, and blank-line parsing silently truncates
+  exactly the context these entries exist to preserve.
+- **A value's first *sentence* is its summary**, which is what list views print. Not its first
+  line: these files are hard-wrapped, so a first line is usually a fragment ending mid-phrase.
+  Everything after the first sentence is detail.
 - **Every date is read from the clock, never inferred.** Any stage stamping `First recorded:` or
-  `Closed …` runs `date +%Y-%m-%d` and uses that output. A tracker whose dates come from a
-  model's sense of "today" is a tracker whose ordering and provenance can't be trusted.
+  `Closed …` runs `date -u +%Y-%m-%d` and uses that output. UTC, matching `state.json`'s
+  `stage_timestamps` — one clock across `/dev`, so entries and cycle metrics can't disagree about
+  what day something happened. A tracker whose dates come from a model's sense of "today" is a
+  tracker whose ordering and provenance can't be trusted.
 - **Titles must be unique within the file.** Both close paths locate an entry by its exact
   title, and the recurrence-merge procedure's deliberate bias toward *creating* entries makes
   near-duplicate titles the expected steady state. When a write would produce a title that
@@ -227,6 +241,13 @@ tracker is a longer-lived version of the same channel.
 
 Every rule in this file is **self-applied by the writing stage.** Never gate a tracker write on
 user confirmation, and never put one on a standard-mode-only path.
+
+**One exception, and only one:** `dev:spec`'s `## To Close` bullet. That write records a *scope
+decision* — this cycle has agreed to pay this debt — not a debt finding. Scope changes require a
+human, so that single write is gated on the user's answer and does not happen in autopilot. It is
+carved out here explicitly so nobody "fixes" the asymmetry later: writing it unprompted would
+auto-close a tracker entry the cycle never actually paid, which is the unrecoverable direction.
+Every *other* tracker write obeys the rule above without qualification.
 
 This is not a hypothetical. This plugin has three recorded instances of exactly that defect: a
 `state.json` write specified only on a standard-mode gate path, silently never executed in
