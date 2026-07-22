@@ -180,6 +180,33 @@ Final status: clean | proceeded with open issues | stopped
 [Any context worth preserving for the PR or decision log]
 ```
 
+## Step 5a: Record Carrying-Cost Debt
+
+This stage produces more deferred items than any other, and today they die with the cycle
+directory. Route the survivors somewhere durable.
+
+Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are final, and
+**before** Step 6 so the buffer lands in the same commit.
+
+1. For each item in validation.md's final `### P3 Open` **and** `### Nits Surfaced` lists, apply
+   **the carrying-cost test** from `../../references/tech-debt.md`. Both lists are eligible.
+   Classification is by carrying cost, not by P3-vs-Nit — a Nit exposing a systemic convention
+   gap qualifies, a P3 that is a local one-liner does not.
+
+2. For each item that qualifies, append an entry under `## To Record` in
+   `$WORKDIR/docs/dev/<feature>/debt-pending.md`, using the buffer format and entry field labels
+   from the contract. Create the buffer from the contract's template first if it does not exist.
+   Set `**Files:**` to the paths the finding actually names — `dev:spec`'s cross-check keys its
+   matching on that field. Tag each entry `*Source: dev:validate (P3|Nit) · <feature>*`.
+
+3. Items that do not qualify are dropped, not recorded and not mentioned further.
+
+**Mode rule:** this step is unconditional and self-applied. It runs identically in standard and
+autopilot mode, is never gated on user confirmation, and writes no `state.json` counter.
+
+Steps 3 and 4 are unaffected — the fix loop must keep fixing P3s and Nits inline. The buffer
+receives only what genuinely survives it.
+
 ## Step 6: Update State + Commit
 
 Update state.json:
@@ -191,6 +218,9 @@ Update state.json:
 
 ```bash
 git -C "$WORKDIR" add docs/dev/<feature>/validation.md docs/dev/<feature>/state.json
+# Step 5a's buffer, if this cycle recorded any — guarded, since most cycles defer nothing
+[ -f "$WORKDIR/docs/dev/<feature>/debt-pending.md" ] && \
+  git -C "$WORKDIR" add docs/dev/<feature>/debt-pending.md
 git -C "$WORKDIR" commit -m "validate: complete validation — N loops, [clean/N issues remain]"
 ```
 
