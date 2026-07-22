@@ -245,8 +245,8 @@ today's date.
    Appending only at the end is deliberate: `/dev` runs cycles in separate worktrees, so two can
    finish near-simultaneously and both write this file. It keeps every cycle's edit confined to
    one region instead of scattering it through the file. It does **not** make the merge
-   conflict-free — two cycles appending at the same anchor conflict, which is what step 7 below
-   and the STOP note after it handle. Add no locking machinery.
+   conflict-free — two cycles appending at the same anchor conflict, which is what item 7 of this
+   step and the STOP note after it handle. Add no locking machinery.
 
 5. **For each `## To Close` bullet:** the title is the double-quoted string; the text after the
    em dash is rationale, not part of the title. Locate that **exact** title in `## Open`, move
@@ -267,6 +267,10 @@ today's date.
    couldn't be found), and `git commit` with nothing staged exits non-zero:
 
 ```bash
+# Assert the flush actually wrote where this step thinks it did — otherwise the `add` fails
+# silently, the no-change branch below is taken, and Step 7 destroys the only copy.
+[ -f "$WORKDIR/docs/dev/tech-debt.md" ] \
+  || { echo "STOP: no tracker at \$WORKDIR/docs/dev/tech-debt.md — the flush wrote elsewhere"; exit 1; }
 git -C "$WORKDIR" add docs/dev/tech-debt.md
 git -C "$WORKDIR" diff --cached --quiet -- docs/dev/tech-debt.md || {
   git -C "$WORKDIR" commit -m "chore: record tech debt from <feature>" -- docs/dev/tech-debt.md \
@@ -300,34 +304,45 @@ is still the only copy of this cycle's debt entries, and the `rm -rf` below dest
 made mid-rebase also lands on the rebase's temporary HEAD rather than the integration tip:
 
 ```bash
-git -C "$WORKDIR" rebase --show-current-patch >/dev/null 2>&1 \
-  && { echo "STOP: $WORKDIR is mid-rebase — Step 6a's flush did not land"; exit 1; }
+if git -C "$WORKDIR" rebase --show-current-patch >/dev/null 2>&1; then
+  echo "STOP: $WORKDIR is mid-rebase — Step 6a's flush did not land"
+  exit 1
+fi
 ```
+
+`if`, not `A && { … }`: `rebase --show-current-patch` exits **128** when no rebase is in
+progress, so an `&&` chain returns 128 on the *healthy* path and reads as a failed command.
+Same rule as `dev:validate` Step 6's buffer guard.
 
 Then delete the feature's working directory (all committed artifacts travel with the branch which is now merged):
 
 ```bash
 rm -rf "$WORKDIR/docs/dev/<feature>/"
 git -C "$WORKDIR" add -A docs/dev/<feature>/
-git -C "$WORKDIR" commit -m "chore: clean up /dev working directory for <feature>"
+git -C "$WORKDIR" commit -m "chore: clean up /dev working directory for <feature>" -- docs/dev/<feature>/
 push_integration
 ```
 
-Then remove the worktree — `done` owns teardown, so this happens now rather than being
+The pathspec matters here too: Step 6a's commit is pathspec-scoped, so anything else that was
+already staged is still in the index at this point. Without a pathspec this commit would sweep it
+in under a "clean up working directory" message — the same leak, one step later.
+
+For a **legacy in-place cycle** (`worktreePath` null), Step 7 ends here — skip the block below
+and go to Step 8. `$WORKDIR` is the primary checkout: there is no worktree to remove, and the
+assertion must not run against a tree that legitimately carries the user's unrelated work.
+
+Otherwise remove the worktree — `done` owns teardown, so this happens now rather than being
 deferred. Run from the primary checkout, not `$WORKDIR` (you can't remove a worktree from
 inside itself). `--force` discards uncommitted state, so confirm the cleanup commit actually
-landed first — tracked files only, since an un-ignored `.DS_Store` or editor swapfile is not a
-reason to abort teardown:
+landed first. Scope the check to the cycle directory and to tracked files: an un-ignored
+`.DS_Store` or an editor swapfile elsewhere in the tree is not a reason to abort teardown.
 
 ```bash
-[ -z "$(git -C "$WORKDIR" status --porcelain --untracked-files=no)" ] \
-  || { echo "STOP: uncommitted tracked changes in $WORKDIR — cleanup did not land"; exit 1; }
+[ -z "$(git -C "$WORKDIR" status --porcelain --untracked-files=no -- docs/dev/<feature>/)" ] \
+  || { echo "STOP: cycle directory has uncommitted tracked changes — cleanup did not land"; exit 1; }
 git -C "$PRIMARY" worktree remove --force "$WORKDIR"
 git -C "$PRIMARY" worktree prune
 ```
-
-For a **legacy in-place cycle** (`worktreePath` null), there is no worktree to remove — skip
-the removal.
 
 (Both the remote and local feature branch were already deleted in Step 2 by
 `delete_feature_branch`, after it confirmed the PR merged.)

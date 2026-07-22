@@ -23,10 +23,14 @@ exception: `dev:reflect` invoked **standalone**, after the cycle directory is al
 no buffer to write to and appends to the tracker directly. `dev:debt` owns all reads and all
 manual lifecycle changes.
 
-**When appending to an existing buffer, insert at the end of the `## To Record` section —
-immediately before `## To Close` — never at end-of-file.** `## To Close` is last in the template,
-so an append at end-of-file lands a full `###` entry inside a section the flush parses as
-bullets. It is silently ignored there and dies with the cycle directory.
+**When appending a full `###` entry to an existing buffer, insert it at the end of the
+`## To Record` section — immediately before `## To Close` — never at end-of-file.** `## To Close`
+is last in the template, so an append at end-of-file lands the entry inside a section the flush
+parses as bullets. It is silently ignored there and dies with the cycle directory.
+
+`dev:spec` is the exception, because it writes the other kind of thing: its close **bullet**
+belongs in `## To Close`, appended at the end of the file. Entries go in `## To Record`, bullets
+go in `## To Close` — the rule is about which section, not about which end of the file.
 
 ## The carrying-cost test
 
@@ -126,7 +130,11 @@ Rules the example encodes:
   exactly the context these entries exist to preserve.
 - **A value's first *sentence* is its summary**, which is what list views print. Not its first
   line: these files are hard-wrapped, so a first line is usually a fragment ending mid-phrase.
-  Everything after the first sentence is detail.
+  A sentence ends at `.`, `?`, or `!` followed by whitespace and a capital letter — **ignoring
+  any period inside a backtick code span**, since these entries are dense with `state.json`,
+  `tech-debt.md`, and `SKILL.md`, and a naive split truncates after two words. If no boundary is
+  found within ~200 characters, print the value's first paragraph instead. Everything after the
+  summary is detail.
 - **Every date is read from the clock, never inferred.** Any stage stamping `First recorded:` or
   `Closed …` runs `date -u +%Y-%m-%d` and uses that output. UTC, matching `state.json`'s
   `stage_timestamps` — one clock across `/dev`, so entries and cycle metrics can't disagree about
@@ -239,15 +247,21 @@ tracker is a longer-lived version of the same channel.
 
 ## Mode symmetry
 
-Every rule in this file is **self-applied by the writing stage.** Never gate a tracker write on
-user confirmation, and never put one on a standard-mode-only path.
+**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`,
+`dev:validate`, `dev:reflect`, and `dev:done`. Each is **self-applied by the writing stage.**
+Never gate one on user confirmation, and never put one on a standard-mode-only path.
 
-**One exception, and only one:** `dev:spec`'s `## To Close` bullet. That write records a *scope
-decision* — this cycle has agreed to pay this debt — not a debt finding. Scope changes require a
-human, so that single write is gated on the user's answer and does not happen in autopilot. It is
-carved out here explicitly so nobody "fixes" the asymmetry later: writing it unprompted would
-auto-close a tracker entry the cycle never actually paid, which is the unrecoverable direction.
-Every *other* tracker write obeys the rule above without qualification.
+**One exception among the producing stages:** `dev:spec`'s `## To Close` bullet. That write
+records a *scope decision* — this cycle has agreed to pay this debt — not a debt finding. Scope
+changes require a human, so that single write is gated on the user's answer and does not happen
+in autopilot. It is carved out here explicitly so nobody "fixes" the asymmetry later: writing it
+unprompted would auto-close a tracker entry the cycle never actually paid, which is the
+unrecoverable direction.
+
+**User-invoked surfaces are outside this rule entirely.** `dev:debt` and `dev:init`'s Scenario D
+are things a human ran on purpose; their confirmations are the point, not an asymmetry to remove.
+In particular, do not strip `dev:debt`'s close confirmation — it is the only guard against
+closing on a stale positional index.
 
 This is not a hypothetical. This plugin has three recorded instances of exactly that defect: a
 `state.json` write specified only on a standard-mode gate path, silently never executed in

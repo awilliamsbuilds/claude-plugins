@@ -215,10 +215,13 @@ git commit -m "Initialize /dev workflow"
 ✓ /dev workflow initialized
 
   Created: docs/dev/  docs/decisions/
-  Created: docs/dev/tech-debt.md          — omit this line if the file already existed
+  Created: docs/dev/tech-debt.md
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
   Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"
 
 Run /dev to start your first feature cycle.
 ```
+
+Omit the `Created: docs/dev/tech-debt.md` line if the file already existed — the creation is
+guarded by `[ -f … ] ||`, so on a re-init nothing was created.
