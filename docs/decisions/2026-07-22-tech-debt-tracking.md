@@ -73,3 +73,39 @@ skill.
 
 Spec, design, and plan committed at: `46893dcc0c2e794a0f0f6d9399b964d13099af8c` on branch
 `feature/tech-debt-tracking`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-22*
+
+**Spec:** `spec_revisions` reads **0** while `challenge.applied` reads **5** — the spec absorbed
+five substantive changes from the challenge round and the counter never moved. Since
+`spec_revisions` is the signal `dev:reflect` is told to read first, it currently under-reports
+churn for any cycle that runs spec-challenger. The 92/Ready score held up: no backtracks, no
+mid-build plan updates.
+
+**Shape:** Skipped correctly — no-ui cycle, all surfaces are terminal output.
+
+**Plan:** Accurate. 12 tasks across 10 files with no mid-build additions, and
+`files_read_in_build` = 10 matches the planned file list exactly. Task 1's "one contract file,
+everyone cites it" structure was the right call for a prose diff whose real failure mode is
+format drift.
+
+**Validate:** 3/5 loops, clean at the end — but **the fixes were the defect source.** Loop 1's
+renumbering broke a cross-reference and misordered a guard; loop 2's guard rewrite introduced a P1
+that exits 128 on the healthy path, which would have made every normal cycle's `dev:done` Step 7
+read as a failure. Notably, `dev:validate` Step 6 *already codifies* the exit-code rule that loop 2
+violated — the rule is applied when reviewing a diff but not when authoring a fix.
+
+**Flow:** Tier `deep` was right; the extra loops earned their keep. Spec at 2h18m was ~60% of
+active cycle time, which is the correct shape for a cycle that changes seven skills at once.
+
+**Token efficiency:** No outliers. Build was 10 minutes for a 12-task diff — fast, and Validate
+then found 5 P1s across three loops. Worth watching whether Build speed is being bought at
+Validate's expense on prose-heavy cycles.
+
+**Suggestions:**
+1. Count challenge-applied revisions into `metrics.spec_revisions` (or have `dev:reflect` read
+   `challenge.applied` alongside it) — reflect's headline metric is currently blind to the
+   spec-challenger stage.
+2. Apply `dev:validate` Step 6's rules at fix-authoring time, not just review time — two
+   consecutive loops shipped fixes that violated rules the skill already contains.
