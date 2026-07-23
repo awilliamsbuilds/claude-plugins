@@ -3,8 +3,8 @@
   "feature": "init-rerun-hardening",
   "branch": "feature/init-rerun-hardening",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-23T00:45:34Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/init-rerun-hardening/plan.md",
     "validation": "docs/dev/init-rerun-hardening/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/40",
+    "pr_number": 40
   },
   "validate": {
     "loops_run": 1,
@@ -56,7 +56,8 @@
       "build_start": "2026-07-23T01:37:04Z",
       "build_end": "2026-07-23T01:42:48Z",
       "validate_start": "2026-07-23T01:45:31Z",
-      "validate_end": "2026-07-23T01:53:29Z"
+      "validate_end": "2026-07-23T01:53:29Z",
+      "pr_created": "2026-07-23T01:56:19Z"
     }
   }
 }
