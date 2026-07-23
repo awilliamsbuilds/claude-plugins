@@ -378,7 +378,7 @@ if [ "$INTEGRATION" = "main" ]; then
     elif [ "$local_main" = "$origin_main" ]; then
       RECONCILE_MSG="uptodate"                                   # already current → no-op, no reminder
     elif git -C "$PRIMARY" merge-base --is-ancestor "$local_main" "$origin_main" 2>/dev/null; then
-      if git -C "$PRIMARY" merge --ff-only origin/main; then
+      if git -C "$PRIMARY" merge --ff-only -q origin/main; then
         RECONCILE_MSG="ff:$origin_main"                          # fast-forwarded working tree + ref
       else
         RECONCILE_MSG="reminder"                                 # ff refused (e.g. untracked collision) → defer
@@ -393,7 +393,10 @@ if [ "$INTEGRATION" = "main" ]; then
     elif [ "$local_main" = "$origin_main" ]; then
       RECONCILE_MSG="uptodate"                                   # ref already current → no-op, no reminder
     elif git -C "$PRIMARY" fetch origin main:main 2>/dev/null; then
-      RECONCILE_MSG="refadvanced:$origin_main"                   # fetch enforces fast-forward; succeeded
+      # Report the ref's actual post-fetch tip, not the pre-fetch $origin_main snapshot: a
+      # concurrent push landing between the rev-parse above and this fetch would otherwise make
+      # the Step 8 line name a commit the ref no longer points at.
+      RECONCILE_MSG="refadvanced:$(git -C "$PRIMARY" rev-parse --verify --quiet refs/heads/main || echo "$origin_main")"
     else
       RECONCILE_MSG="reminder"                                   # non-fast-forward fetch refused → defer
     fi
@@ -453,6 +456,10 @@ case "$RECONCILE_MSG" in
   reminder)        echo "  Primary checkout left unchanged (dirty or diverged) — run \`git pull\` on main when ready." ;;
   reminder-nested) echo "  Primary checkout not auto-reconciled (nested cycle) — run \`git pull\` on $INTEGRATION when ready." ;;
   uptodate)        : ;;  # already current — print no line, no reminder
+  # No `*)` default arm on purpose: on the legacy in-place path Step 7's reconcile block is
+  # skipped, so RECONCILE_MSG is unset here, and that empty case must print nothing — legacy
+  # already caught the primary up. A `*) echo "…git pull…"` fallback would nag every legacy
+  # cycle, regressing "legacy behavior identical to today". Do not add one.
 esac
 ```
 
