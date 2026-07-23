@@ -21,3 +21,15 @@
 
 ## Artifacts (archived)
 Spec and plan committed at: 752fdfcff1138d2601a94ab9db95cc79a3a9505a on branch feature/done-primary-reconcile
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-23*
+
+**Spec:** Confidence score (90/Ready) matched actual clarity — zero spec revisions, and the challenger's single concern (overlapping primary-state cases) was surfaced pre-build and folded into the plan's "fetch exit code is the authority" decision rather than discovered late.
+**Shape:** Skipped — correct for a no-UI skill edit.
+**Plan:** Accurate; no mid-build updates, single-file scope held (`files_read_in_build: 1`).
+**Validate:** 1 loop / 3. Clean. Two minor fixes applied (stale-SHA report, output suppression); one code-review P3 correctly rejected as a false positive with an anti-regression comment added instead.
+**Flow:** Tier was defensible — a single-file skill edit could read as Micro, but the safety-critical primary-tree mutation earned full Standard validation.
+**Token efficiency:** No outliers; tightly scoped throughout.
+**Suggestions:** none.
+**Deferred to tech debt:** none.
