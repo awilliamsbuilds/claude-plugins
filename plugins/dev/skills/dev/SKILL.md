@@ -129,6 +129,8 @@ When a stage name is given as argument (e.g., `/dev build`):
 
 When a `docs/dev/product-plan.md` exists and no in-progress session:
 
+Under the PR-propagation model, a product plan created by a decomposition cycle becomes visible here only **after that cycle's PR merges** (`dev:spec` writes the plan into the creating cycle's worktree, and it reaches `main` via that cycle's PR). A parallel cycle cut from `origin/main` before the creating cycle merges won't see it yet — the plan-creating cycle should merge first.
+
 ```
 Product plan: X/N cycles complete.
 

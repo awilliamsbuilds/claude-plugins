@@ -1,6 +1,6 @@
 ---
 name: dev:init
-description: "Sets up the /dev workflow infrastructure in a repo. Detects stack, asks 3 setup questions, creates docs/dev/ and docs/decisions/, writes CLAUDE.md Component Registry and config.json. Auto-triggered by /dev when config.json is missing."
+description: "Sets up the /dev workflow infrastructure in a repo. Detects stack, asks 1 setup question, creates docs/dev/ and docs/decisions/, writes CLAUDE.md Component Registry and config.json. Auto-triggered by /dev when config.json is missing."
 ---
 
 # dev:init — Workflow Setup
@@ -31,9 +31,9 @@ Check which scenario applies and follow that path:
   - Read CLAUDE.md if it exists
   - Check for `components/`, `src/components/`, `app/`, `src/app/` directories
   - Check for `tailwind.config.*`, `tsconfig.json`, `package.json`
-- Infer answers to the 3 setup questions from what you find
-- Present inferences for confirmation: "Based on your README and project structure, here's what I think — correct anything off."
-- Only ask blank questions when evidence is absent
+- Infer the answer to the setup question from what you find
+- Present the inference for confirmation: "Based on your README and project structure, here's what I think — correct anything off."
+- Only ask the blank question when evidence is absent
 - Then Phase 2
 
 **Scenario D — Already initialized** (`docs/dev/config.json` exists):
@@ -41,8 +41,8 @@ Check which scenario applies and follow that path:
 - Ask: "Update config or keep it as-is?"
 - If keep: before exiting, check for `docs/dev/tech-debt.md`. If it is absent, create it exactly
   as in **Create Directories** below and name it in the exit line — "Config unchanged. Created
-  docs/dev/tech-debt.md (untracked — commit it when convenient). Run /dev to start a feature
-  cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
+  docs/dev/tech-debt.md (untracked — review, commit, and push when ready). Run /dev to start a
+  feature cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
   checkout on `main`, and staging a file the user didn't ask for means their next unrelated
   commit silently carries it. If it already exists, exit with "Config unchanged. Run /dev to
   start a feature cycle."
@@ -50,9 +50,35 @@ Check which scenario applies and follow that path:
   gets the file: `dev:init` is auto-triggered only when `config.json` is missing, which is false
   for exactly those repos. (`dev:done`'s flush creates the file too, but only once a cycle there
   actually defers something.)
-- If update: re-run Phase 2, which does commit — including the tracker. The difference from the
-  "keep" branch is consent, not the branch: the user asked for a re-init and gets its commit,
-  while "keep" was told to change nothing and must not leave a staged file behind.
+- If update: run a **safe migration** in place — never a fixed-template rewrite. This is the
+  general mechanism by which an older/drifted repo gains new config keys and artifacts
+  (generalizing the former `tech-debt.md`-only backfill above):
+  1. Read and JSON-parse the existing `config.json`. **Malformed-config guard:** if the file does
+     not parse as valid JSON, or `schema_version` is present but not a non-negative integer, do
+     **not** rewrite it — STOP and report the file as malformed for manual repair. (Silently
+     falling back to the fresh template here would clobber the user's tuned values, the exact
+     outcome the migration exists to prevent.) Otherwise read its `schema_version` — absent ⇒ treat
+     as legacy version `0`.
+  2. **Future-version guard:** if `schema_version` > `SCHEMA_VERSION` (`1`), do **not** modify or
+     downgrade the file — leave it untouched and report: "config schema vN is newer than this init
+     knows (v1); left unchanged." (Edge: unknown/future `schema_version`.) Stop here.
+  3. Otherwise **merge** against the current schema (see **Write config.json**). For each schema
+     key: if it is **absent**, add it with its consumer-side default (`component_policy` →
+     `can-propose`; `spec_max_questions` → `10`; `spec_min_confidence` → `85`; `changelog` →
+     `null`; `changelog_versioned` → `false`). Migration backfills `changelog` to `null` and does
+     **not** re-run changelog detection — a repo with an existing changelog enables it via a fresh
+     init or a manual edit. If a key is **present**, **preserve the existing value** — never
+     overwrite a present value with a template default. (Edge: tuned-value preservation — a
+     customized `spec_max_questions` survives.)
+  4. Leave any key the new template no longer emits (e.g. a pre-existing `worktree_root`) **in
+     place** — do not strip it and do not error on encountering it. (Edge: `worktree_root` in an
+     existing config.)
+  5. Stamp `schema_version = SCHEMA_VERSION` (`1`).
+  6. Ensure `docs/dev/tech-debt.md` exists — create it from the canonical header (as in **Create
+     Directories**) if absent.
+  7. **Leave the updated `config.json` and any newly created `tech-debt.md` unstaged** — no
+     `git add`, no commit (same rule as **Do not commit — leave unstaged**). Report: "migrated
+     config to schema v1; left unstaged — review, commit, and push when ready."
 
 ## Phase 2 — Plugin Setup
 
@@ -86,22 +112,16 @@ Anything off? (Say "looks good" to continue, or correct what's wrong)
 
 Wait for confirmation before continuing.
 
-### Three Setup Questions
+### Setup Question
 
-Ask these one at a time. If evidence exists (Scenario C), present the inferred answer for confirmation rather than asking cold.
+Ask this question. If evidence exists (Scenario C), present the inferred answer for confirmation rather than asking cold.
 
-**Question 1 — Design personality:**
-"How would you describe the visual style of this project in a sentence? (This helps Shape stage stay consistent.)"
-- For new projects: invite a forward-looking description of what you're building toward
-- For existing: invite a descriptive sentence about what currently exists
-
-**Question 2 — Component policy:**
+**Component policy:**
 "When building features, should I work within your existing components only, or can I propose new ones when existing components don't fit?"
-- A) Existing components only
-- B) Can propose new components when justified
+- A) Existing components only → stored as `component_policy: "existing-only"`
+- B) Can propose new components when justified → stored as `component_policy: "can-propose"`
 
-**Question 3 — Primary audience:**
-"Who primarily uses this? (One sentence — e.g., 'internal ops team', 'public end-users', 'developers integrating your API')"
+This answer is persisted to `config.json` under `component_policy` (see **Write config.json**) and read by `dev:shape` and `dev:reflect`.
 
 ### Changelog Detection
 
@@ -187,27 +207,44 @@ Populate by scanning component directories (`components/`, `src/components/`, or
 
 ### Write config.json
 
-Write to `docs/dev/config.json` in the user's project:
+Write to `docs/dev/config.json` in the user's project. `SCHEMA_VERSION = 1` — the current
+config schema version, the literal value init stamps and the migration (Scenario D) stamps:
 ```json
 {
+  "schema_version": 1,
   "autopilot": {
     "spec_max_questions": 10,
     "spec_min_confidence": 85
   },
-  "worktree_root": ".dev-worktrees",
+  "component_policy": "<existing-only-or-can-propose>",
   "changelog": "<detected-path-or-null>",
   "changelog_versioned": "<true-or-false>"
 }
 ```
 
-Set `changelog` to the detected path or `null`. Set `changelog_versioned` to `true` or `false` based on detection.
+- `schema_version`: the literal `1` (`SCHEMA_VERSION`).
+- `component_policy`: `"existing-only"` or `"can-propose"` from the **Setup Question** answer.
+- `changelog`: the detected path, or `null`.
+- `changelog_versioned`: `true` or `false` from detection.
 
-### Commit
+There is no `worktree_root` key — every skill hardcodes `.dev-worktrees`, so the key is dead and
+init no longer emits it. (A pre-existing `worktree_root` in an already-initialized repo is left in
+place by the migration, not stripped — see Scenario D.)
 
-```bash
-git add docs/dev/.gitkeep docs/decisions/.gitkeep docs/dev/config.json docs/dev/tech-debt.md CLAUDE.md .gitignore
-git commit -m "Initialize /dev workflow"
-```
+**Consumer-side defaults** (used by a reader when a key is absent, independent of migration; the
+migration in Scenario D backfills these same values): `spec_max_questions` → `10`;
+`spec_min_confidence` → `85`; `component_policy` → `"can-propose"`; `changelog` → absent/null ⇒
+skip changelog; `changelog_versioned` → absent ⇒ `false`; `schema_version` → absent ⇒ legacy
+(version `0`).
+
+### Do not commit — leave unstaged
+
+Do **not** `git add` and do **not** commit any file this skill created or modified. Leave every
+one of them (`docs/dev/.gitkeep`, `docs/decisions/.gitkeep`, `docs/dev/config.json`,
+`docs/dev/tech-debt.md`, `CLAUDE.md`, `.gitignore`) **unstaged** in the working tree. This mirrors
+the "keep" path (Scenario D): init usually runs with the checkout on `main`, and a file the user
+didn't explicitly ask to commit must not silently ride their next unrelated commit to `main`. The
+developer reviews the scaffolding, then commits and pushes it themselves.
 
 ## Exit Display
 
@@ -219,6 +256,9 @@ git commit -m "Initialize /dev workflow"
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
   Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"
+
+These files are unstaged — review, commit, and push when ready. Until they are pushed, a cycle
+worktree cut from origin/main won't see config.json / tech-debt.md.
 
 Run /dev to start your first feature cycle.
 ```

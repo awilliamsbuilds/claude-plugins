@@ -94,7 +94,7 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 1. Read the most recent 2–3 entries in the changelog file to extract the style (heading format, bullet style, date/version format). Match it exactly.
 
-2. **Version bump** (only when `changelog_versioned: true`):
+2. **Version bump** (only when `changelog_versioned: true`; an absent `changelog_versioned` key ⇒ treat as `false`, so skip the version bump):
    - New features present → **minor** bump
    - UX improvements only, no new features → **patch** bump
    - Changes appear major in scope (complete redesign, breaking behavior change, multiple significant features) → ask: `"These changes look substantial — worth a major version bump? (yes / no, use minor)"`

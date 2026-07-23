@@ -131,6 +131,8 @@ push_integration() {
 
 Determine the governing product plan: if `state.json.parentFeature` is set, it's `docs/dev/<parentFeature>/product-plan.md` (nested); otherwise, if `state.json.product_plan` is not null, it's the top-level `docs/dev/product-plan.md`. If neither applies, skip this step.
 
+The plan file is present at the detached integration tip (Step 2's `checkout --detach origin/$INTEGRATION`) because `dev:spec` wrote it into this cycle's worktree and it merged via this cycle's own PR — not through a direct push to `origin/$INTEGRATION`. The top-level branch fires only when `product_plan` is non-null, which `dev:spec` sets for top-level product-scale cycles.
+
 For the governing product plan found:
 - Read it
 - Find this feature's line item (match by feature name)

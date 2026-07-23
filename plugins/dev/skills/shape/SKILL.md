@@ -61,7 +61,7 @@ Before proposing anything new, understand what already exists.
 
 1. Check `CLAUDE.md` → `## Component Registry` first. If present and dated recently (within this /dev session): use it directly. No directory scan needed.
 2. If Component Registry is absent or stale: scan `components/`, `src/components/`, `app/`, `src/app/` directories. Note component names, paths, and inferred purposes. Update the registry in CLAUDE.md.
-3. Read `docs/dev/config.json` → component policy (existing only vs. can propose new).
+3. Read `docs/dev/config.json` → the `component_policy` key (`existing-only` = existing components only, `can-propose` = can propose new). Default `can-propose` if the key or file is absent.
 
 Present results before any design questions:
 ```
