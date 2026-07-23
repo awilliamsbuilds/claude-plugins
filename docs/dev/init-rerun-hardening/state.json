@@ -3,22 +3,23 @@
   "feature": "init-rerun-hardening",
   "branch": "feature/init-rerun-hardening",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-23T00:45:34Z",
   "artifacts": {
     "spec": "docs/dev/init-rerun-hardening/spec.md",
     "design": null,
     "plan": "docs/dev/init-rerun-hardening/plan.md",
-    "validation": null,
+    "validation": "docs/dev/init-rerun-hardening/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
-    "loops_max": 3,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "loops_run": 1,
+    "loops_max": 5,
+    "p1_open": [], "p2_open": [], "p3_open": [],
+    "nits_open": ["validate config-contract gate wording is broader than the per-consumer convention (recorded to debt buffer)"]
   },
   "challenge": {
     "run": true, "blockers": 1, "concerns": 2,
@@ -53,7 +54,9 @@
       "plan_start": "2026-07-23T01:24:40Z",
       "plan_end": "2026-07-23T01:34:38Z",
       "build_start": "2026-07-23T01:37:04Z",
-      "build_end": "2026-07-23T01:42:48Z"
+      "build_end": "2026-07-23T01:42:48Z",
+      "validate_start": "2026-07-23T01:45:31Z",
+      "validate_end": "2026-07-23T01:53:29Z"
     }
   }
 }
