@@ -44,7 +44,7 @@ Before any questions, assess the scope of the request.
 2. Map the product into sub-features grouped by milestone
 3. **Standard mode:** Show the milestone map in the visual companion browser — "Here's how I'd break this down. Does this structure look right?"
 4. **Autopilot mode:** Self-review the breakdown for completeness, continue without browser
-5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content — item 6 writes it **into the ephemeral worktree**, never into the primary tree:
+5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content now — the **write is deferred until after Step 6 creates the cycle worktree** (see the product-plan write at the end of Step 6). It is written into `$WORKDIR`, never the primary tree, and reaches the integration branch through this cycle's own PR (the `tech-debt.md` precedent):
    ```markdown
    # [Product Name] — Product Plan
    *Created: YYYY-MM-DD · Cycles completed: 0/N*
@@ -56,27 +56,9 @@ Before any questions, assess the scope of the request.
    ## Milestone 2: [Name]
    - [ ] feature-name (feature)
    ```
-   If a product plan already exists, append as a new milestone rather than overwriting (the ephemeral worktree in item 6 starts from `origin/$INTEGRATION`, so any existing plan is already present to append to).
-6. **Land the product plan on the integration branch** (shared procedure — Step 4's decomposition path reuses it). Define `$INTEGRATION` the same way `dev:done` does: `main` for a top-level plan; for a nested plan, the parent feature's branch (read from `docs/dev/<parent>/state.json.branch`). Committing from the primary tree with a bare `git add`/`git commit` is unsafe under the worktree model — a concurrent session may have moved the primary off `main`, and a commit that only reaches *local* `main` is invisible to the cycle worktree (Step 6 creates it from `origin/main`). Instead land the plan on `origin/$INTEGRATION` through an **ephemeral detached worktree**, then let Step 6's `fetch` pick it up:
-   ```bash
-   PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
-   git -C "$PRIMARY" fetch origin
-   TMP="$PRIMARY/.dev-worktrees/_planroot-<feature-name>"
-   git -C "$PRIMARY" worktree add --detach "$TMP" "origin/$INTEGRATION"
-   # Write/append the item-5 content INSIDE $TMP — never the primary tree:
-   #   $TMP/docs/dev/product-plan.md            (top-level)
-   #   $TMP/docs/dev/<parent>/product-plan.md   (nested)
-   git -C "$TMP" add <product-plan-path>
-   git -C "$TMP" commit -m "docs: record product plan for <product-name>"
-   git -C "$TMP" push origin "HEAD:$INTEGRATION" || {
-     git -C "$TMP" fetch origin && git -C "$TMP" rebase "origin/$INTEGRATION" && git -C "$TMP" push origin "HEAD:$INTEGRATION"
-   }
-   git -C "$PRIMARY" worktree remove --force "$TMP"
-   git -C "$PRIMARY" worktree prune
-   ```
-   The `push … || { fetch; rebase; push }` fallback handles a concurrent non-fast-forward push (identical to `dev:done`'s `push_integration`). If the push fails for another reason (auth, network), STOP and report — but still run the `worktree remove`/`prune` first so no half-created cycle is left behind. Step 6 stays unchanged: its `git -C "$PRIMARY" fetch origin` before `worktree add … origin/main` already picks up the pushed plan.
-7. Ask: "Which feature should we start with? I'd suggest [Milestone 1 first item]."
-8. Proceed with the chosen feature as a normal feature-scale spec
+   If a product plan already exists, append as a new milestone rather than overwriting. The cycle worktree (Step 6) is created from `origin/main` (or the parent's HEAD for a nested cycle), so any existing product plan is already present in `$WORKDIR` to append to.
+6. Ask: "Which feature should we start with? I'd suggest [Milestone 1 first item]."
+7. Proceed with the chosen feature as a normal feature-scale spec — the prepared product-plan content is carried in the stage's working context and written by the deferred block at the end of Step 6.
 
 **Feature scale** (default) — single bounded deliverable. Proceed to Step 3.
 
@@ -95,8 +77,8 @@ For feature-scale: check if the single request describes multiple independent su
 
 - Target path: if the Nesting Detection result from Step 1 found a parent feature, `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones); otherwise the top-level `docs/dev/product-plan.md`.
 - Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If a product plan already exists, append the new items as a new milestone — don't overwrite existing ones.
-- **Land it before proceeding, using Step 2 item 6's product-plan push procedure** — run that ephemeral-worktree procedure above (with `$INTEGRATION` = `main` if top-level, the parent's branch if nested) rather than a bare `git add`/`git commit`. This must happen now, not deferred to Step 6: the cycle worktree is created from `origin/main`, so the plan has to reach `origin/$INTEGRATION` first to be visible in the new worktree. Committing from the primary tree would also assume it's still on `main`, which a concurrent session may have changed.
-- This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable artifact on `origin/$INTEGRATION`.
+- **Prepare the decomposition content now; the write is deferred to the end of Step 6** (the same deferred `$WORKDIR` write as Step 2) — no bare `git add`/`git commit`, no push to `origin/$INTEGRATION`. Carry the prepared content in the stage's working context until Step 6's product-plan write lands it in `$WORKDIR`.
+- This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable artifact in the cycle's worktree, reaching the integration branch via the cycle's PR.
 
 As questions surface requirements throughout this stage: when a requirement isn't essential to the stated goal, name it explicitly and ask: "Is [requirement] in scope for this cycle?" Default to out.
 
@@ -229,6 +211,31 @@ git -C "$WORKDIR" commit -m "spec: initialize /dev session for <feature-name>"
 ```
 
 All subsequent spec commits (spec.md and other artifacts) also use `git -C "$WORKDIR"`.
+
+### Product-plan write (deferred from Step 2 / Step 4)
+
+If Step 2 (product-scale) or Step 4 (decomposition) prepared a product plan, write it **now** —
+after the worktree and initial state.json exist — as a plain file inside `$WORKDIR`. It is never
+pushed to `origin/$INTEGRATION`; it rides this cycle's own PR to the integration branch, exactly
+like `tech-debt.md`.
+
+- **Top-level cycle** (no parent): path `$WORKDIR/docs/dev/product-plan.md`. Set
+  `state.json.product_plan` to `"docs/dev/product-plan.md"` so `dev:done` Step 3's top-level
+  check-off fires.
+- **Nested cycle** (parent found in Step 1): path `$WORKDIR/docs/dev/<parent>/product-plan.md`.
+  Leave `state.json.product_plan` as `null` — `dev:done` locates a nested plan via `parentFeature`.
+- **Append-if-exists:** if a product plan already exists at that path (present because the worktree
+  was cut from `origin/main` or the parent's HEAD), append the prepared milestone(s) rather than
+  overwriting; otherwise create it from the Step 2 template.
+
+```bash
+# <product-plan-path> is docs/dev/product-plan.md (top-level) or docs/dev/<parent>/product-plan.md (nested)
+git -C "$WORKDIR" add <product-plan-path> docs/dev/<feature-name>/state.json
+git -C "$WORKDIR" commit -m "docs: record product plan for <product-name>"
+```
+
+This commit rides the cycle's PR to `$INTEGRATION` — there is no direct push. If neither Step 2
+nor Step 4 prepared a plan, skip this block entirely.
 
 ## Step 7: Ground the Spec in the Codebase
 
