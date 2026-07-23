@@ -131,6 +131,19 @@ personal Claude Code plugin repo, agent-facing.)
 
 No. Shape stage is skipped; Plan follows Spec directly.
 
+## Open Questions for Plan
+
+- **Check ordering and outcome reporting when the primary-state cases overlap.** The three
+  primary-state cases in Scope item 3 are not mutually exclusive: a primary that is **on another
+  branch AND whose local `main` has diverged** from `origin/main` matches both "on a different
+  branch → `fetch origin main:main`" (bullet 2) and "diverged → reminder" (bullet 3). The behavior
+  is *safe* either way — `git fetch origin main:main` refuses a non-fast-forward and mutates
+  nothing — but the Step 8 report could claim "ref advanced" when the fetch actually failed. Plan
+  must settle the check order (evaluate fast-forward-ability before reporting an outcome) and treat
+  a **non-zero `fetch origin main:main` as the reminder path**, so the reported outcome always
+  matches what actually happened. *(Surfaced by the spec cold review; safe as specified, but the
+  reporting accuracy is a Plan-stage decision.)*
+
 ---
 *Auto-filled dimensions: none*
 *Grounding inventory: `grep -n 'push origin\|HEAD:\$INTEGRATION\|checkout --detach\|pull --ff-only' plugins/dev/skills/done/SKILL.md` → worktree cycle ends detached at `origin/$INTEGRATION` (`:103`), legacy cycle reconciles via `checkout $INTEGRATION`+`pull --ff-only` (`:110-113`), push_integration pushes `HEAD:$INTEGRATION` from `$WORKDIR` (`:124`). `grep -n 'git -C "\$PRIMARY"'` → primary-tree touches are only `branch -D` (`:87`, a ref) and `worktree remove`/`prune` (`:345-346`); no existing fast-forward of the primary's main (confirmed: staleness is real, reconciliation is net-new). `grep -n 'worktreePath.*null\|legacy in-place'` → legacy branch (`:106`) reconciles the primary in-place, returns before Step 7's worktree-removal block (`:332-334`), so the new step is worktree-cycle-only by placement. Step 8 (`:352-366`) has no stale-main reminder today → the fallback reminder is new text. `$INTEGRATION` defined as `main` when `parentFeature` null, else parent branch — confirms top-level-only scope keys on `parentFeature`/`INTEGRATION == main`.*
