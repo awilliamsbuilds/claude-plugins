@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/done-primary-reconcile/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/done-primary-reconcile/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -49,7 +49,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-23T03:28:29Z",
-      "spec_end": "2026-07-23T04:01:28Z"
+      "spec_end": "2026-07-23T04:01:28Z",
+      "plan_start": "2026-07-23T04:03:13Z",
+      "plan_end": "2026-07-23T04:07:22Z"
     }
   }
 }
