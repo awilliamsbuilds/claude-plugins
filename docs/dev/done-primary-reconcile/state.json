@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "feature": "done-primary-reconcile",
+  "branch": "feature/done-primary-reconcile",
+  "mode": "standard",
+  "stage": "done",
+  "completed": ["build", "validate", "pr"],
+  "skipped": ["shape"],
+  "startedAt": "2026-07-23T03:28:29Z",
+  "artifacts": {
+    "spec": "docs/dev/done-primary-reconcile/spec.md",
+    "design": null,
+    "plan": "docs/dev/done-primary-reconcile/plan.md",
+    "validation": "docs/dev/done-primary-reconcile/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/41",
+    "pr_number": 41
+  },
+  "validate": {
+    "loops_run": 1,
+    "loops_max": 3,
+    "p1_open": [], "p2_open": [], "p3_open": [],
+    "nits_open": ["duplicated uptodate/reminder ladder — intentionally left, no carrying cost"]
+  },
+  "challenge": {
+    "run": true, "blockers": 0, "concerns": 1,
+    "applied": 1, "dismissed": 0,
+    "loops_run": 0, "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 90,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true, "scope": true, "success_criteria": true,
+      "happy_path": true, "edge_cases": true, "out_of_scope": true,
+      "ui_needed": true, "technical_constraints": true,
+      "audience": true, "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/done-primary-reconcile",
+  "metrics": {
+    "spec_questions_asked": 2,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 1,
+    "stage_timestamps": {
+      "spec_start": "2026-07-23T03:28:29Z",
+      "spec_end": "2026-07-23T04:01:28Z",
+      "plan_start": "2026-07-23T04:03:13Z",
+      "plan_end": "2026-07-23T04:07:22Z",
+      "build_start": "2026-07-23T04:10:55Z",
+      "build_end": "2026-07-23T04:12:38Z",
+      "validate_start": "2026-07-23T04:15:33Z",
+      "validate_end": "2026-07-23T04:22:44Z",
+      "pr_created": "2026-07-23T04:25:17Z"
+    }
+  }
+}
