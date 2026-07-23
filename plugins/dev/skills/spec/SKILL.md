@@ -106,6 +106,8 @@ Set `skipped[]` in state.json immediately based on tier:
 - Micro: `skipped: ["shape", "plan"]`
 - Standard/Deep: `skipped: []`
 
+The Standard/Deep value is provisional — whether Shape runs isn't known until the `## UI Needed` decision at Step 10. Step 12 reconciles `skipped[]` with that decision, adding `"shape"` when UI Needed is No.
+
 ## Step 6: Create Feature Branch
 
 Create the branch before asking any questions. All artifacts commit to this branch.
@@ -428,6 +430,7 @@ Update `docs/dev/<feature-name>/state.json`:
 - Set `metrics.spec_questions_asked` to the count reconciled in Step 11
 - Set `stage` to `"spec"` (stays as current stage until spec is approved)
 - Set `artifacts.spec` to the path
+- **Reconcile `skipped[]` with the `## UI Needed` decision written in Step 10:** if UI Needed resolved to **No**, add `"shape"` to `skipped[]` if not already present. This is the record the Plan gate reads to know Shape was deliberately skipped. Without it, a Standard/Deep cycle that turns out to need no UI leaves `skipped: []` and `artifacts.design: null`, and `dev:plan` Step 1's gate false-stops asking for a design that was never going to exist — even though the spec is authoritative and says so. (Micro already carries `["shape", "plan"]` from Step 5; this covers the Standard/Deep-but-no-UI case that Step 5 couldn't know yet.) The spec's UI Needed value is the authority here — do this whether or not the cycle was launched with the `no-ui` flag.
 - Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1. **This is not a one-time stamp:** the spec is not "done" here, it is done when the user approves it in Step 13 — so `spec_end` is **re-stamped on every revision** (Step 13's revision loop). The committed value must always reflect the *last* spec activity before approval, not the first draft. Leave `metrics.spec_revisions` at 0 for this initial write; Step 13 increments it per revision.
 
 ```bash

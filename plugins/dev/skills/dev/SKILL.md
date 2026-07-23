@@ -76,10 +76,10 @@ Invoke `dev:spec` to begin the cycle.
 
 After dev:spec completes and the user approves the spec:
 - Read state.json to confirm `"spec"` is in `completed[]`
-- Determine next stage from tier and mode:
+- Determine next stage from tier and the spec's UI decision (the spec is authoritative — read `## UI Needed`, which spec Step 12 also records into `skipped[]`):
   - Micro tier: jump to Build (Shape and Plan are in `skipped[]`)
-  - Standard/Deep, no-ui mode: skip Shape → go to Plan
-  - Standard/Deep, UI involved (spec says `UI Needed: Yes`): go to Shape
+  - Standard/Deep, spec says `UI Needed: Yes`: go to Shape
+  - Standard/Deep, spec says `UI Needed: No` (or launched `no-ui`, i.e. `"shape" ∈ skipped[]`): skip Shape → go to Plan
 
 ## Step 5: Stage Sequencing (Standard Mode)
 
