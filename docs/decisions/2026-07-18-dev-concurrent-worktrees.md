@@ -1,6 +1,13 @@
-# /dev Concurrent-Session Worktree Isolation — Design
+# /dev Concurrent-Session Worktree Isolation — Architecture Record
 
-*2026-07-18 · Status: draft for review*
+*2026-07-18 · Shipped · Built with superpowers subagent-driven-development (outside the /dev workflow, since /dev could not yet run worktree cycles)*
+
+> This is the design record for the worktree model that now underpins every `/dev` cycle.
+> It was implemented before `/dev` could isolate its own cycles, so it has no standard
+> `dev:done` decision log — this file is that record. A few implementation details evolved
+> during build (notably `dev:done`'s branch deletion, which ships as explicit `git` plumbing
+> rather than `gh pr merge --delete-branch`); where this doc and the skills differ, the skill
+> files under `plugins/dev/skills/` are the source of truth.
 
 ## Problem
 
@@ -146,14 +153,15 @@ after merge. `<integration>` = `main` (top-level) or the parent feature's branch
 A detached HEAD (not `git checkout <integration>`) is essential: `<integration>` is
 normally `main`, which is checked out in the primary tree, and git forbids the same branch
 in two worktrees — a plain checkout would fail (`fatal: 'main' is already used by worktree`).
-Detaching sidesteps the collision and still lets `--delete-branch` remove the feature branch.
+Detaching sidesteps the collision and still lets the feature branch be deleted.
 
 **Worktree cycle (normal):**
 1. `git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" checkout --detach` — frees the
    feature branch (detached, no branch-collision).
-2. `( cd "$WORKDIR" && gh pr merge <n> --merge --delete-branch )` — merges, deletes remote
-   + local feature branch. (No `--head`: that flag exists on `gh pr create`, not `gh pr
-   merge`, where it errors.)
+2. `( cd "$WORKDIR" && gh pr merge <n> --merge )` — merges only. Branch deletion is done
+   separately by explicit `git` plumbing after confirming the PR merged, rather than via
+   `gh pr merge --delete-branch` (which reads the current branch and fails on a detached
+   HEAD). *(This is the detail that evolved from the original draft; see the skills.)*
 3. `git -C "$WORKDIR" fetch origin && git -C "$WORKDIR" checkout --detach origin/<integration>`
    — detached at the merged integration tip.
 4. Component Registry (Step 4), decision log (Step 5), retrospective (Step 6),

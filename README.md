@@ -48,13 +48,20 @@ Then run `/plugin update` in Claude Code.
 awilliamsbuilds/claude-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json           # Registry of all plugins
+├── docs/
+│   ├── decisions/                 # Architecture & /dev decision logs
+│   └── dev/                       # /dev workflow state (config, tech-debt tracker)
 └── plugins/
     └── <plugin-name>/
         ├── .claude-plugin/
         │   └── plugin.json
+        ├── references/            # Optional — shared refs loaded by the plugin's skills
+        │   └── <reference>.md
         └── skills/
             └── <skill-name>/
-                └── SKILL.md
+                ├── SKILL.md
+                └── references/     # Optional — refs scoped to a single skill
+                    └── <reference>.md
 ```
 
 ## Adding a Plugin
