@@ -11,10 +11,6 @@ Use the `add-plugin` skill — it owns the full workflow (the human walkthrough 
 - Adding a **plugin** touches `plugins/<name>/.claude-plugin/plugin.json`, one `skills/<skill>/SKILL.md`, and a new entry in `.claude-plugin/marketplace.json`. Adding a **skill** to an existing plugin only touches a new `SKILL.md` — skip the plugin.json and marketplace steps.
 - Before updating `.claude-plugin/marketplace.json`, read it first (to get its current SHA if editing via the GitHub API) rather than blind-writing it.
 
-## Git Workflow
-
-Feature branch → PR → merge to main → delete branch (remote and local). Never commit directly to main.
-
 ## Deploying Changes
 
 Changes must be merged to `main`. After merging, run `/plugin update` in Claude Code.
