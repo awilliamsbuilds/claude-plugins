@@ -34,7 +34,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:build` | plugins/dev/skills/build/SKILL.md | Stage 4 — implements the plan |
 | `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand tech debt tracker — list open entries, show closed, close by hand |
 | `dev:dev` | plugins/dev/skills/dev/SKILL.md | Main entry point for the /dev workflow |
-| `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record |
+| `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles the primary checkout post-merge |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |
 | `dev:init` | plugins/dev/skills/init/SKILL.md | Sets up /dev workflow infrastructure in a repo |
 | `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan |
