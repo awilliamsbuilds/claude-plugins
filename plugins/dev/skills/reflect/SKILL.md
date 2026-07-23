@@ -70,7 +70,7 @@ Analyze the cycle across these dimensions. Note findings briefly — one sentenc
 
 **Shape quality (if ran):**
 - Did implementation deviate significantly from design.md?
-- Were any components proposed that didn't fit component policy?
+- Were any components proposed that didn't fit component policy? (The policy is `config.json`'s `component_policy` key — `existing-only` or `can-propose`; default `can-propose` if absent.)
 - Were visual_screens_shown screens actually useful? (0 clicks on a screen → it wasn't needed)
 
 **Plan quality:**

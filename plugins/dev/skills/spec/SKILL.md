@@ -21,7 +21,7 @@ Every feature goes through Spec. Simple features are where unexamined assumption
 ## Step 1: Read Context
 
 Read these files once at stage start. Work from this reading throughout — do not re-read mid-stage:
-- `docs/dev/config.json` — autopilot settings (spec_max_questions, spec_min_confidence)
+- `docs/dev/config.json` — autopilot settings (`spec_max_questions` default `10`, `spec_min_confidence` default `85` when the key or file is absent)
 - `CLAUDE.md` — audience and technical constraints (pre-fills confidence dimensions)
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
