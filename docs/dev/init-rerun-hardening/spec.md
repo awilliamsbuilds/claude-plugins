@@ -32,7 +32,7 @@ Fix the contract so it is coherent by construction, make rerun a safe migration,
    - This generalizes and replaces the hand-special-cased `tech-debt.md` backfill (the "keep" path) as the mechanism by which older repos gain new artifacts.
 
 4. **No writes to `main` outside branch/PR (finding F + folded debt entry).**
-   - init **stages** the scaffolding it creates and **does not auto-commit** — it reports that the staged files need committing (and pushing, for later cycle worktrees cut from `origin/main` to see them). This matches the existing "keep" path's untracked-file pattern.
+   - init **does not `git add` and does not commit** the scaffolding it creates/modifies — it leaves those files **unstaged** in the working tree and reports that they need committing (and pushing, for later cycle worktrees cut from `origin/main` to see them). Leaving them unstaged (not merely uncommitted) is deliberate and matches the existing "keep" path (`init:42-48`), which forbids `git add` precisely so a file the user didn't ask for can't silently ride their next unrelated commit to `main`.
    - **`dev:spec` product-plan lifecycle is restructured** (folds in tracked entry *"dev:spec's product-plan procedure pushes straight to origin/main"*): the product plan is written **into the cycle worktree** and reaches `main` through the **cycle's own PR**, exactly like `tech-debt.md`. The ephemeral-detached-worktree push procedure (Step 2 item 6) is removed; Step 4's decomposition write becomes a plain `$WORKDIR` file write; Step 2 reorders so the plan is written *after* the cycle worktree exists (Step 6). `dev:done`'s check-off and `dev/SKILL.md` Step 6's continuation read are verified to still work under the PR-propagation model.
 
 ## Out of Scope
@@ -50,7 +50,7 @@ Fix the contract so it is coherent by construction, make rerun a safe migration,
 - **Tuned values survive rerun:** re-running init on a config with a customized `spec_max_questions` leaves that value unchanged.
 - **Drifted config is repaired:** re-running init on this repo's current `config.json` (missing `changelog`, `component_policy`, `schema_version`) backfills those keys with defaults **without altering** existing values, and stamps `schema_version`.
 - **One question, no orphans:** init asks exactly one setup question; grep finds no surviving "3 setup questions" phrasing and no write of `worktree_root`.
-- **No unreviewed `main` writes:** init makes no commit (it stages and reports); `dev:spec` contains no direct push to `origin/$INTEGRATION` for the product plan — the plan lands via the cycle PR.
+- **No unreviewed `main` writes:** init makes no commit and no `git add` (it leaves files unstaged and reports); `dev:spec` contains no direct push to `origin/$INTEGRATION` for the product plan — the plan lands via the cycle PR.
 - **Product-plan propagation intact:** a decomposed product plan created in cycle-1's worktree is checked off by cycle-1's `done`, merges via cycle-1's PR, and is visible to cycle-2 (cut from `origin/main`) — verified by tracing the procedures, since there is no test harness for prose.
 
 ## Happy Path
@@ -58,7 +58,7 @@ Fix the contract so it is coherent by construction, make rerun a safe migration,
 1. Developer runs `/dev` (or `/dev:init`) in a repo already initialized on an older `/dev` version.
 2. init detects `config.json` exists, reads its `schema_version` (absent → treat as legacy).
 3. init runs migration: backfills `component_policy`, `changelog`/`changelog_versioned`, `schema_version` with defaults; preserves the existing tuned `spec_max_questions`; drops nothing the user set.
-4. init **stages** the updated `config.json` (and any newly created `tech-debt.md`) and reports: "migrated config to schema vN; staged — review and commit when ready."
+4. init leaves the updated `config.json` (and any newly created `tech-debt.md`) **unstaged** — no `git add`, no commit — and reports: "migrated config to schema vN; left unstaged — review, commit, and push when ready."
 5. On the next feature cycle, `dev:shape` reads `component_policy` from config and finds it present; if some other repo's config lacks it, shape falls back to the documented default rather than reading undefined.
 
 ## Edge Cases
@@ -66,10 +66,10 @@ Fix the contract so it is coherent by construction, make rerun a safe migration,
 - **Missing key at read time:** consumer uses its documented default (belt); migration backfills it (suspenders). Neither depends on the other having run.
 - **Unknown / future `schema_version`:** migration must not downgrade or corrupt a config whose version is newer than the running init knows — leave it untouched and report, rather than clobbering.
 - **Tuned-value preservation:** migration merges keys, never overwrites present values with template defaults.
-- **Staged-not-pushed visibility:** init's staged scaffolding isn't on `origin/main`, so a cycle worktree cut from `origin/main` won't see `config.json`/`tech-debt.md` until the user commits **and pushes**. init's report must say so. (This is already true of today's commit-to-local-main.)
+- **Uncommitted-not-pushed visibility:** init's unstaged scaffolding isn't on `origin/main`, so a cycle worktree cut from `origin/main` won't see `config.json`/`tech-debt.md` until the user stages, commits, **and pushes**. init's report must say so. (This is already true of today's commit-to-local-main.)
 - **Fresh-decomposition abandonment:** a product plan created in cycle-1's worktree is lost if cycle-1 is abandoned before its PR merges. Accepted as rare; mitigation (archive to `docs/decisions/`) is out of scope.
 - **Concurrent fan-out:** a parallel cycle-2 started before cycle-1 (the plan creator) merges won't see the plan. Known limitation; the plan-creating cycle should merge first.
-- **`worktree_root` in an existing config:** migration leaves a pre-existing `worktree_root` harmlessly in place (or strips it) — it must not error on encountering a key the new template no longer emits.
+- **`worktree_root` in an existing config:** migration **leaves a pre-existing `worktree_root` in place** (does not strip it) and must not error on encountering a key the new template no longer emits. New configs simply stop emitting it.
 
 ## Audience
 
