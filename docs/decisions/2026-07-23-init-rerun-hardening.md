@@ -23,3 +23,15 @@ Made `dev:init`'s config contract coherent by construction, turned its rerun pat
 
 ## Artifacts (archived)
 Spec and plan committed at: 1be6847 on branch feature/init-rerun-hardening
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-23*
+
+**Spec:** Confidence 90/Ready matched actual clarity — spec_revisions=0, no mid-build churn. Challenger caught 3 items (1 blocker, 2 concerns), all applied, none dismissed — the brief is well-tuned, catching real gaps without generating noise.
+**Shape:** Skipped (no-UI cycle).
+**Plan:** Accurate — files_read_in_build=0 (the spec's grounding inventory front-loaded everything into context), no mid-build plan updates.
+**Validate:** 1/5 loops, clean. 3 P3s + 2 nits fixed (migration future/malformed-config guards, wording alignment); appropriate depth for a contract cycle.
+**Flow:** Deep tier was correct for an 8-task config-contract + migration cycle; Shape correctly skipped; no stage wasted.
+**Token efficiency:** No outliers — build read zero files and ran 5.7 min; spec authoring (37 min) is where effort correctly concentrated for a prose cycle.
+**Suggestions:** validate found a stale loops_max=3 in state.json at stage entry despite the deep tier (should be 5) and corrected it by hand — some earlier stage seeds a default loops_max that doesn't match the tier. User declined the skill change this cycle; recorded to tech debt instead.
+**Deferred to tech debt:** "validate's config-contract gate says 'every reader' but the convention is 'every reader of that key'" (recorded by validate); "validate inherits a stale loops_max that doesn't match the tier" (recorded here).
