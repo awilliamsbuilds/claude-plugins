@@ -41,8 +41,8 @@ Check which scenario applies and follow that path:
 - Ask: "Update config or keep it as-is?"
 - If keep: before exiting, check for `docs/dev/tech-debt.md`. If it is absent, create it exactly
   as in **Create Directories** below and name it in the exit line — "Config unchanged. Created
-  docs/dev/tech-debt.md (untracked — commit it when convenient). Run /dev to start a feature
-  cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
+  docs/dev/tech-debt.md (untracked — review, commit, and push when ready). Run /dev to start a
+  feature cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
   checkout on `main`, and staging a file the user didn't ask for means their next unrelated
   commit silently carries it. If it already exists, exit with "Config unchanged. Run /dev to
   start a feature cycle."
@@ -53,17 +53,22 @@ Check which scenario applies and follow that path:
 - If update: run a **safe migration** in place — never a fixed-template rewrite. This is the
   general mechanism by which an older/drifted repo gains new config keys and artifacts
   (generalizing the former `tech-debt.md`-only backfill above):
-  1. Read and JSON-parse the existing `config.json`. Read its `schema_version` — absent ⇒ treat
+  1. Read and JSON-parse the existing `config.json`. **Malformed-config guard:** if the file does
+     not parse as valid JSON, or `schema_version` is present but not a non-negative integer, do
+     **not** rewrite it — STOP and report the file as malformed for manual repair. (Silently
+     falling back to the fresh template here would clobber the user's tuned values, the exact
+     outcome the migration exists to prevent.) Otherwise read its `schema_version` — absent ⇒ treat
      as legacy version `0`.
   2. **Future-version guard:** if `schema_version` > `SCHEMA_VERSION` (`1`), do **not** modify or
      downgrade the file — leave it untouched and report: "config schema vN is newer than this init
      knows (v1); left unchanged." (Edge: unknown/future `schema_version`.) Stop here.
   3. Otherwise **merge** against the current schema (see **Write config.json**). For each schema
      key: if it is **absent**, add it with its consumer-side default (`component_policy` →
-     `can-propose`, unless init just asked the **Setup Question** this run, in which case use that
-     answer; `spec_max_questions` → `10`; `spec_min_confidence` → `85`; `changelog` → `null`;
-     `changelog_versioned` → `false`). If it is **present**, **preserve the existing value** —
-     never overwrite a present value with a template default. (Edge: tuned-value preservation — a
+     `can-propose`; `spec_max_questions` → `10`; `spec_min_confidence` → `85`; `changelog` →
+     `null`; `changelog_versioned` → `false`). Migration backfills `changelog` to `null` and does
+     **not** re-run changelog detection — a repo with an existing changelog enables it via a fresh
+     init or a manual edit. If a key is **present**, **preserve the existing value** — never
+     overwrite a present value with a template default. (Edge: tuned-value preservation — a
      customized `spec_max_questions` survives.)
   4. Leave any key the new template no longer emits (e.g. a pre-existing `worktree_root`) **in
      place** — do not strip it and do not error on encountering it. (Edge: `worktree_root` in an

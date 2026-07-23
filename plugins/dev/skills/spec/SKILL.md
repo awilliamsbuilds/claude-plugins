@@ -230,6 +230,7 @@ like `tech-debt.md`.
 
 ```bash
 # <product-plan-path> is docs/dev/product-plan.md (top-level) or docs/dev/<parent>/product-plan.md (nested)
+# Substitute <product-name> as a plain literal — do not let a name containing quotes or $(...) break the -m quoting.
 git -C "$WORKDIR" add <product-plan-path> docs/dev/<feature-name>/state.json
 git -C "$WORKDIR" commit -m "docs: record product plan for <product-name>"
 ```
