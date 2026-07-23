@@ -3,8 +3,8 @@
   "feature": "done-primary-reconcile",
   "branch": "feature/done-primary-reconcile",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-23T03:28:29Z",
   "artifacts": {
@@ -46,12 +46,14 @@
     "spec_questions_asked": 2,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 1,
     "stage_timestamps": {
       "spec_start": "2026-07-23T03:28:29Z",
       "spec_end": "2026-07-23T04:01:28Z",
       "plan_start": "2026-07-23T04:03:13Z",
-      "plan_end": "2026-07-23T04:07:22Z"
+      "plan_end": "2026-07-23T04:07:22Z",
+      "build_start": "2026-07-23T04:10:55Z",
+      "build_end": "2026-07-23T04:12:38Z"
     }
   }
 }
