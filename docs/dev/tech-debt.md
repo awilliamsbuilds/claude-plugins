@@ -75,20 +75,6 @@ plugin cache resolves) or asked for, with no path and no marketplace name hardco
 the skill.
 **Files:** plugins/dev/skills/reflect/SKILL.md
 
-### dev:spec's product-plan procedure pushes straight to origin/main
-*First recorded: 2026-07-22 · Cycles: tech-debt-tracking · Recurrence: 1*
-
-**What's wrong:** `dev:spec` Step 4's product-plan procedure mandates a direct push to
-`origin/main`. That conflicts with the standing "never commit directly to `main`" convention —
-a repo with branch protection on `main` will simply reject the push, and a repo without it gets
-an unreviewed commit on its default branch.
-**Why deferred:** Found by the tech-debt-tracking cycle's grounding sweep and explicitly placed
-out of scope in its spec. Best fixed by a later cycle already working in that file — which is
-the behavior this tracker exists to enable.
-**Done looks like:** The product plan lands on `main` through the same branch-and-PR path every
-other change uses, or the procedure documents explicitly why this one file is exempt.
-**Files:** plugins/dev/skills/spec/SKILL.md
-
 ### A nested product plan cannot outlive its parent
 *First recorded: 2026-07-22 · Cycles: tech-debt-tracking · Recurrence: 1*
 
@@ -155,4 +141,34 @@ author will read it. A fix that breaks a sibling skill's happy path is caught by
 wrote it, not by the next one.
 **Files:** plugins/dev/skills/validate/SKILL.md
 
+### validate's config-contract gate says "every reader" but the convention is "every reader of that key"
+*First recorded: 2026-07-23 · Cycles: init-rerun-hardening · Recurrence: 1*
+
+**What's wrong:** `dev:validate`'s Config-contract review gate reads "if this cycle adds a new key to config.json, verify every skill that reads config.json has that key in its Step 1 read list." Taken literally that is broader than the actual convention this repo follows: only a skill that reads *that specific key* needs it in its read list. Every existing key is handled per-consumer, and this cycle added `component_policy`/`schema_version` to just their consumers (shape, reflect; migration for schema_version) while spec/autopilot/pr read config.json for other keys and were correctly left alone. A strict future run of the gate as worded would flag those as violations — a false positive that each config-touching cycle will rediscover.
+**Why deferred:** Editing `validate`'s checklist was explicitly out of scope for this cycle; the implementation correctly followed the per-consumer intent, so no diff change was warranted here.
+**Done looks like:** The gate wording is narrowed to "every skill that reads that key" (or equivalent), so the literal reading matches the per-consumer convention and stops producing false positives.
+**Files:** plugins/dev/skills/validate/SKILL.md
+
+### validate inherits a stale loops_max that doesn't match the tier
+*First recorded: 2026-07-23 · Cycles: init-rerun-hardening · Recurrence: 1*
+
+**What's wrong:** On this deep-tier cycle, `state.json`'s `validate.loops_max` was `3` at validate stage entry, but the deep tier's max is `5`. `dev:validate` self-corrected it per the tier table before reviewing, so there was no visible breakage — but the mismatch means some earlier stage (or a config/template default) seeds `loops_max` without reference to the tier, and every non-micro cycle silently relies on validate to re-derive it. If validate's self-correction ever regresses, a deep cycle would cap at 3 loops without anyone noticing.
+**Why deferred:** Surfaced by dev:reflect; the user declined the skill change this cycle, and validate already self-heals so there is no immediate breakage.
+**Done looks like:** `loops_max` is derived from the tier table at the point it is first written (tier detection in spec), so validate reads a value already consistent with the tier rather than correcting a stale one — and the self-correction becomes a redundant backstop rather than a load-bearing fix.
+**Files:** plugins/dev/skills/validate/SKILL.md
+
 ## Closed
+
+### dev:spec's product-plan procedure pushes straight to origin/main
+*Closed 2026-07-23 by cycle init-rerun-hardening · First recorded: 2026-07-22 · Recurrence: 1*
+
+**What's wrong:** `dev:spec` Step 4's product-plan procedure mandates a direct push to
+`origin/main`. That conflicts with the standing "never commit directly to `main`" convention —
+a repo with branch protection on `main` will simply reject the push, and a repo without it gets
+an unreviewed commit on its default branch.
+**Why deferred:** Found by the tech-debt-tracking cycle's grounding sweep and explicitly placed
+out of scope in its spec. Best fixed by a later cycle already working in that file — which is
+the behavior this tracker exists to enable.
+**Done looks like:** The product plan lands on `main` through the same branch-and-PR path every
+other change uses, or the procedure documents explicitly why this one file is exempt.
+**Files:** plugins/dev/skills/spec/SKILL.md
