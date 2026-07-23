@@ -26,7 +26,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-22*
+*Last updated by /dev · 2026-07-23*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
