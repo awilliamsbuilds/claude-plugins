@@ -3,8 +3,8 @@
   "feature": "init-rerun-hardening",
   "branch": "feature/init-rerun-hardening",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-23T00:45:34Z",
   "artifacts": {
@@ -51,7 +51,9 @@
       "spec_start": "2026-07-23T00:45:34Z",
       "spec_end": "2026-07-23T01:22:41Z",
       "plan_start": "2026-07-23T01:24:40Z",
-      "plan_end": "2026-07-23T01:34:38Z"
+      "plan_end": "2026-07-23T01:34:38Z",
+      "build_start": "2026-07-23T01:37:04Z",
+      "build_end": "2026-07-23T01:42:48Z"
     }
   }
 }
