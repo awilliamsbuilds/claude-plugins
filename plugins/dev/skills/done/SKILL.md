@@ -439,6 +439,23 @@ this line rather than failing the stage: an unmatched close — `Tech debt: N re
 (couldn't find: "<title>")` — an ambiguous one — `(ambiguous: "<title>" matched 2 entries)` — or
 a malformed buffer — `(malformed buffer: duplicate "## To Close" section ignored)`.
 
+**Primary-checkout reconciliation line.** The completion display carries one line derived from
+`RECONCILE_MSG` (set by Step 7), telling the user whether their `main` folder still needs a
+manual `git pull`. Render it in the same `✓ <feature> cycle complete` summary block, right after
+the tech-debt line — one more terse two-space-indented line, no new heading or blank line. The
+`uptodate` case (already current — a no-op or an already-pulled cycle) prints **no** line: there
+is nothing to reconcile, so no reminder is needed.
+
+```bash
+case "$RECONCILE_MSG" in
+  ff:*)            echo "  Primary checkout fast-forwarded to ${RECONCILE_MSG#ff:} — no manual pull needed." ;;
+  refadvanced:*)   echo "  Primary checkout's local main advanced to ${RECONCILE_MSG#refadvanced:} — working tree on ${primary_branch:-a detached HEAD} untouched." ;;
+  reminder)        echo "  Primary checkout left unchanged (dirty or diverged) — run \`git pull\` on main when ready." ;;
+  reminder-nested) echo "  Primary checkout not auto-reconciled (nested cycle) — run \`git pull\` on $INTEGRATION when ready." ;;
+  uptodate)        : ;;  # already current — print no line, no reminder
+esac
+```
+
 If a governing product plan exists (top-level or nested, per Step 3), replace the generic "start next cycle?" prompt with the exact-command precision the other stages' exit protocols use:
 
 ```
