@@ -20,3 +20,15 @@ A cold-review challenger for `dev:plan` (new Step 7a) — a fresh subagent that 
 
 ## Artifacts (archived)
 Spec and plan committed at: a801db1 on branch feature/plan-challenger
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-24*
+
+**Spec:** Clean — `spec_revisions: 0`, final score 95/Ready matched actual clarity; spec challenger caught 1 blocker (applied), the healthy "challenger catches what grounding missed" reading.
+**Shape:** Skipped — correct for a prose/state-template change with no user-facing UI.
+**Plan:** Accurate — `files_read_in_build: 1`, no mid-build task additions.
+**Validate:** 1 loop / 5, clean after one. The single P1 (resume-mid-approval bypassing the new Step 7a) is the exact cross-step consistency class this feature's own challenger is built to catch — but the plan for this feature predated the challenger, so Validate caught it cheaply instead.
+**Flow:** Deep tier was right for a four-skill change bound by the `challenge_plan` namespace constraint; no unnecessary stages.
+**Token efficiency:** No outliers — post-spec stages ran 4–7 min each; the long spec span is wall-clock across a break, not active work.
+**Suggestions:** none
+**Deferred to tech debt:** none
