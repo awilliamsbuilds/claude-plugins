@@ -3,8 +3,8 @@
   "feature": "state-write-mode-audit",
   "branch": "feature/state-write-mode-audit",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-24T22:32:37Z",
   "artifacts": {
@@ -56,7 +56,9 @@
       "spec_start": "2026-07-24T22:32:37Z",
       "spec_end": "2026-07-24T23:04:35Z",
       "plan_start": "2026-07-24T23:05:23Z",
-      "plan_end": "2026-07-24T23:11:07Z"
+      "plan_end": "2026-07-24T23:11:07Z",
+      "build_start": "2026-07-24T23:42:30Z",
+      "build_end": "2026-07-24T23:48:33Z"
     }
   }
 }
