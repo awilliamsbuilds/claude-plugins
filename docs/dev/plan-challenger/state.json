@@ -3,15 +3,15 @@
   "feature": "plan-challenger",
   "branch": "feature/plan-challenger",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-24T01:10:38Z",
   "artifacts": {
     "spec": "docs/dev/plan-challenger/spec.md",
     "design": null,
     "plan": "docs/dev/plan-challenger/plan.md",
-    "validation": null,
+    "validation": "docs/dev/plan-challenger/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -54,7 +54,9 @@
       "plan_start": "2026-07-24T21:55:37Z",
       "plan_end": "2026-07-24T22:02:06Z",
       "build_start": "2026-07-24T22:06:27Z",
-      "build_end": "2026-07-24T22:10:45Z"
+      "build_end": "2026-07-24T22:10:45Z",
+      "validate_start": "2026-07-24T22:11:36Z",
+      "validate_end": "2026-07-24T22:17:06Z"
     }
   }
 }
