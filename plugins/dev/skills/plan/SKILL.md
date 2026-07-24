@@ -82,6 +82,7 @@ Files: [create/modify list]
 Interfaces:
 - Consumes: [what this task uses from earlier tasks — exact signatures, or "nothing"]
 - Produces: [what later tasks rely on — exact names and types, or "nothing — terminal task"]
+- State keys: [for each NEW `state.json` key this task introduces, name the mode(s) that write it using the write-mode vocabulary — `(writes: both)` / `(writes: autopilot-only)` / `(writes: standard; =default 0 in autopilot)`. Omit this line only if the task introduces no new `state.json` key.]
 
 Implementation steps:
 1. [specific step]
@@ -132,6 +133,7 @@ Files: [list]
 Interfaces:
 - Consumes: nothing
 - Produces: [exact names/types later tasks rely on]
+- State keys: [for each NEW `state.json` key this task introduces, name its writing mode(s) — `(writes: both)` / `(writes: autopilot-only)` / `(writes: standard; =default 0 in autopilot)`. Omit only if the task introduces no new `state.json` key.]
 
 [implementation steps]
 
@@ -163,7 +165,7 @@ After writing plan.md:
 3. Does every task answer: what / how used / depends on?
 4. Are edge cases assigned to specific tasks?
 5. Are there any "do X and Y" tasks that should be split?
-6. Do the `Consumes:`/`Produces:` names and types line up across tasks? A dependency named differently in the task that produces it versus the task that consumes it is a plan bug — fix it before Build starts.
+6. Do the `Consumes:`/`Produces:` names and types line up across tasks? A dependency named differently in the task that produces it versus the task that consumes it is a plan bug — fix it before Build starts. Also: does every task that introduces a new `state.json` key declare its writing mode in the `Interfaces:` `State keys:` line (using the `(writes: …)` vocabulary)? A new counter with no declared write-mode is the gate-only-in-autopilot defect class the mode-symmetry contract exists to prevent — fix the omission before Build.
 7. Scan every task against the known high-cost failure modes below — bugs that stay invisible in a plan that reads consistently but surface in Build or production. Where one applies, the mitigation must be named in the task itself, not left for Build to discover:
    - **Cross-skill behavior ripple** — a task that changes a stage skill's stopping, gating, or approval behavior (a new STOP, autopilot-blocker, or hard gate) must also carry a task to update every other skill that documents or depends on that behavior (e.g. `dev:autopilot`'s Step 2 "When autopilot stops"). Behavior recorded in only one place is a gap even when that place is correct.
    - **Executable git/gh sequences** — for any multi-step git/gh sequence, trace the commands end-to-end and confirm each one's prerequisites hold at the point it runs: the file staged before the commit that references it, the branch pushed before `gh pr create --base` targets it. Internally consistent prose can still fail on execution.
@@ -209,7 +211,7 @@ Deliberately excluded: this session's conversation history and `state.json`. Bot
 |---|---|
 | Spec coverage | Does every spec requirement (Success Criteria, Happy Path, Edge Cases) map to at least one task's work? Flag any requirement no task carries. |
 | Sequencing / dependencies | Re-derive the task DAG cold. Does any task depend on something a later task produces? Flag ordering that puts a consumer before its producer. |
-| Interface consistency | Do the `Consumes:`/`Produces:` names and types align across tasks? Flag a dependency named or typed one way where produced and another where consumed. |
+| Interface consistency | Do the `Consumes:`/`Produces:` names and types align across tasks? Flag a dependency named or typed one way where produced and another where consumed. Also flag any task that introduces a new `state.json` key without an `Interfaces:` `State keys:` declaration of its writing mode (the `(writes: …)` vocabulary) — an undeclared write-mode is the recurring gate-only-in-autopilot defect. |
 
 **All three lenses always run.** There is no grounding lens (it would duplicate spec's, run one stage earlier — spec Out of Scope) and no scope lens (scope is settled at spec — spec Out of Scope).
 
@@ -233,9 +235,9 @@ Coverage ✅ · Sequencing ⛔1 · Interfaces ✅
 **Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge_plan.loops_max` (standard 3 / deep 5 — micro never reaches Plan), re-dispatching on the revised `plan.md` each iteration, incrementing `challenge_plan.loops_run` per iteration and `challenge_plan.applied` by the fixes each iteration lands. Concerns are counted in `challenge_plan.concerns` and passed through, never revised. **Single stop path:** blockers surviving the cap → STOP and request human input. **There is NO scope-blocker bypass class** — unlike `dev:spec` Step 12a, all three plan lenses produce text-fixable findings, so every blocker goes through the loop and the only STOP is "blockers survive the cap." (The rare "plan reveals two cycles" case still halts via this single path — spec Out of Scope.) This mirrors `dev:autopilot` Step 2's matching rule.
 
 **Counter-write semantics.**
-- Set `challenge_plan.run` to `true`, and `challenge_plan.blockers` / `challenge_plan.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated.
-- `challenge_plan.applied` and `challenge_plan.dismissed` are **cumulative** and are never reset here. In standard mode Step 8's gate writes both. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge_plan.applied` by the number of blocker fixes it applied. `challenge_plan.dismissed` stays `0` in autopilot — nothing is declined there, since concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
-- `challenge_plan.loops_run` increments per autopilot iteration; unused in standard mode.
+- Set `challenge_plan.run` to `true`, and `challenge_plan.blockers` / `challenge_plan.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
+- `challenge_plan.applied` `(writes: both)` and `challenge_plan.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 8's gate writes both. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge_plan.applied` by the number of blocker fixes it applied. `challenge_plan.dismissed` stays `0` in autopilot — nothing is declined there, since concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- `challenge_plan.loops_run` `(writes: autopilot-only)` increments per autopilot iteration; unused in standard mode.
 - The SC5 invariant holds by construction: no counter's *non-default* autopilot value depends on a gate write — `applied` has an autopilot-path writer here (the revision loop), and `dismissed`'s autopilot-correct value is its init default `0`.
 
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
