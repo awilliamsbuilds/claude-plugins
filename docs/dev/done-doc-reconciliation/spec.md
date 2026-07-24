@@ -17,7 +17,7 @@ A `/dev` cycle keeps the `CLAUDE.md` **Component Registry** current (`done` Step
   - **Autopilot mode:** print the proposed edits into the run log and **record them durably** (never auto-apply prose). No gate.
 - **Durable record = the existing tech-debt mechanism.** A detected-but-**unapplied** mismatch (standard-mode dismiss, or any autopilot detection) is written as a `## To Record` entry in this cycle's `debt-pending.md` buffer, which `done` Step 6a already flushes into `docs/dev/tech-debt.md`. It then shows in `/dev:debt` and is governed by the same convention as all other debt.
 - **Missing target file:** the step reconciles only files that exist. If a target is absent (`README.md` or `CLAUDE.md`), it is **not** created — the step emits a one-line note (`no README.md found — skipped`) in the `done` report and durable record, and moves on.
-- **Folded-in tech debt (#1 — "The feature slug reaches `git commit -m` with no character allowlist"):** this step adds another `git commit -m "… <feature>"` call site in `done`. Rather than add a sixth unguarded interpolation, close the shape at the source: add feature-name allowlisting in `dev:spec` Step 5 and `dev:fix` Step 3 so `<feature>` matches `^[a-z0-9][a-z0-9-]*$` by construction, making every downstream interpolation safe. Closes that tracker entry (recorded in `debt-pending.md` → `## To Close`).
+- **Folded-in tech debt (#1 — "The feature slug reaches `git commit -m` with no character allowlist"):** this step adds another `git commit -m "… <feature>"` call site in `done`. Rather than add a sixth unguarded interpolation, close the shape at the source: add feature-name allowlisting in `dev:spec` Step 6 (feature-name derivation) and `dev:fix` Step 3 so `<feature>` matches `^[a-z0-9][a-z0-9-]*$` by construction, making every downstream interpolation safe. Closes that tracker entry (recorded in `debt-pending.md` → `## To Close`).
 
 ## Out of Scope
 - The `CLAUDE.md` `## Component Registry` table — `done` Step 4 already owns it.
@@ -66,7 +66,7 @@ A `/dev` cycle keeps the `CLAUDE.md` **Component Registry** current (`done` Step
 ## Dependencies
 - `push_integration` helper (defined in `done` Step 2) and the detached-`$INTEGRATION` working state.
 - The tech-debt buffer→flush mechanism: `debt-pending.md` `## To Record` + `done` Step 6a flush (`plugins/dev/references/tech-debt.md`).
-- Slug-allowlist edits touch `dev:spec` Step 5 and `dev:fix` Step 3 in addition to `done`.
+- Slug-allowlist edits touch `dev:spec` Step 6 and `dev:fix` Step 3 in addition to `done`.
 
 ## UI Needed
 No. Shape stage is skipped; Plan follows Spec directly. (This is a change to skill instructions — no visual interface.)
