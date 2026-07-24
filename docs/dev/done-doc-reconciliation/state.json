@@ -3,8 +3,8 @@
   "feature": "done-doc-reconciliation",
   "branch": "feature/done-doc-reconciliation",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-23T21:30:03Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/done-doc-reconciliation/plan.md",
     "validation": "docs/dev/done-doc-reconciliation/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/46",
+    "pr_number": 46
   },
   "validate": {
     "loops_run": 1,
@@ -55,7 +55,8 @@
       "build_start": "2026-07-24T00:37:44Z",
       "build_end": "2026-07-24T00:42:09Z",
       "validate_start": "2026-07-24T00:43:03Z",
-      "validate_end": "2026-07-24T00:51:16Z"
+      "validate_end": "2026-07-24T00:51:16Z",
+      "pr_created": "2026-07-24T00:54:44Z"
     }
   }
 }
