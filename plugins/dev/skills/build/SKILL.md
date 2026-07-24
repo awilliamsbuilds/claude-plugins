@@ -135,7 +135,7 @@ If during Build you discover that plan.md is wrong or insufficient:
 
 ## Step 5: Track Files Read
 
-**Each time you read a file to understand context (not to write it), update state.json immediately: increment `metrics.files_read_in_build`.** Do this inline as you work — don't batch it at the end. Concretely: right after each Read call that's for context (not for a file you're about to edit), make the counter-bump Edit to state.json before your next tool call — treat it as part of the same step as the read, not a separate cleanup task.
+**Each time you read a file to understand context (not to write it), update state.json immediately: increment `metrics.files_read_in_build` `(writes: both)`.** Do this inline as you work — don't batch it at the end. Concretely: right after each Read call that's for context (not for a file you're about to edit), make the counter-bump Edit to state.json before your next tool call — treat it as part of the same step as the read, not a separate cleanup task.
 
 ## Step 6: Update State on Completion
 
