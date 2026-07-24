@@ -112,6 +112,8 @@ The Standard/Deep value is provisional — whether Shape runs isn't known until 
 
 Create the branch before asking any questions. All artifacts commit to this branch.
 
+**Feature name (derive and normalize first).** Derive `<feature-name>` from the stated intent, kebab-case, 2-4 words. **Then normalize it to a character allowlist by construction:** lowercase the derived name, replace every run of characters outside `[a-z0-9]` with a single `-`, and strip any leading or trailing `-`, so the result matches `^[a-z0-9][a-z0-9-]*$`. If normalization yields an empty string, STOP and ask the user for a feature name rather than proceeding with an empty slug. Do this **before** the worktree-creation command below, so the normalized `<feature-name>` is the value that flows into the branch name, the worktree path, the artifact directory, and every `git commit -m "… <feature>"` site (including the ones in `dev:done`) — making `<feature>` safe by construction at every interpolation, with no later stage needing to re-guard it.
+
 **Create the cycle worktree (always).** Every cycle runs in its own git worktree so
 concurrent sessions in this repo never contend for the shared working tree. Compute the
 primary checkout and create the worktree there:
@@ -137,8 +139,6 @@ checkout and shell location are never switched.
 
 If `git worktree add` fails (path exists, disk, etc.), STOP and report the error — never
 fall back to `git checkout -b` in the primary tree.
-
-Feature name: derive from the stated intent, kebab-case, 2-4 words. **Then normalize it to a character allowlist by construction:** lowercase the derived name, replace every run of characters outside `[a-z0-9]` with a single `-`, and strip any leading or trailing `-`, so the result matches `^[a-z0-9][a-z0-9-]*$`. If normalization yields an empty string, STOP and ask the user for a feature name rather than proceeding with an empty slug. Doing this here makes `<feature>` safe by construction at every downstream interpolation — branch names, artifact paths, and every `git commit -m "… <feature>"` site (including the ones in `dev:done`) — so no later stage needs to re-guard it.
 
 Use the `spec_start` value captured at the very top of this skill (before Step 1) for both `startedAt` and `metrics.stage_timestamps.spec_start` below — don't estimate or leave the placeholder text in place.
 
