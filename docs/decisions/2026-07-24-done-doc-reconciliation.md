@@ -24,3 +24,15 @@ A new `dev:done` Step 4a that checks whether a merged feature cycle left `README
 
 ## Artifacts (archived)
 Spec and plan committed at: cb2effd65e2a44d9e45c9e43ad6b56de0eadfcb0 on branch feature/done-doc-reconciliation (Shape was skipped — no design.md).
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-24*
+
+**Spec:** Confidence (95/Ready) matched actual clarity — 0 revisions, no auto-fills. Challenger found 1 blocker (the slug-allowlist coupling), applied; healthy both-nets-quiet reading.
+**Shape:** Skipped — correct for a no-UI skill-instruction change.
+**Plan:** Accurate, no mid-build updates; 5 files read in build is proportionate.
+**Validate:** 1/3 loops, clean at close. The two P2s were both ordering/robustness defects in the skill text (normalization placed after the command it guarded; a hardcoded two-file commit) — the kind a plan can't easily pre-empt but a cold diff review catches well.
+**Flow:** Standard tier was right; no unnecessary stages.
+**Token efficiency:** Spec stage wall-clock (~2h52m) dwarfs the others, but 0 revisions means it's a single authoring span, not churn — no real outlier.
+**Suggestions:** none.
+**Deferred to tech debt:** none.
