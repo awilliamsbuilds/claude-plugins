@@ -138,8 +138,8 @@ Interfaces:
 - Produces: nothing — terminal task.
 
 Implementation steps:
-1. In the existing `## Mode symmetry` section (do not create a new section or file — SC5), append a paragraph stating the per-key rule: every new `state.json` key must be traceable to the mode(s) that write it, recorded once as an inline tag at the write site using the vocabulary `(writes: both)` / `(writes: autopilot-only)` / `(writes: standard; =default 0 in autopilot)`, and that the fact lives inline at the single write site — never in a standing registry table (which would drift and lie).
-2. Keep the edit purely additive; do not alter the existing three-instance narrative or the calibration table, so the seven consumers stay compatible (Technical Constraints).
+1. In the existing `## Mode symmetry` section (do not create a new section or file — SC5), append a paragraph stating the per-key rule. **Word it as a parallel to the section's existing closing line** — "Any new tracker write must be traceable to a step that runs identically in both modes" — extending that same both-modes-traceability principle from tracker writes to *any* new `state.json` key, rather than redefining the section's subject (which remains the producing stages' tracker writes). The added paragraph: every new `state.json` key must likewise be traceable to the mode(s) that write it, recorded once as an inline tag at the write site using the vocabulary `(writes: both)` / `(writes: autopilot-only)` / `(writes: standard; =default 0 in autopilot)`, with the fact living inline at the single write site — never in a standing registry table (which would drift and lie).
+2. Keep the edit purely additive; do not alter the existing three-instance narrative, the existing both-modes line, or the calibration table, so the seven consumers stay compatible (Technical Constraints).
 3. Cross-reference `dev:plan`'s Step 7a interface lens as the automated enforcer, matching Task 6's wording so the two homes of the rule agree.
 
 ## Edge Cases
