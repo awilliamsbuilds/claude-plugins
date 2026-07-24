@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/state-write-mode-audit/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/state-write-mode-audit/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -54,7 +54,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-24T22:32:37Z",
-      "spec_end": "2026-07-24T23:04:35Z"
+      "spec_end": "2026-07-24T23:04:35Z",
+      "plan_start": "2026-07-24T23:05:23Z",
+      "plan_end": "2026-07-24T23:11:07Z"
     }
   }
 }
