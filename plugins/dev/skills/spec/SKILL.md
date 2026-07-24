@@ -171,6 +171,11 @@ Initialize `docs/dev/<feature-name>/state.json`:
     "applied": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
+  "challenge_plan": {
+    "run": false, "blockers": 0, "concerns": 0,
+    "applied": 0, "dismissed": 0,
+    "loops_run": 0, "loops_max": 3
+  },
   "confidence": {
     "final_score": 0,
     "final_level": "Low",
@@ -205,6 +210,8 @@ If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill t
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
 Set `challenge.loops_max` from the tier detected in Step 5 — micro 1 / standard 3 / deep 5. Unlike `validate.loops_max`, this cannot be left to lazy reconciliation at a later stage: the challenger (Step 12a) runs inside this skill, so the cap must be correct here.
+
+Set `challenge_plan.loops_max` from the same tier — micro 1 / standard 3 / deep 5. Unlike `challenge.loops_max` (consumed by Step 12a inside this skill), this cap is consumed later by `dev:plan`'s challenger, but is set here so the sole state.json template stays the single initialization point — no later stage re-guards it. Micro never reaches Plan, so its value is inert; set it anyway for shape consistency.
 
 Commit the initial state.json:
 ```bash

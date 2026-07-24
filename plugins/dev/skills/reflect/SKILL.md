@@ -39,6 +39,7 @@ Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
 - `metrics.spec_revisions` — how many times spec.md was revised after its first draft: the user's changes at the standard-mode gate, plus autopilot's silent backtracks
 - `challenge.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the cold review's findings and their disposition. **A missing `challenge` block means the challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
+- `challenge_plan.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the **plan** cold review's findings and disposition, read separately from `challenge.*` (which is the spec net). **A missing `challenge_plan` block means the plan challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
 - `validate.loops_run` / `validate.loops_max`
@@ -76,6 +77,7 @@ Analyze the cycle across these dimensions. Note findings briefly — one sentenc
 **Plan quality:**
 - Were there unplanned tasks added during Build? (plan.md updated mid-build → plan was underspecified)
 - Was the sequence right? (No task ordering problems in Build → good)
+- The plan challenger's disposition: what `challenge_plan.blockers` / `concerns` caught (coverage gaps, sequencing errors, interface mismatches the self-review missed), and `challenge_plan.dismissed` as the "has the plan challenger become noise the user skips" signal — the plan-stage analogue of the spec reading above. Keep it qualitative — **no numeric thresholds** (no distribution of these counters exists yet).
 
 **Validate efficiency:**
 - Loops run vs. max: `validate.loops_run` / `validate.loops_max`
