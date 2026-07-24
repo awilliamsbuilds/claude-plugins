@@ -46,7 +46,7 @@ Read `docs/dev/<feature>/state.json` first. Check:
 - If `artifacts.spec` is null: STOP — "Plan requires spec.md. Run /dev:spec first."
 - If mode is not `no-ui` and `skipped` does not include `"shape"` and `artifacts.design` is null: STOP — "Plan requires design.md. Run /dev:shape first, or use /dev:plan with no-ui mode."
 
-**Resume-mid-approval check:** if `plan.md` already exists for this feature and `state.json.stage` is still `"plan"`, skip straight to Step 8 to re-display it for approval rather than re-running Steps 2–7.
+**Resume-mid-approval check:** if `plan.md` already exists for this feature and `state.json.stage` is still `"plan"` (the plan was written but never approved — e.g. a `/clear` happened while waiting at Step 8), skip straight to **Step 7a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 7a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward. Do not re-run Steps 2–7 from scratch.
 
 Read once, work from this throughout:
 - `docs/dev/<feature>/spec.md`
