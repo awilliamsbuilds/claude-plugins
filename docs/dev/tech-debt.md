@@ -23,7 +23,7 @@ grounding gate.
 **Files:** plugins/dev/skills/autopilot/SKILL.md
 
 ### Sweep for gate-path state writes that are dead in autopilot
-*First recorded: 2026-07-21 · Cycles: spec-challenger · Recurrence: 1*
+*First recorded: 2026-07-21 · Cycles: spec-challenger, plan-challenger · Recurrence: 2*
 
 **What's wrong:** There is a recurring defect shape in the `/dev` skills: **a `state.json` write
 specified only on a standard-mode gate path, silently never executed in autopilot, while
@@ -44,6 +44,15 @@ the sweep.** Only two counters were checked beyond the three above —
 `metrics.visual_screens_shown` (fine: written in shape Step 10, before the gate) and
 `validate.loops_run` (fine: mode-independent). Every other counter across the nine `dev:*`
 skills that touch `state.json` is unverified.
+
+The **plan-challenger** cycle (2026-07-24) is the next data point: it added a cold-review
+challenger to `dev:plan` with its own `challenge_plan.*` counters — the same mode-sensitive
+shape as `challenge.*` — expanding the surface this sweep must cover. That cycle guarded its own
+new counters by construction (`applied` has an autopilot-path writer, `dismissed` is gate-only
+*because* its autopilot-correct value is its init default `0`, `loops_run` is autopilot-only), so
+no live defect shipped. But it is a further instance of hand-vigilance-per-counter being the only
+thing standing between the plugin and this recurring defect, which strengthens the case for the
+deferred preventive mechanism (below) over relying on each cycle to re-derive the invariant.
 **Why deferred:** The confirmed instance was worth closing immediately; an exhaustive audit of
 every state write across nine skills is its own scoped piece of work, not a reflect-gate patch.
 **Done looks like:** Every `state.json` key written by a `dev:*` skill is traced to the mode(s)
