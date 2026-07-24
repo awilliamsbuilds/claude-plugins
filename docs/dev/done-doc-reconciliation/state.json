@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "feature": "done-doc-reconciliation",
+  "branch": "feature/done-doc-reconciliation",
+  "mode": "standard",
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
+  "skipped": ["shape"],
+  "startedAt": "2026-07-23T21:30:03Z",
+  "artifacts": {
+    "spec": "docs/dev/done-doc-reconciliation/spec.md",
+    "design": null,
+    "plan": "docs/dev/done-doc-reconciliation/plan.md",
+    "validation": "docs/dev/done-doc-reconciliation/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/46",
+    "pr_number": 46
+  },
+  "validate": {
+    "loops_run": 1,
+    "loops_max": 3,
+    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+  },
+  "challenge": {
+    "run": true, "blockers": 1, "concerns": 0,
+    "applied": 1, "dismissed": 0,
+    "loops_run": 0, "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 95,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true, "scope": true, "success_criteria": true,
+      "happy_path": true, "edge_cases": true, "out_of_scope": true,
+      "ui_needed": true, "technical_constraints": true,
+      "audience": true, "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/done-doc-reconciliation",
+  "metrics": {
+    "spec_questions_asked": 5,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 5,
+    "stage_timestamps": {
+      "spec_start": "2026-07-23T21:30:03Z",
+      "spec_end": "2026-07-24T00:21:58Z",
+      "plan_start": "2026-07-24T00:24:37Z",
+      "plan_end": "2026-07-24T00:35:51Z",
+      "build_start": "2026-07-24T00:37:44Z",
+      "build_end": "2026-07-24T00:42:09Z",
+      "validate_start": "2026-07-24T00:43:03Z",
+      "validate_end": "2026-07-24T00:51:16Z",
+      "pr_created": "2026-07-24T00:54:44Z"
+    }
+  }
+}
