@@ -33,7 +33,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles README/CLAUDE.md prose (Step 4a) and the primary checkout post-merge |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |
 | `dev:init` | plugins/dev/skills/init/SKILL.md | Sets up /dev workflow infrastructure in a repo |
-| `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan |
+| `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan; Step 7a cold-reviews the plan via a fresh subagent (spec-coverage / sequencing / interface lenses) before the gate |
 | `dev:pr` | plugins/dev/skills/pr/SKILL.md | Stage 6 — opens a pull request with description |
 | `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle |
 | `dev:shape` | plugins/dev/skills/shape/SKILL.md | Stage 2 — produces design.md with user flows |
