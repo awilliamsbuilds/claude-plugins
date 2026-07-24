@@ -247,14 +247,31 @@ Coverage ✅ · Sequencing ⛔1 · Interfaces ✅
 ```
 Plan written and committed to docs/dev/<feature>/plan.md.
 
+[Step 7a's verdict, verbatim]
+
+[If the verdict has findings: Reply `apply` to take all suggested fixes, apply them selectively, edit directly, or dismiss. — omit this line entirely on a clean verdict; there is nothing to apply.]
+
 Please review it and let me know if you'd like any changes before we start building.
 
 Safe to /clear now — resume with: /dev:build docs/dev/<feature>/plan.md
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-Wait for explicit user approval.
+Wait for explicit user approval. If changes are requested, take the path that matches where the change came from:
 
-When approved: update state.json — add `"plan"` to `completed[]`, set `stage` to `"build"`. Commit state update.
+**Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
+- update `plan.md` with the accepted suggested fixes
+- increment `challenge_plan.applied` by the number of findings applied
+- increment `challenge_plan.dismissed` by the number of surfaced findings the user declined
+- commit:
+  ```bash
+  git -C "$WORKDIR" add docs/dev/<feature>/plan.md docs/dev/<feature>/state.json
+  git -C "$WORKDIR" commit -m "plan: apply challenger fixes for <feature>"
+  ```
+- re-display the gate **without re-dispatching** Step 7a (its re-run rule)
 
-**Autopilot mode:** No gate. After self-review, update state and proceed.
+**Path B — user-originated changes** (anything the challenger did not surface): update plan.md, re-run Step 6 self-review, re-commit, re-display the gate. (Plan has no `spec_revisions` analogue to increment — this path is just the existing "user requests changes" behaviour made explicit.)
+
+When approved: update state.json — add `"plan"` to `completed[]`, set `stage` to `"build"`, and carry any pending `challenge_plan.*` writes from Step 7a into this same commit (per Step 7a's "which commit carries the counters"). **If the verdict surfaced findings and the user approved without acting on them, increment `challenge_plan.dismissed` by the number left unactioned before committing** — approving past a finding is declining it, and this is the only path a fully-dismissed verdict takes. Commit the state update.
+
+**Autopilot mode:** No gate. Step 7a's revision loop has already resolved or escalated; update state and proceed. (Do not write `challenge_plan.dismissed` in autopilot.)
