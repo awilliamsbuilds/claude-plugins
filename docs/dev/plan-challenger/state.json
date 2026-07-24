@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/plan-challenger/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/plan-challenger/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -49,7 +49,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-24T01:10:38Z",
-      "spec_end": "2026-07-24T21:53:13Z"
+      "spec_end": "2026-07-24T21:53:13Z",
+      "plan_start": "2026-07-24T21:55:37Z",
+      "plan_end": "2026-07-24T22:02:06Z"
     }
   }
 }
