@@ -31,7 +31,7 @@ table on trust). The "Confirmed at" column cites the grounded line(s) verified d
 | `challenge.dismissed` | spec Step 12a, same cumulative bullet | spec:514, spec:557 | Standard gate only; stays `0` (= init default) in autopilot | `(writes: standard; =default 0 in autopilot)` |
 | `challenge.loops_run` | spec Step 12a, the `loops_run` bullet | spec:515, spec:504 | Autopilot revision loop only; `0` (= init default) in standard | `(writes: autopilot-only)` |
 | `metrics.spec_questions_asked` | spec Step 12 state-write list | spec:437, spec:429 | Reconciled in Step 11 and written in Step 12 — runs in both modes | `(writes: both)` |
-| `metrics.spec_revisions` | spec Step 13 Path B increment bullet | spec:551, autopilot:60 | Standard: Path B gate increment. Autopilot: Step 3 writes it on silent backtrack — both modes | `(writes: both)` |
+| `metrics.spec_revisions` | spec Step 12 initial-write description (the both-modes lifecycle line naming Step 13's increment and autopilot's Step 3 writer) | spec:441 (tag home); confirmed at spec:551, autopilot:60 | Standard: Path B gate increment. Autopilot: Step 3 writes it on silent backtrack — both modes | `(writes: both)` |
 | `challenge_plan.run` / `.blockers` / `.concerns` | plan Step 7a "Counter-write semantics", the "overwritten by each dispatch" bullet | plan:236 | Overwritten each dispatch; dispatch runs in both modes | `(writes: both)` |
 | `challenge_plan.applied` | plan Step 7a, the cumulative `applied`/`dismissed` bullet | plan:237, autopilot:73 | Standard gate writes it (Step 8); autopilot revision loop writes it — both modes | `(writes: both)` |
 | `challenge_plan.dismissed` | plan Step 7a, same cumulative bullet | plan:237, plan:277 | Standard gate only; stays `0` (= init default) in autopilot | `(writes: standard; =default 0 in autopilot)` |
@@ -45,7 +45,7 @@ table on trust). The "Confirmed at" column cites the grounded line(s) verified d
 - spec:514 `challenge.applied` → `(writes: both)`; `challenge.dismissed` → `(writes: standard; =default 0 in autopilot)`
 - spec:515 `challenge.loops_run` → `(writes: autopilot-only)`
 - spec:437 `metrics.spec_questions_asked` → `(writes: both)`
-- spec:551 `metrics.spec_revisions` → `(writes: both)`
+- spec:441 `metrics.spec_revisions` → `(writes: both)` (the both-modes lifecycle line; the standard-only Path B increment at spec:551 is a cross-reference, left untagged)
 - plan:236 `challenge_plan.run`/`.blockers`/`.concerns` → `(writes: both)`
 - plan:237 `challenge_plan.applied` → `(writes: both)`; `challenge_plan.dismissed` → `(writes: standard; =default 0 in autopilot)`
 - plan:238 `challenge_plan.loops_run` → `(writes: autopilot-only)`
