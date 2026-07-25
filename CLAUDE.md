@@ -22,7 +22,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-24*
+*Last updated by /dev · 2026-07-25*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -37,9 +37,9 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:pr` | plugins/dev/skills/pr/SKILL.md | Stage 6 — opens a pull request with description |
 | `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle |
 | `dev:shape` | plugins/dev/skills/shape/SKILL.md | Stage 2 — produces design.md with user flows |
-| `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification; Step 12a cold-reviews it via a fresh subagent before the gate |
+| `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification; Step 12a cold-reviews it via a fresh subagent before the gate; seeds `validate.loops_max` tier-correctly at state init |
 | `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
-| `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check |
+| `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check; the fix loop cold re-reviews each loop's own fix diff (Step 4 step 8) before it may exit, and states the healthy-path shell exit-code rule once for fix authors |
 | `dev` shared refs | plugins/dev/references/tech-debt.md | Shared tech-debt contract — tracker/buffer formats, carrying-cost test, recurrence-merge, silent-degrade rule; loaded by `init`, `build`, `validate`, `reflect`, `done`, `debt`, `spec` |
 | `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting (voice-neutral; no personal-voice coupling) |
 | `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill; offers a `Writing voice:` pointer |
