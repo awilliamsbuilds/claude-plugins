@@ -268,6 +268,18 @@ This is not a hypothetical. This plugin has three recorded instances of exactly 
 autopilot, with a downstream reader that had no mode qualification. Any new tracker write must
 be traceable to a step that runs identically in both modes.
 
+**Per-key write-mode rule (extends the same both-modes-traceability principle to any new
+`state.json` key).** The same defect shape applies beyond tracker writes to any counter or field
+a cycle adds to `state.json`. So: every new `state.json` key must likewise be traceable to the
+mode(s) that write it, and that fact must be recorded **once**, as an inline tag at the key's
+single write site, using the vocabulary `(writes: both)` / `(writes: autopilot-only)` /
+`(writes: standard; =default 0 in autopilot)`. The fact lives inline at the write site — **never**
+in a standing registry table, which would be a second copy that drifts on every future state
+change and a drifted safety-doc lies. `dev:plan`'s Step 7a challenger interface-consistency lens
+is the automated enforcer: it flags any task that introduces a new `state.json` key without an
+`Interfaces:` `State keys:` declaration of its writing mode, catching the omission at the plan
+gate before Build.
+
 ## Calibration
 
 The carrying-cost test above was checked against real history before it shipped — the three

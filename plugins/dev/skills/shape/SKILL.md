@@ -208,7 +208,7 @@ Fix any issues inline. No need to re-review after fixing.
 
 Update state.json:
 - Set `artifacts.design` to the path
-- Increment `metrics.visual_screens_shown` by number of browser screens used
+- Increment `metrics.visual_screens_shown` `(writes: standard; =default 0 in autopilot)` by number of browser screens used
 - Record `metrics.stage_timestamps.shape_start` (the value captured at the very top of this skill, before Step 1) and `metrics.stage_timestamps.shape_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` now)
 
 ```bash

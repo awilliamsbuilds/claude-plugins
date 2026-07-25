@@ -120,7 +120,7 @@ Run up to `loops_max` iterations.
 4. Attempt P3 fixes (commit if successful; skip if risky)
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
 6. Update state.json `validate` fields:
-   - Increment `loops_run`
+   - Increment `loops_run` `(writes: both)`
    - Update `p1_open[]`, `p2_open[]`, `p3_open[]`, `nits_open[]` with remaining open issues
 7. Commit fixes: `validate: loop N fixes — [summary of what was fixed]`
 8. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.

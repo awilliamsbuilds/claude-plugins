@@ -434,11 +434,11 @@ Update `docs/dev/<feature-name>/state.json`:
 - Set `confidence.final_score` and `confidence.final_level`
 - Set all dimension booleans correctly
 - Set `confidence.auto_filled` to list of auto-filled dimensions (or empty array)
-- Set `metrics.spec_questions_asked` to the count reconciled in Step 11
+- Set `metrics.spec_questions_asked` `(writes: both)` to the count reconciled in Step 11
 - Set `stage` to `"spec"` (stays as current stage until spec is approved)
 - Set `artifacts.spec` to the path
 - **Reconcile `skipped[]` with the `## UI Needed` decision written in Step 10:** if UI Needed resolved to **No**, add `"shape"` to `skipped[]` if not already present. This is the record the Plan gate reads to know Shape was deliberately skipped. Without it, a Standard/Deep cycle that turns out to need no UI leaves `skipped: []` and `artifacts.design: null`, and `dev:plan` Step 1's gate false-stops asking for a design that was never going to exist — even though the spec is authoritative and says so. (Micro already carries `["shape", "plan"]` from Step 5; this covers the Standard/Deep-but-no-UI case that Step 5 couldn't know yet.) The spec's UI Needed value is the authority here — do this whether or not the cycle was launched with the `no-ui` flag.
-- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1. **This is not a one-time stamp:** the spec is not "done" here, it is done when the user approves it in Step 13 — so `spec_end` is **re-stamped on every revision** (Step 13's revision loop). The committed value must always reflect the *last* spec activity before approval, not the first draft. Leave `metrics.spec_revisions` at 0 for this initial write; Step 13 increments it per revision.
+- Record `metrics.stage_timestamps.spec_end` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in; `spec_start` was captured at the very top of this skill, before Step 1. **This is not a one-time stamp:** the spec is not "done" here, it is done when the user approves it in Step 13 — so `spec_end` is **re-stamped on every revision** (Step 13's revision loop). The committed value must always reflect the *last* spec activity before approval, not the first draft. Leave `metrics.spec_revisions` `(writes: both)` at 0 for this initial write; Step 13 increments it per revision (autopilot writes it from its own Step 3 backtrack path, so the counter is honest in both modes).
 
 ```bash
 git -C "$WORKDIR" add docs/dev/<feature-name>/spec.md docs/dev/<feature-name>/state.json
@@ -510,9 +510,9 @@ Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
 
 **Counter-write semantics.**
-- Set `challenge.run` to `true`, and `challenge.blockers` / `challenge.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated.
-- `challenge.applied` and `challenge.dismissed` are **cumulative** and are never reset here. In standard mode Step 13 writes both at the gate. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge.applied` by the number of blocker fixes it applied. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
-- `challenge.loops_run` increments per autopilot iteration; unused in standard mode.
+- Set `challenge.run` to `true`, and `challenge.blockers` / `challenge.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
+- `challenge.applied` `(writes: both)` and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes both at the gate. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge.applied` by the number of blocker fixes it applied. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- `challenge.loops_run` `(writes: autopilot-only)` increments per autopilot iteration; unused in standard mode.
 
 **Which commit carries the counters.** Step 12a does **not** commit. It updates `state.json` in place; the write is carried by the next commit Step 13 makes (the `spec: apply challenger fixes for <feature-name>` commit, or the approval commit that adds `"spec"` to `completed[]`). In autopilot, each revision-loop commit carries them. Do not create a separate commit here.
 
