@@ -3,8 +3,8 @@
   "feature": "state-write-mode-audit",
   "branch": "feature/state-write-mode-audit",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-24T22:32:37Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/state-write-mode-audit/plan.md",
     "validation": "docs/dev/state-write-mode-audit/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/48",
+    "pr_number": 48
   },
   "validate": {
     "loops_run": 1,
@@ -60,7 +60,8 @@
       "build_start": "2026-07-24T23:42:30Z",
       "build_end": "2026-07-24T23:48:33Z",
       "validate_start": "2026-07-24T23:57:03Z",
-      "validate_end": "2026-07-25T00:02:44Z"
+      "validate_end": "2026-07-25T00:02:44Z",
+      "pr_created": "2026-07-25T01:26:49Z"
     }
   }
 }
