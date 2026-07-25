@@ -3,8 +3,8 @@
   "feature": "harden-validate",
   "branch": "feature/harden-validate",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["build", "validate"],
+  "stage": "done",
+  "completed": ["build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-25T01:40:41Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/harden-validate/plan.md",
     "validation": "docs/dev/harden-validate/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/49",
+    "pr_number": 49
   },
   "validate": {
     "loops_run": 1,
@@ -60,7 +60,8 @@
       "build_start": "2026-07-25T01:58:55Z",
       "build_end": "2026-07-25T02:01:29Z",
       "validate_start": "2026-07-25T02:03:58Z",
-      "validate_end": "2026-07-25T02:11:25Z"
+      "validate_end": "2026-07-25T02:11:25Z",
+      "pr_created": "2026-07-25T03:12:11Z"
     }
   }
 }
