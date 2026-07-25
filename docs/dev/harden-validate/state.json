@@ -3,8 +3,8 @@
   "feature": "harden-validate",
   "branch": "feature/harden-validate",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-25T01:40:41Z",
   "artifacts": {
@@ -26,7 +26,7 @@
     "loops_run": 0, "loops_max": 3
   },
   "challenge_plan": {
-    "run": false, "blockers": 0, "concerns": 0,
+    "run": true, "blockers": 0, "concerns": 0,
     "applied": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
@@ -51,12 +51,14 @@
     "spec_questions_asked": 1,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 2,
     "stage_timestamps": {
       "spec_start": "2026-07-25T01:40:41Z",
       "spec_end": "2026-07-25T01:51:49Z",
       "plan_start": "2026-07-25T01:52:24Z",
-      "plan_end": "2026-07-25T01:55:26Z"
+      "plan_end": "2026-07-25T01:55:26Z",
+      "build_start": "2026-07-25T01:58:55Z",
+      "build_end": "2026-07-25T02:01:29Z"
     }
   }
 }
