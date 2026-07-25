@@ -57,54 +57,6 @@ one level up (as `docs/dev/tech-debt.md` does) or by being archived into `docs/d
 before Step 7's cleanup.
 **Files:** plugins/dev/skills/spec/SKILL.md, plugins/dev/skills/done/SKILL.md
 
-### Validate's fix loop never verifies the fixes it writes
-*First recorded: 2026-07-22 · Cycles: tech-debt-tracking · Recurrence: 1*
-
-**What's wrong:** `dev:validate` Step 4 fixes issues, commits, and closes the loop. Nothing
-verifies the fix itself — a defect introduced by a fix is caught only if another loop happens to
-run and re-review the whole diff. In the tech-debt-tracking cycle this fired twice in a row:
-loop 1's renumbering left a dangling cross-reference and put a guard after the operation it
-guarded; loop 2's guard rewrite shipped `git rebase --show-current-patch … && { … }`, which
-**exits 128 on the healthy path**, as the first command of `dev:done` Step 7 — every normal
-cycle's teardown would have read as a failure. Loop 3 caught it by running the snippet. On a
-`micro` tier (1 loop) or any cycle that goes clean early, neither would have been caught at all.
-
-Two distinct gaps sit underneath. **(a)** There is no self-check step: the loop's exit condition
-is "no open P1/P2," which says nothing about the fixes just written. **(b)** The specific rule
-that would have caught the concrete defect — *a shell snippet written into a skill must exit 0 on
-its healthy path, so `&&` chains and bare guard blocks don't read as failure* — **exists nowhere
-in the plugin.** Verified by grep across all `dev:*` skills on merged `main`: zero hits. That
-cycle's own `validation.md` asserted the rule was "already codified in `dev:validate` Step 6";
-that claim was false and is recorded here so the next reader doesn't inherit it.
-
-**Why deferred:** The user chose to record rather than patch. The concrete defect was already
-fixed in-cycle; what remains is the missing mechanism, and this plugin's own history argues the
-prevention is worth designing once rather than bolting a single rule onto Step 4 — see
-*Sweep for gate-path state writes that are dead in autopilot*, which reaches the same conclusion
-about a different recurring shape. Note that a diff of executable prose has no test harness, so
-"verify the fix" cannot mean "run the tests"; it needs its own definition.
-**Done looks like:** `dev:validate` Step 4 cannot close a loop without checking the fixes it just
-wrote, and the healthy-path exit-code rule for shell snippets is stated once somewhere a fix
-author will read it. A fix that breaks a sibling skill's happy path is caught by the loop that
-wrote it, not by the next one.
-**Files:** plugins/dev/skills/validate/SKILL.md
-
-### validate's config-contract gate says "every reader" but the convention is "every reader of that key"
-*First recorded: 2026-07-23 · Cycles: init-rerun-hardening · Recurrence: 1*
-
-**What's wrong:** `dev:validate`'s Config-contract review gate reads "if this cycle adds a new key to config.json, verify every skill that reads config.json has that key in its Step 1 read list." Taken literally that is broader than the actual convention this repo follows: only a skill that reads *that specific key* needs it in its read list. Every existing key is handled per-consumer, and this cycle added `component_policy`/`schema_version` to just their consumers (shape, reflect; migration for schema_version) while spec/autopilot/pr read config.json for other keys and were correctly left alone. A strict future run of the gate as worded would flag those as violations — a false positive that each config-touching cycle will rediscover.
-**Why deferred:** Editing `validate`'s checklist was explicitly out of scope for this cycle; the implementation correctly followed the per-consumer intent, so no diff change was warranted here.
-**Done looks like:** The gate wording is narrowed to "every skill that reads that key" (or equivalent), so the literal reading matches the per-consumer convention and stops producing false positives.
-**Files:** plugins/dev/skills/validate/SKILL.md
-
-### validate inherits a stale loops_max that doesn't match the tier
-*First recorded: 2026-07-23 · Cycles: init-rerun-hardening · Recurrence: 1*
-
-**What's wrong:** On this deep-tier cycle, `state.json`'s `validate.loops_max` was `3` at validate stage entry, but the deep tier's max is `5`. `dev:validate` self-corrected it per the tier table before reviewing, so there was no visible breakage — but the mismatch means some earlier stage (or a config/template default) seeds `loops_max` without reference to the tier, and every non-micro cycle silently relies on validate to re-derive it. If validate's self-correction ever regresses, a deep cycle would cap at 3 loops without anyone noticing.
-**Why deferred:** Surfaced by dev:reflect; the user declined the skill change this cycle, and validate already self-heals so there is no immediate breakage.
-**Done looks like:** `loops_max` is derived from the tier table at the point it is first written (tier detection in spec), so validate reads a value already consistent with the tier rather than correcting a stale one — and the self-correction becomes a redundant backstop rather than a load-bearing fix.
-**Files:** plugins/dev/skills/validate/SKILL.md
-
 ## Closed
 
 ### dev:spec's product-plan procedure pushes straight to origin/main
@@ -181,3 +133,51 @@ revisiting once the sweep shows how common the shape actually is. Note that spec
 *reproduced* this bug in the very file that already contained an instance of it, which is the
 argument that a preventive mechanism is warranted rather than just vigilance.
 **Files:** plugins/dev/skills/spec/SKILL.md, plugins/dev/skills/shape/SKILL.md, plugins/dev/skills/plan/SKILL.md, plugins/dev/skills/build/SKILL.md, plugins/dev/skills/validate/SKILL.md, plugins/dev/skills/pr/SKILL.md, plugins/dev/skills/done/SKILL.md, plugins/dev/skills/autopilot/SKILL.md, plugins/dev/skills/reflect/SKILL.md
+
+### Validate's fix loop never verifies the fixes it writes
+*Closed 2026-07-25 by cycle harden-validate · First recorded: 2026-07-22 · Recurrence: 1*
+
+**What's wrong:** `dev:validate` Step 4 fixes issues, commits, and closes the loop. Nothing
+verifies the fix itself — a defect introduced by a fix is caught only if another loop happens to
+run and re-review the whole diff. In the tech-debt-tracking cycle this fired twice in a row:
+loop 1's renumbering left a dangling cross-reference and put a guard after the operation it
+guarded; loop 2's guard rewrite shipped `git rebase --show-current-patch … && { … }`, which
+**exits 128 on the healthy path**, as the first command of `dev:done` Step 7 — every normal
+cycle's teardown would have read as a failure. Loop 3 caught it by running the snippet. On a
+`micro` tier (1 loop) or any cycle that goes clean early, neither would have been caught at all.
+
+Two distinct gaps sit underneath. **(a)** There is no self-check step: the loop's exit condition
+is "no open P1/P2," which says nothing about the fixes just written. **(b)** The specific rule
+that would have caught the concrete defect — *a shell snippet written into a skill must exit 0 on
+its healthy path, so `&&` chains and bare guard blocks don't read as failure* — **exists nowhere
+in the plugin.** Verified by grep across all `dev:*` skills on merged `main`: zero hits. That
+cycle's own `validation.md` asserted the rule was "already codified in `dev:validate` Step 6";
+that claim was false and is recorded here so the next reader doesn't inherit it.
+
+**Why deferred:** The user chose to record rather than patch. The concrete defect was already
+fixed in-cycle; what remains is the missing mechanism, and this plugin's own history argues the
+prevention is worth designing once rather than bolting a single rule onto Step 4 — see
+*Sweep for gate-path state writes that are dead in autopilot*, which reaches the same conclusion
+about a different recurring shape. Note that a diff of executable prose has no test harness, so
+"verify the fix" cannot mean "run the tests"; it needs its own definition.
+**Done looks like:** `dev:validate` Step 4 cannot close a loop without checking the fixes it just
+wrote, and the healthy-path exit-code rule for shell snippets is stated once somewhere a fix
+author will read it. A fix that breaks a sibling skill's happy path is caught by the loop that
+wrote it, not by the next one.
+**Files:** plugins/dev/skills/validate/SKILL.md
+
+### validate's config-contract gate says "every reader" but the convention is "every reader of that key"
+*Closed 2026-07-25 by cycle harden-validate · First recorded: 2026-07-23 · Recurrence: 1*
+
+**What's wrong:** `dev:validate`'s Config-contract review gate reads "if this cycle adds a new key to config.json, verify every skill that reads config.json has that key in its Step 1 read list." Taken literally that is broader than the actual convention this repo follows: only a skill that reads *that specific key* needs it in its read list. Every existing key is handled per-consumer, and this cycle added `component_policy`/`schema_version` to just their consumers (shape, reflect; migration for schema_version) while spec/autopilot/pr read config.json for other keys and were correctly left alone. A strict future run of the gate as worded would flag those as violations — a false positive that each config-touching cycle will rediscover.
+**Why deferred:** Editing `validate`'s checklist was explicitly out of scope for this cycle; the implementation correctly followed the per-consumer intent, so no diff change was warranted here.
+**Done looks like:** The gate wording is narrowed to "every skill that reads that key" (or equivalent), so the literal reading matches the per-consumer convention and stops producing false positives.
+**Files:** plugins/dev/skills/validate/SKILL.md
+
+### validate inherits a stale loops_max that doesn't match the tier
+*Closed 2026-07-25 by cycle harden-validate · First recorded: 2026-07-23 · Recurrence: 1*
+
+**What's wrong:** On this deep-tier cycle, `state.json`'s `validate.loops_max` was `3` at validate stage entry, but the deep tier's max is `5`. `dev:validate` self-corrected it per the tier table before reviewing, so there was no visible breakage — but the mismatch means some earlier stage (or a config/template default) seeds `loops_max` without reference to the tier, and every non-micro cycle silently relies on validate to re-derive it. If validate's self-correction ever regresses, a deep cycle would cap at 3 loops without anyone noticing.
+**Why deferred:** Surfaced by dev:reflect; the user declined the skill change this cycle, and validate already self-heals so there is no immediate breakage.
+**Done looks like:** `loops_max` is derived from the tier table at the point it is first written (tier detection in spec), so validate reads a value already consistent with the tier rather than correcting a stale one — and the self-correction becomes a redundant backstop rather than a load-bearing fix.
+**Files:** plugins/dev/skills/validate/SKILL.md
