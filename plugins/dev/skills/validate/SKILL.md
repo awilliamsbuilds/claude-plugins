@@ -68,7 +68,7 @@ Deliberately exclude this session's conversation history — a reviewer who watc
 - Code quality: readability, naming, complexity
 - Conventions: does this match the codebase's existing patterns?
 - Plan coverage: were all plan tasks implemented?
-- Config contract: if this cycle adds a new key to `docs/dev/config.json`, verify every skill that reads config.json has that key in its Step 1 read list
+- Config contract: if this cycle adds a new key to `docs/dev/config.json`, verify every skill that reads **that key** lists it in its Step 1 read list (a skill that reads config.json only for other keys is not required to list this one)
 
 **Security review (diff)** — examine the same diff:
 - Injection vulnerabilities (SQL, command, template)
