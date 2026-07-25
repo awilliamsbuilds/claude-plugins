@@ -21,8 +21,8 @@
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
   "challenge": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "run": true, "blockers": 0, "concerns": 1,
+    "applied": 1, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "challenge_plan": {
@@ -54,7 +54,7 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-25T01:40:41Z",
-      "spec_end": "2026-07-25T01:47:04Z"
+      "spec_end": "2026-07-25T01:51:49Z"
     }
   }
 }

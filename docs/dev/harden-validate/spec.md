@@ -31,7 +31,10 @@ Three fixes, in `plugins/dev/skills/validate/SKILL.md` and `plugins/dev/skills/s
    `dev:validate` Step 4, add a step: after a loop commits its fixes and before it may exit on
    "no open P1/P2," dispatch a fresh `general-purpose` subagent to review **only the fix diff**
    this loop produced. Any P1/P2 it finds is a new open issue — the loop cannot exit, and
-   continues within the existing `loops_max` budget. Additionally, state the healthy-path shell
+   continues within the existing `loops_max` budget. The re-reviewer gates loop exit on P1/P2
+   only; any P3/Nit it raises are recorded in `p3_open[]`/`nits_open[]` and remain eligible for
+   Step 5a's carrying-cost buffer, exactly as the main Step 2 reviews' P3/Nits do. Additionally,
+   state the healthy-path shell
    exit-code rule once, in the fix loop, where a fix author writes shell snippets: *a shell
    snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard
    blocks don't read as failure.* The cold re-reviewer's checklist references this rule.
