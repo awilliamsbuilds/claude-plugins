@@ -26,3 +26,15 @@
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 23fabcb on branch feature/harden-validate
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-25*
+
+**Spec:** Confidence (88/Ready) matched actual clarity — 0 revisions, 1 challenger concern applied, 0 dismissed. Well-grounded, debt-driven spec.
+**Shape:** Skipped (no UI).
+**Plan:** Challenger clean, no mid-build updates. One latent gap surfaced downstream: the plan referenced `<pre-fix-SHA>` as "captured at the start of the iteration" without a task actually capturing it — Validate caught the resulting P2.
+**Validate:** 1/3 loops, clean. Both P2s were internal under-specifications of the very fix-verification mechanism this cycle added; the loop caught them as designed, and self-review caught a bug in one of its own fixes.
+**Flow:** Tier (standard) correct; no unnecessary stages. Note: this cycle could not dogfood its own change — the deployed `dev:validate` predates it, so the new fix-diff re-review lands only after merge + `/plugin update`. The author confirmed no behavioral difference was noticeable during this cycle's own validation, which is expected for that reason.
+**Token efficiency:** No outliers — `files_read_in_build` = 2, plan was well-specified.
+**Suggestions:** Minor/optional — when a plan task references a value as "captured"/"recorded," the plan (or its challenger's interface lens) could verify some task actually produces it. One-off here, not clearly systemic.
+**Deferred to tech debt:** none
