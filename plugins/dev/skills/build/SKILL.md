@@ -112,10 +112,10 @@ Specifically: if a file you're modifying has grown too large, a broken abstracti
 
 If the improvement is larger than can be handled within this cycle, don't do it now — and don't write it into plan.md, which `dev:done` Step 7 deletes, and no stage reads that section before it goes. Instead, apply **the carrying-cost test** from `../../references/tech-debt.md`:
 
-- **Qualifies** → append an entry at the end of the `## To Record` section — immediately before `## To Close`, never at end-of-file — in `$WORKDIR/docs/dev/<feature>/debt-pending.md`, creating the buffer from the contract's template if it doesn't exist. Set `**Files:**` to the files the improvement would touch — you know them precisely at this point, and `dev:spec`'s cross-check keys its matching on that field. Tag it `*Source: dev:build · <feature>*`.
+- **Qualifies** → append a `### <slug>` entry to the `## To Record` section of `$WORKDIR/docs/dev/<feature>/debt-pending.md` in the P4 buffer format from `../../references/tech-debt.md` — a fenced ```` ```markdown ```` block (4-backtick outer fence) holding the item's front-matter (`type: debt`, `scope: repo`, `status: open`, `first_recorded:` from `date -u +%Y-%m-%d`, `cycles: [<feature>]`, `recurrence: 1`, `files: [<the files the improvement touches>]`) followed by the `**What's wrong:** / **Why deferred:** / **Done looks like:**` body. Create the buffer from the contract's template if it doesn't exist. You know the touched files precisely at this point, and `dev:spec`'s cross-check keys its matching on the front-matter `files:` field — set it accordingly. Provenance is the `cycles:` field now (no `*Source:*` line).
 - **Doesn't qualify** → drop it. A one-off local cleanup isn't worth carrying.
 
-Escape any Markdown heading in text you copy into the entry — indent by two spaces or fence it, per the contract's field rules. The buffer is parsed by heading.
+Escape any Markdown heading in the body text you copy in — indent by two spaces or rely on the 4-backtick outer fence, per the contract's P4 fence rule. The buffer is parsed by heading and by fence.
 
 Include the buffer in the commit for the task that surfaced the finding — don't add a commit of its own.
 
