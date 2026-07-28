@@ -7,10 +7,10 @@
 The unified backlog + tech-debt store (`docs/backlog/`, per-item Markdown files) has landed:
 the store tree and its `README.md` exist, `references/tech-debt.md` is fully rewritten for the
 per-item model, and every producing/reading skill (`dev:init`, `dev:build`, `dev:validate`,
-`dev:reflect`, `dev:spec`, `dev:done`, `dev:debt`) already targets `docs/backlog/` — verified: a
-grep for `tech-debt.md` across `plugins/dev/skills/` returns zero hits. But the **actual deferred
-items still live only in the old aggregate** `docs/dev/tech-debt.md`. The new store is empty; the
-data has not moved.
+`dev:reflect`, `dev:spec`, `dev:done`, `dev:debt`) already targets `docs/backlog/` — verified:
+`grep -rn 'docs/dev/tech-debt' plugins/dev/skills/` returns zero hits (the `references/tech-debt.md`
+contract shares the basename but is a different file). But the **actual deferred items still live
+only in the old aggregate** `docs/dev/tech-debt.md`. The new store is empty; the data has not moved.
 
 This cycle executes **Decision 8(a) + 8(b)** of the backlog-debt-model ADR: carry every existing
 `docs/dev/tech-debt.md` entry into per-item `docs/backlog/` files, then delete the aggregate. It is
@@ -57,7 +57,10 @@ the workflow that is supposed to surface them.
 2. `docs/backlog/closed/` contains exactly **7** `debt-*.md` files, one per Closed source entry.
 3. Every file's front-matter conforms to contract **P1**: required `type: debt`, `scope: repo`,
    `status`, `first_recorded`, `cycles`, `recurrence`, `files`; `closed`/`closed_by` present on
-   closed items only. The invariant `recurrence == len(cycles)` holds on every file.
+   closed items only. The invariant `recurrence == len(cycles)` holds on every file **except the
+   migrated `gate-path-state-writes` item, which faithfully preserves the source's pre-existing
+   `recurrence: 2` / single-cycle discrepancy** (Edge Cases; SC #4 — verbatim history is preserved
+   over invariant repair).
 4. Every source entry's meta line and body prose are reproduced faithfully — no dropped field, no
    reworded body, dates preserved from the source (not re-stamped from the clock; these are
    historical records, not new writes).
@@ -77,7 +80,10 @@ the workflow that is supposed to surface them.
    copied verbatim.
 3. For each of the 7 `## Closed` entries: write `docs/backlog/closed/debt-<slug>.md` the same way,
    plus `status: closed`, `closed:` and `closed_by:` from the Closed meta line
-   (`*Closed YYYY-MM-DD by cycle <name> · …*`).
+   (`*Closed YYYY-MM-DD by cycle <name> · …*`). The Closed meta line carries **no `Cycles:` list**,
+   so `cycles:` takes the single closing cycle (`by cycle <name>` → `cycles: [<name>]` → same as
+   `closed_by`); `recurrence:` still comes from the meta line verbatim and may exceed `len(cycles)`
+   for the one pre-existing discrepancy (SC #3 exception).
 4. Verify: `ls docs/backlog/debt-*.md` = 4, `ls docs/backlog/closed/debt-*.md` = 7; spot-check
    front-matter round-trips each source entry.
 5. `git rm docs/dev/tech-debt.md`.
@@ -89,8 +95,8 @@ the workflow that is supposed to surface them.
   live file has a 4th — *"Architecture-cycle design doesn't pressure-test cross-boundary delivery
   mechanisms"* (`first_recorded: 2026-07-28`, `cycles: [backlog-debt-model]`, files `build`/`plan`) —
   deferred by this ADR's own retrospective *after* Decision 8 was captured. It migrates like any
-  other Open entry; it just needs a slug the ADR never assigned (proposed:
-  `debt-arch-cross-boundary-transport`).
+  other Open entry; it just needs a slug the ADR never assigned (proposed slug
+  `arch-cross-boundary-transport`, i.e. filename `debt-arch-cross-boundary-transport.md`).
 - **Slug collisions.** All 11 entries have distinct titles → distinct slugs, so no collision arises.
   Were one to, the contract's P2 rule applies: append the first cycle name
   (`debt-<slug>-<first-cycle>.md`), checking both active and `closed/` before deeming a slug free.
@@ -147,8 +153,9 @@ No. This is a data migration — no interface. (Shape stage is skipped.)
 | validate's config-contract gate says "every reader" but the convention is "every reader of that key" | `validate-config-contract-wording` | 2026-07-23 | 2026-07-25 | harden-validate | 1 |
 | validate inherits a stale loops_max that doesn't match the tier | `validate-stale-loops-max` | 2026-07-23 | 2026-07-25 | harden-validate | 1 |
 
-Full `files:` lists and body prose come verbatim from the source entries; the slug column above is
-proposed and confirmable at Build.
+For each closed item `cycles: [<closed_by>]` (the closing cycle is the only cycle name a closed meta
+line carries). Full `files:` lists and body prose come verbatim from the source entries; the slug
+column above is proposed and confirmable at Build.
 
 ---
 *Auto-filled dimensions: none*
