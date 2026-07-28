@@ -223,3 +223,75 @@ in the body verbatim. The Closed meta line's `Closed …` and `by cycle …` map
 together, `cycles` authoritative on disagreement (Decision 4). `files` remains **required** — it is
 what `dev:spec`'s cross-check keys on (Decision 9), and an item without it is invisible at the one
 moment it would be actionable.
+
+## Decision 4 — Item lifecycle
+
+**Decision.** Four status states drive the `status` field (Decision 3):
+
+| State | Meaning | Applies to |
+|-------|---------|------------|
+| `open` | Recorded, not yet being acted on | debt + backlog |
+| `in-progress` | A cycle is actively paying (debt) or building (backlog) it | debt + backlog |
+| `promoted` | A backlog item too big for one cycle has spawned a product-plan (Decision 7) | backlog only |
+| `closed` | Paid, built, dropped, or obsolete — archived to `docs/backlog/closed/` | debt + backlog |
+
+**Legal transitions:**
+
+```
+open ──► in-progress ──► closed
+  │                        ▲
+  ├──► closed  (dropped / paid directly / obsolete)
+  │
+  └──► promoted ──► closed   (backlog only: plan spawned, then plan completes)
+```
+
+`open → in-progress` when a cycle picks the item up; `in-progress → closed` when it lands.
+`open → closed` covers the direct paths the tracker already has (a debt paid inside the cycle that
+found it, or a stale item dropped). `open → promoted` is backlog-only and one-way: a backlog item
+big enough to span cycles spawns a product-plan (Decision 7), sets `promoted_to:`, and moves to
+`promoted`; when that plan completes, the item goes `promoted → closed`. `closed` is terminal and
+is the only state whose entry triggers the archival move to `docs/backlog/closed/` (Decision 1).
+
+`in-progress` and `promoted` are the states the current open/closed binary lacks — they exist so a
+backlog can show *what is being worked on* and *what has grown into a plan*, which a debt-only
+tracker never needed.
+
+**Recurrence-merge under per-item storage — resolved: the signal survives, by retargeting the
+procedure.** This is the sharpest open trade-off in the cycle, so it is settled concretely rather
+than left implied.
+
+The current procedure, on flush, compares each buffered `## To Record` entry against the entries in
+`## Open` *of one file*, and on a **clear match** (the `files` sets overlap **and** the described
+defect is the same defect — both, never either) appends the cycle name to `Cycles:`, increments
+`Recurrence:`, and folds new detail into `**What's wrong:**` by appending. On uncertainty it creates
+a new entry carrying `**Possibly related to:**`. The bias is deliberately asymmetric: a visible
+duplicate is cheap to merge by hand; a wrong merge silently destroys an entry.
+
+Under per-item storage **all of that is preserved unchanged except the corpus**:
+
+- The corpus becomes `docs/backlog/*.md` (active items, top-level glob) instead of the `## Open`
+  section of one file. That directory *is* the set of open entries, so the scan sees exactly what it
+  saw before.
+- A **clear match** still means `files` overlap **and** same defect — now read from front-matter
+  `files:` and the body, instead of `**Files:**` and `**What's wrong:**`. Same two-condition test.
+- **On a clear match:** append the new cycle to the matched file's `cycles:`, bump `recurrence:`,
+  and append new detail to its body — never replace. `recurrence` stays equal to `len(cycles)`.
+- **On uncertainty:** create a new item file with `possibly_related_to: <slug>` pointing at the
+  suspected duplicate. The bias to create-over-merge is unchanged and just as load-bearing: a
+  duplicate file is visible in `ls` and cheap to merge; a wrong merge still silently destroys an item.
+- **Never merge on topic/keyword similarity alone** — two items both mentioning "autopilot" or
+  "state.json" are not thereby the same item. Carried over verbatim.
+
+So per-item files do **not** fragment the "this keeps happening" signal. `recurrence` is a header
+field on the item, and the merge step's corpus is the directory — the exact set the old scan read.
+The recurrence *ranking* (sort by `recurrence` descending, ties broken by the most recent name in
+`cycles`) also carries over, now computed across the directory's front-matter.
+
+**Alternatives considered.**
+
+- **Accept the loss of recurrence-merge** and let per-item capture always create a new file. Rejected:
+  the contract calls recurrence one of the aggregate's real strengths the new model must not silently
+  lose, and it costs nothing to keep — the corpus is right there in the directory.
+- **Two states only (open/closed), as today.** Rejected: a backlog needs to express "being worked on"
+  and "grew into a plan"; folding those into `open` would make `/dev:debt` unable to distinguish a
+  fresh intention from one already under construction.
