@@ -360,3 +360,44 @@ or is present but **not writable**, or the target **cannot be confirmed**:
 - **Silently keep every plugin item local** (no routing, just a `scope` tag). Rejected: that is the
   status quo the cycle exists to fix — plugin debt scattered across repos, never collected where it
   can be acted on.
+
+## Decision 6 — Capture skill shape
+
+**Decision.** "Save this to the backlog" is a **new capture verb on the existing `/dev:debt` skill**
+— `/dev:debt add` (accepting a free-text description, or invoked with no argument to prompt for one) —
+**not a new `/dev:backlog` skill.** `/dev:debt` already owns every user-facing operation on this store
+(reads, ranking, manual lifecycle changes); creation is one more manual lifecycle operation and belongs
+with them. The skill is renamed in spirit to cover the unified store, but the invocation stays
+`/dev:debt`.
+
+**How capture sets `type` and `scope`:**
+
+- **`type`** — `debt | backlog`. Defaults to **`backlog`** on manual `/dev:debt add`, because the
+  on-demand "save this to build later" is an *intention*. (The automatic buffer→flush path of the
+  producing stages defaults the other way — `debt` — because those write *findings*; see Decision 9.)
+  Overridable inline (`/dev:debt add --debt …` or a prompt).
+- **`scope`** — `repo | plugin`. Defaults to **`repo`**; override to `plugin` (`--plugin`) when the
+  item is about the `/dev` plugin's own skills. A `plugin` scope triggers the Decision 5 routing flow,
+  including target confirmation and the local-degrade failure case.
+
+Capture writes the front-matter (Decision 3), sets `status: open` (the initial lifecycle state,
+Decision 4), assigns the `<type>-<slug>.md` filename (Decision 2) with collision disambiguation, and —
+before writing a `plugin`-scoped item — runs the Decision 5 confirm-target step. On capture it also
+runs the **recurrence-merge scan** (Decision 4) against `docs/backlog/*.md`, so a manually captured
+item that duplicates an existing one merges (or creates-with-`possibly_related_to`) exactly as an
+auto-flushed one does.
+
+**Extend `/dev:debt` vs. a new skill — the argument.**
+
+- **Chosen: extend `/dev:debt`.** It already reads and closes items and owns the store's user surface;
+  adding create keeps one skill authoritative over one store. A user thinks "debt/backlog stuff →
+  `/dev:debt`", and the read/rank/close/add verbs sit together where the store-shape knowledge already
+  lives.
+- **Rejected: a new `/dev:backlog` skill.** It would split ownership of one store across two skills, so
+  the store-shape knowledge (front-matter, naming, tree layout, recurrence-merge) would live in two
+  places and drift — the same second-copy-drifts failure the contract warns about elsewhere. The
+  debt-vs-backlog distinction is a `type` field, not a reason for a second skill.
+
+**Design-only.** This section decides the capture flow's *shape*; it does **not** write a `SKILL.md`.
+Building `/dev:debt add` is a follow-on cycle (Consequences), which is also where the exact argument
+syntax and prompts are finalized against the real skill.
