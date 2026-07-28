@@ -3,9 +3,10 @@
   "feature": "reflect-repo-discovery",
   "branch": "fix/reflect-repo-discovery",
   "mode": "standard",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape",
@@ -16,7 +17,7 @@
     "spec": "docs/dev/reflect-repo-discovery/spec.md",
     "design": null,
     "plan": null,
-    "validation": null,
+    "validation": "docs/dev/reflect-repo-discovery/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -82,7 +83,9 @@
       "spec_start": "2026-07-25T05:33:54Z",
       "spec_end": "2026-07-28T00:40:20Z",
       "build_start": "2026-07-28T00:42:26Z",
-      "build_end": "2026-07-28T00:43:55Z"
+      "build_end": "2026-07-28T00:43:55Z",
+      "validate_start": "2026-07-28T00:51:28Z",
+      "validate_end": "2026-07-28T00:56:43Z"
     }
   }
 }
