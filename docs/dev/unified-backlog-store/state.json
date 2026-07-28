@@ -3,8 +3,8 @@
   "feature": "unified-backlog-store",
   "branch": "feature/unified-backlog-store",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T03:45:28Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/unified-backlog-store/plan.md",
     "validation": "docs/dev/unified-backlog-store/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/52",
+    "pr_number": 52
   },
   "validate": {
     "loops_run": 1,
@@ -60,7 +60,8 @@
       "build_start": "2026-07-28T04:36:40Z",
       "build_end": "2026-07-28T13:08:41Z",
       "validate_start": "2026-07-28T13:10:33Z",
-      "validate_end": "2026-07-28T13:22:09Z"
+      "validate_end": "2026-07-28T13:22:09Z",
+      "pr_created": "2026-07-28T18:33:36Z"
     }
   }
 }
