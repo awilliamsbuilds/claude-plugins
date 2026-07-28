@@ -21,3 +21,15 @@ De-hardcoded `dev:reflect`'s skill-edit path so it locates the plugin **source**
 
 ## Artifacts (archived)
 Spec and validation committed at: `5d5c980` on branch `fix/reflect-repo-discovery`.
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-28*
+
+**Spec:** Confidence 90%/Ready matched actual clarity — 0 revisions after first draft; the spec challenger's 2 concerns were both applied, none dismissed (healthy low-blockers/low-churn quadrant). The ~3-day spec_start→spec_end span is wall-clock, not churn.
+**Shape:** Skipped (micro, no-UI) — correct.
+**Plan:** Skipped — micro tier drove off the spec's Implementation Note; no mid-build task additions.
+**Validate:** 1/1 loop, clean. Two P3s (implicit slug-vs-URL comparison; cache-clone indistinguishable from working checkout by remote alone) plus a shell-interpolation nit, all fixed/folded in one loop; both cold reviewers independently confirmed all 5 success criteria.
+**Flow:** Tier micro was right for a single-file executable-prose change; no unnecessary stages.
+**Token efficiency:** files_read_in_build = 2, no visual screens, no duration outliers.
+**Suggestions:** none.
+**Deferred to tech debt:** none newly recorded here; dev:validate already buffered the fork-base `gh pr create` nit (flushed in Step 6a).
