@@ -178,9 +178,13 @@ Do **not** commit on this path. The primary checkout is usually sitting on `main
 
 Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source of truth. Never leave a skill improvement as a local cache-only edit. Once the two confirmations are in and the change is written, port it to the source repo and open a PR — this is the standing process, not a per-cycle choice:
 
-1. Locate the source repo (the `local-plugins` marketplace checkout, e.g. `~/Development/claude-plugins`). The skill lives at `plugins/<plugin>/skills/<skill>/SKILL.md`.
+1. Locate the plugin **source** repo — the working checkout you branch and PR from. Two paths:
+   - **Dogfood auto-shortcut.** Derive the plugin's marketplace repo identity: the GitHub `source.repo` slug backing the marketplace this skill was installed from. Trace it from the running skill's own cache path → the marketplace name in that path → that marketplace's entry in Claude Code's marketplace registry (e.g. `known_marketplaces.json` — an illustrative hint, not a required file; if the cache layout differs, don't depend on it). Then compare that slug to the current `/dev` checkout's `origin` remote (`git remote get-url origin`) — normalize the remote URL (SSH or HTTPS) down to its `owner/repo` slug and compare the two as plain strings; don't shell-interpolate either value. If they name the same repo, the current checkout **is** the source repo — use it directly (but never a checkout under `~/.claude/plugins/cache/`: that's the managed deployed clone `/plugin update` overwrites, and it shares the same `origin`, so if the current checkout sits there, fall through to the ask path instead). This is exactly the case of running `/dev` on the plugin repo itself.
+   - **Otherwise, defer to the ask fallback below.** If the identity can't be derived, the current checkout has no `origin` (or has several), or the remote doesn't match, there is no reliable way to locate an arbitrary plugin's local checkout — so fall through to asking the user. Never guess a path.
+
+   In either case, the skill lives at `plugins/<plugin>/skills/<skill>/SKILL.md` within that repo.
 2. Create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, push, and open a PR with `gh`.
 3. Keep the deployed cache copy and the repo copy identical so the running skill matches what's under review.
 4. Tell the user the PR URL and that changes take effect after merge + `/plugin update`.
 
-If the source repo can't be found, ask the user where it lives rather than leaving the edit cache-only.
+**Ask fallback (the common case).** Whenever step 1 doesn't resolve to the current checkout — you're running `/dev` on some other project, the marketplace identity can't be derived, or the remote doesn't match — ask the user where the plugin source repo lives rather than leaving the edit cache-only.
