@@ -1,7 +1,11 @@
 {
+  "schema_version": 1,
   "autopilot": {
     "spec_max_questions": 10,
     "spec_min_confidence": 85
   },
+  "component_policy": "can-propose",
+  "changelog": null,
+  "changelog_versioned": false,
   "worktree_root": ".dev-worktrees"
 }
