@@ -480,10 +480,10 @@ meta line maps to front-matter, the body prose transfers verbatim:
 
 **(b) `tech-debt.md` Closed entries → `docs/backlog/closed/`.** Each `## Closed` entry becomes
 `docs/backlog/closed/debt-<slug>.md`, `status: closed`, with `closed:` and `closed_by:` taken from the
-Closed meta line (`*Closed YYYY-MM-DD by cycle <name> · First recorded: … · Recurrence: N*`). The five
+Closed meta line (`*Closed YYYY-MM-DD by cycle <name> · First recorded: … · Recurrence: N*`). The seven
 current Closed entries (hardcoded reflect path; spec product-plan push-to-main; feature-slug allowlist;
-gate-path state-write sweep; validate fix-loop verification; and the config-contract wording entry)
-migrate the same way — meta line to front-matter, body verbatim.
+gate-path state-write sweep; validate fix-loop verification; the config-contract wording entry; and the
+stale-`loops_max` entry) migrate the same way — meta line to front-matter, body verbatim.
 
 **(c) Misfiled `product-plan.md` items → backlog intentions** (per Decision 7):
 
