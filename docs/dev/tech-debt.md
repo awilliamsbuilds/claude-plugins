@@ -22,24 +22,6 @@ not a blocker.
 grounding gate.
 **Files:** plugins/dev/skills/autopilot/SKILL.md
 
-### Hardcoded repo path in dev:reflect
-*First recorded: 2026-07-22 · Cycles: tech-debt-tracking · Recurrence: 1*
-
-**What's wrong:** `plugins/dev/skills/reflect/SKILL.md:166` hardcodes `~/Development/claude-plugins`
-as the source-repo location and names the `local-plugins` marketplace directly. Found by the
-tech-debt-tracking cycle's negative-space sweep, which grepped the whole plugin for
-person-, company-, and environment-specific strings: this is the **only** repo-specific string
-in the entire `/dev` plugin. It directly violates the portability property that cycle was built
-around — a `/dev` installed in any other repo follows an instruction pointing at a directory
-that doesn't exist there.
-**Why deferred:** Found by that cycle's grounding sweep and explicitly placed out of scope in
-its spec. Best fixed by a later cycle already working in that file — which is the behavior this
-tracker exists to enable.
-**Done looks like:** The source repo is discovered (from the git remote, or from where the
-plugin cache resolves) or asked for, with no path and no marketplace name hardcoded anywhere in
-the skill.
-**Files:** plugins/dev/skills/reflect/SKILL.md
-
 ### A nested product plan cannot outlive its parent
 *First recorded: 2026-07-22 · Cycles: tech-debt-tracking · Recurrence: 1*
 
@@ -57,7 +39,33 @@ one level up (as `docs/dev/tech-debt.md` does) or by being archived into `docs/d
 before Step 7's cleanup.
 **Files:** plugins/dev/skills/spec/SKILL.md, plugins/dev/skills/done/SKILL.md
 
+### dev:reflect dogfood shortcut can open a PR against a fork's upstream
+*First recorded: 2026-07-28 · Cycles: reflect-repo-discovery · Recurrence: 1*
+
+**What's wrong:** The de-hardcoded step 1 uses `origin`-slug == marketplace-slug to auto-detect the dogfood case, then step 2 opens the PR with `gh pr create`. If a user installed the marketplace from their own fork of the plugin repo, the fork's `origin` slug matches the marketplace slug, so the dogfood shortcut fires — but `gh pr create` defaults its base to the fork's parent/upstream, so the skill edit is proposed against a repo the user may not own or intend to touch. The dogfood gate verifies the current checkout, not the PR base.
+**Why deferred:** The fix lands in step 2's PR/branch mechanics, which the reflect-repo-discovery spec explicitly listed as out of scope ("Any change to ... the PR/branch mechanics (steps 2–4)"). Surfaced as a Nit in validate's security review.
+**Done looks like:** Step 2 tells the agent to confirm the PR base repo before `gh pr create` (or pass an explicit `--repo`), so a fork's `origin` can't silently target its upstream.
+**Files:** plugins/dev/skills/reflect/SKILL.md
+
 ## Closed
+
+### Hardcoded repo path in dev:reflect
+*Closed 2026-07-28 by cycle reflect-repo-discovery · First recorded: 2026-07-22 · Recurrence: 1*
+
+**What's wrong:** `plugins/dev/skills/reflect/SKILL.md:166` hardcodes `~/Development/claude-plugins`
+as the source-repo location and names the `local-plugins` marketplace directly. Found by the
+tech-debt-tracking cycle's negative-space sweep, which grepped the whole plugin for
+person-, company-, and environment-specific strings: this is the **only** repo-specific string
+in the entire `/dev` plugin. It directly violates the portability property that cycle was built
+around — a `/dev` installed in any other repo follows an instruction pointing at a directory
+that doesn't exist there.
+**Why deferred:** Found by that cycle's grounding sweep and explicitly placed out of scope in
+its spec. Best fixed by a later cycle already working in that file — which is the behavior this
+tracker exists to enable.
+**Done looks like:** The source repo is discovered (from the git remote, or from where the
+plugin cache resolves) or asked for, with no path and no marketplace name hardcoded anywhere in
+the skill.
+**Files:** plugins/dev/skills/reflect/SKILL.md
 
 ### dev:spec's product-plan procedure pushes straight to origin/main
 *Closed 2026-07-23 by cycle init-rerun-hardening · First recorded: 2026-07-22 · Recurrence: 1*
