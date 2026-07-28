@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/backlog-debt-model/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/backlog-debt-model/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -54,7 +54,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-28T01:20:55Z",
-      "spec_end": "2026-07-28T02:32:51Z"
+      "spec_end": "2026-07-28T02:32:51Z",
+      "plan_start": "2026-07-28T02:34:15Z",
+      "plan_end": "2026-07-28T02:38:35Z"
     }
   }
 }
