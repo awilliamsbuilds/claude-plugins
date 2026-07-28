@@ -127,10 +127,19 @@ An item's identity is a **stable kebab-case slug**, fixed at creation and unchan
 life. The filename is **`<type>-<slug>.md`** where `type ∈ {debt, backlog}` — e.g.
 `debt-autopilot-grounding-gate.md`, `backlog-debt-backfill.md`.
 
+The slug is **`[a-z0-9-]+`** — lowercase letters, digits, and hyphens only. Because slug and `type`
+are the two tokens that compose an on-disk path, any other character (a path separator, `.` / `..`, a
+space, a shell metacharacter) is **stripped or rejected** at creation, never written through. The slug
+is often derived from finding text that can originate externally (a Linear issue via `dev:fix`, a diff
+under review), so this restriction keeps a crafted title from ever reaching a filesystem path.
+
 The filename encodes **type, not status**: status lives in the front-matter (P1) and, terminally, in
 the `closed/` location (P3). Slugs must be **unique within the tree**; on a collision, disambiguate on
 the way in by appending the first cycle name — `<type>-<slug>-<first-cycle>.md` — reusing the old
-title-collision instinct.
+title-collision instinct. **The tree includes `closed/`**: a write checks for `<type>-<slug>.md` in
+**both** the active corpus and `docs/backlog/closed/` before deciding a slug is free, so a slug that
+matches an archived item still disambiguates (two identical basenames across active and `closed/`
+would make `possibly_related_to:` ambiguous).
 
 The slug is what `possibly_related_to:` points at (P1), and it is the **same basename** before and after
 the close move (`docs/backlog/<type>-<slug>.md` → `docs/backlog/closed/<type>-<slug>.md`), so
@@ -168,7 +177,7 @@ on-disk format is stable, with **no procedure here.**
 The template a stage copies when creating the buffer. Both sections are always written, and both are
 allowed to stay empty.
 
-````markdown
+`````markdown
 # Debt Pending — <feature>
 
 Buffered backlog/debt items for this cycle. `dev:done` Step 6a flushes `## To Record` into
@@ -178,7 +187,7 @@ else reads it.
 ## To Record
 
 ### <slug>
-```markdown
+````markdown
 ---
 type: debt
 scope: repo
@@ -194,12 +203,12 @@ files:
 **What's wrong:** ...
 **Why deferred:** ...
 **Done looks like:** ...
-```
+````
 
 ## To Close
 
 - <type>-<slug> — <why this cycle pays it>
-````
+`````
 
 **`## To Record`** holds **one entry per deferred item**, each a `### <slug>` heading followed by the
 item's **complete file content** (front-matter + body) inside a fenced code block. Storing the item in

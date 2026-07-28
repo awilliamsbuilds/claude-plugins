@@ -44,7 +44,7 @@ Before any questions, assess the scope of the request.
 2. Map the product into sub-features grouped by milestone
 3. **Standard mode:** Show the milestone map in the visual companion browser — "Here's how I'd break this down. Does this structure look right?"
 4. **Autopilot mode:** Self-review the breakdown for completeness, continue without browser
-5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content now — the **write is deferred until after Step 6 creates the cycle worktree** (see the product-plan write at the end of Step 6). It is written into `$WORKDIR`, never the primary tree, and reaches the integration branch through this cycle's own PR (the `tech-debt.md` precedent):
+5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content now — the **write is deferred until after Step 6 creates the cycle worktree** (see the product-plan write at the end of Step 6). It is written into `$WORKDIR`, never the primary tree, and reaches the integration branch through this cycle's own PR (like every other artifact this cycle commits — `spec.md`, `plan.md`):
    ```markdown
    # [Product Name] — Product Plan
    *Created: YYYY-MM-DD · Cycles completed: 0/N*
@@ -228,7 +228,7 @@ All subsequent spec commits (spec.md and other artifacts) also use `git -C "$WOR
 If Step 2 (product-scale) or Step 4 (decomposition) prepared a product plan, write it **now** —
 after the worktree and initial state.json exist — as a plain file inside `$WORKDIR`. It is never
 pushed to `origin/$INTEGRATION`; it rides this cycle's own PR to the integration branch, exactly
-like `tech-debt.md`.
+like `spec.md` and `plan.md`.
 
 - **Top-level cycle** (no parent): path `$WORKDIR/docs/dev/product-plan.md`. Set
   `state.json.product_plan` to `"docs/dev/product-plan.md"` so `dev:done` Step 3's top-level

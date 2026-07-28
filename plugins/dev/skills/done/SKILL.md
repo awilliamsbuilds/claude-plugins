@@ -311,7 +311,8 @@ today's date.
    `recurrence:`, and append new detail to its body — never replace. Otherwise **write a new file**
    `docs/backlog/<type>-<slug>.md`, lifting the buffer's fenced content **verbatim** (front-matter
    + body, including any `severity:` field `dev:validate` set — the flush preserves it). If the
-   `<type>-<slug>.md` filename already exists, disambiguate the slug per the contract's P2 rule
+   `<type>-<slug>.md` filename already exists **in the active corpus or in `docs/backlog/closed/`**
+   (P2 uniqueness spans the whole tree), disambiguate the slug per the contract's P2 rule
    (`<type>-<slug>-<first-cycle>.md`) before writing.
 
    Two cycles finishing near-simultaneously now write **different item files**, which do not
