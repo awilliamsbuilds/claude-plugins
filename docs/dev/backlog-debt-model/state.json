@@ -3,8 +3,8 @@
   "feature": "backlog-debt-model",
   "branch": "arch/backlog-debt-model",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T01:20:55Z",
   "artifacts": {
@@ -56,7 +56,9 @@
       "spec_start": "2026-07-28T01:20:55Z",
       "spec_end": "2026-07-28T02:32:51Z",
       "plan_start": "2026-07-28T02:34:15Z",
-      "plan_end": "2026-07-28T02:38:35Z"
+      "plan_end": "2026-07-28T02:38:35Z",
+      "build_start": "2026-07-28T02:48:34Z",
+      "build_end": "2026-07-28T02:57:56Z"
     }
   }
 }
