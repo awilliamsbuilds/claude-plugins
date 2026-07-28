@@ -696,3 +696,25 @@ and capture (3), which both target the store it defines.
   explicitly from the marketplace config, never guess it from `origin`, and pass `--repo` so nothing
   defaults to a fork's upstream. The follow-on that hardens `dev:reflect`'s PR path closes the entry by
   adopting that same explicit-target discipline; it is a separate change from routing.
+
+---
+
+## Cycle Record — Decision Log
+*2026-07-28 · Branch: arch/backlog-debt-model · PR #51 · Architecture cycle (deep tier)*
+
+### What was built
+An ADR (above) deciding a single, durable backlog + tech-debt store for `/dev` that holds both deferred findings and deferred intentions, routes plugin-scoped items back to the plugin via a GitHub-issue triage inbox, and defines the capture flow, product-plan boundary correction, and migration path — no code, design only.
+
+### Key decisions
+- **Storage → per-item Markdown files** under a `docs/backlog/` tree (`<type>-<slug>.md`, resolved items under `closed/`), chosen over the aggregate to fix cross-repo scatter while preserving hand-editability and greppability; the recurrence signal survives as a header count rather than the aggregate's in-file merge scan.
+- **Cross-repo routing → open a GitHub issue** in the plugin repo (slug from the marketplace config, PAT auth) as a triage inbox, rather than writing a file into the plugin's checkout — the installed plugin is a non-git SHA-keyed cache with no committable target. Issues have no base branch, so the fork/upstream discovery flaw is unreachable by construction.
+- **Product-plan model → corrected, not described:** stated as an ephemeral single-project milestone carrier deleted on completion, an explicit change from today's persistent multi-project top-level plan, with a one-way backlog → product-plan promotion flow.
+
+### Validation notes
+- 3 loops run (deep tier; architecture-cycle document review, no security review). Final status: clean — no open P1/P2/P3/Nits.
+- P2 (loop 1): migration Closed-entry miscount → corrected to seven, omitted entry added.
+- P2 (loop 2): Decision 5 direct-file-write had no valid delivery target → redesigned to the GitHub-issue inbox. Cold re-review of that diff surfaced a P1 (intake dedup merged on slug alone) and a P2 (undefined `routing: pending` retry seam), both fixed in loop 3.
+- One residual below-Nit observation (`/dev:debt` retry-on-list network side effect) is documented in the ADR as a deliberate design choice, not an open issue.
+
+### Artifacts (archived)
+Spec, plan, and validation committed at `4e38d9d` on branch `arch/backlog-debt-model` (pre-merge tip); merged to `main` via PR #51 (merge commit `b94bc2f`).
