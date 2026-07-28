@@ -11,8 +11,10 @@ limitations we've hit in practice:
    cycle running in *some other* repo surfaces a finding about the `/dev` plugin's own skills,
    that finding is recorded in *that* repo's `tech-debt.md`, not the plugin's. Debt about the
    plugin ends up scattered across every repo the plugin runs in.
-2. **There is no backlog.** There's nowhere to say "I want to build X later" without reaching for
-   a third-party system (Linear). Deferred *findings* have a home; deferred *intentions* don't.
+2. **There is no proper backlog.** There's nowhere purpose-built to say "I want to build X later"
+   without reaching for a third-party system (Linear). Deferred *findings* have a home; deferred
+   *intentions* are today misfiled into `product-plan.md` (`debt-backfill`,
+   `debt-linear-promotion` sit there now) — which is the wrong home (see decision #7).
 
 This cycle designs a single, durable **backlog + tech-debt store** that holds both kinds of item,
 routes plugin-scoped items back to the plugin, and lets the user capture "save this to the
@@ -30,9 +32,10 @@ cycle's definition of done (see Success Criteria).
 
 1. **Storage model** — per-item files vs. aggregate vs. hybrid; the directory layout (e.g. a
    `docs/backlog/` tree), and whether debt and backlog items share one tree or split.
-2. **File naming + status-in-filename** — how a filename encodes item type and status, and how it
-   changes as an item moves through its lifecycle (the user's leaning is per-item files whose
-   names reflect status).
+2. **File naming / identity** — how an item is named and identified; **if the decision in #1 is
+   per-item or hybrid**, how the filename encodes item type and status, and how it changes as the
+   item moves through its lifecycle (the user's leaning is per-item files whose names reflect
+   status).
 3. **Header schema** — the metadata each item carries: at minimum first-recorded date,
    recurrences, cycle(s) saved/fixed-in, item type (debt | backlog), scope (repo | plugin),
    status, and affected files — plus whatever else the model needs. Parity with today's entry
@@ -47,10 +50,18 @@ cycle's definition of done (see Success Criteria).
 7. **Product-plan boundary + correction** — articulate and correct the product-plan model: it is
    an *ephemeral* milestone carrier for a *single multi-cycle project*, deleted on completion —
    **not** a backlog and not a debt tracker. Define the one-way **backlog → product-plan
-   promotion** flow (a backlog item big enough to span cycles spawns a plan). The corrected model
-   is a design decision here; implementing the deletion/promotion behavior is a follow-on cycle.
-8. **Migration design** — how existing `tech-debt.md` entries move into the new model (design
-   only; execution is a follow-on cycle).
+   promotion** flow (a backlog item big enough to span cycles spawns a plan). This is a
+   **correction, not a description**: today's *top-level* `product-plan.md` survives cycles, is
+   never deleted, and the live one spans three unrelated projects at "3/5" — so the ADR must state
+   explicitly that this changes current top-level behavior, and say what happens to the existing
+   multi-project plan (migrate its milestones, archive, or wipe). The corrected model is a design
+   decision here; implementing the deletion/promotion behavior is a follow-on cycle. The open
+   tracker entry *"A nested product plan cannot outlive its parent"* (`spec`/`done`) sits in this
+   same surface — the ADR should note how the corrected model relates to it, and the implementing
+   cycle is the natural place to close it.
+8. **Migration design** — how existing deferred items move into the new model: both `tech-debt.md`
+   entries **and** the backlog-shaped items currently misfiled in `product-plan.md`
+   (`debt-backfill`, `debt-linear-promotion`). Design only; execution is a follow-on cycle.
 9. **Producing-stage integration** — how the current buffer→flush writes in `dev:build`,
    `dev:validate`, `dev:reflect`, and `dev:spec` (and the flush in `dev:done`, creation in
    `dev:init`) adapt to the new store. Design-level: name the seams and the changes, don't edit
@@ -72,8 +83,9 @@ cycle's definition of done (see Success Criteria).
 The ADR is done when, committed under `docs/decisions/`, it resolves all nine decisions in Scope,
 and specifically:
 
-- A reader can tell, for any item, **where its file lives, what it's named, and what its header
-  contains** — concretely enough that a follow-on cycle could implement without re-deciding.
+- A reader can tell, for any item, **where it lives (which file or section), its identifier, and
+  what its header contains** — and, if #1 chose per-item, its filename scheme — concretely enough
+  that a follow-on cycle could implement without re-deciding.
 - The **cross-repo routing** mechanism is specified end to end: how classification happens and how
   a plugin item gets home, including the failure case (plugin repo absent or unwritable).
 - The **product-plan boundary** is stated as a correction, with the promotion flow defined.
@@ -117,7 +129,11 @@ across his other repos.
 - Must fit the `/dev` plugin's existing conventions: the shared-contract-in-`references/` pattern,
   the buffer→flush write model, `state.json`/mode-symmetry rules, worktree-relative writes.
 - Cross-repo routing must reuse the **portable plugin-source discovery** `dev:reflect` already
-  established (git-remote / plugin-cache resolution, no hardcoded paths).
+  established (git-remote / plugin-cache resolution, no hardcoded paths). Note that discovery
+  carries an **open** debt entry — *"dev:reflect dogfood shortcut can open a PR against a fork's
+  upstream"* — where the `origin`-slug == marketplace-slug heuristic misfires on a fork. Routing's
+  plugin-vs-repo classification (#5) inherits that risk, so the ADR must design around the known
+  flaw rather than assume discovery is clean.
 - UI Needed: **No** — Markdown files and skills only; Shape is skipped.
 
 ## Dependencies
