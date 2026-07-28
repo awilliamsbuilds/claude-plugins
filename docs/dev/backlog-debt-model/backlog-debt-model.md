@@ -459,3 +459,50 @@ it — a design-only cycle cannot pay implementation debt (noted in Consequences
 - **Archive the existing plan wholesale** (keep the file, mark it done). Rejected: its two unfinished
   items are real open intentions that must not be lost; they belong in the backlog, not frozen in a
   retired file.
+
+## Decision 8 — Migration design
+
+Design only — a follow-on cycle executes it (Out of Scope). This section maps every existing deferred
+item onto the target model (Decisions 1–4, 7) concretely enough that the follow-on can run it without
+re-deciding.
+
+**(a) `tech-debt.md` Open entries → active item files.** Each `###` entry in `## Open` becomes one
+`docs/backlog/debt-<slug>.md`, `status: open`, `type: debt`, `scope: repo` (all three current Open
+entries are about the plugin's own skills, but scope is set to `repo` on migration and re-judged by
+hand — migration does not silently reclassify; Decision 5 makes `scope` a hand-editable line). The
+meta line maps to front-matter, the body prose transfers verbatim:
+
+| Current Open entry | New file | front-matter derived from |
+|---|---|---|
+| Autopilot doesn't cross-note the spec grounding gate | `debt-autopilot-grounding-gate.md` | `first_recorded: 2026-07-21`, `cycles: [spec-grounding-and-clock]`, `recurrence: 1`, `files: [plugins/dev/skills/autopilot/SKILL.md]` |
+| A nested product plan cannot outlive its parent | `debt-nested-product-plan-lifetime.md` | `first_recorded: 2026-07-22`, `cycles: [tech-debt-tracking]`, `recurrence: 1`, `files: [plugins/dev/skills/spec/SKILL.md, plugins/dev/skills/done/SKILL.md]` |
+| dev:reflect dogfood shortcut can open a PR against a fork's upstream | `debt-reflect-dogfood-pr-base.md` | `first_recorded: 2026-07-28`, `cycles: [reflect-repo-discovery]`, `recurrence: 1`, `files: [plugins/dev/skills/reflect/SKILL.md]` |
+
+**(b) `tech-debt.md` Closed entries → `docs/backlog/closed/`.** Each `## Closed` entry becomes
+`docs/backlog/closed/debt-<slug>.md`, `status: closed`, with `closed:` and `closed_by:` taken from the
+Closed meta line (`*Closed YYYY-MM-DD by cycle <name> · First recorded: … · Recurrence: N*`). The five
+current Closed entries (hardcoded reflect path; spec product-plan push-to-main; feature-slug allowlist;
+gate-path state-write sweep; validate fix-loop verification; and the config-contract wording entry)
+migrate the same way — meta line to front-matter, body verbatim.
+
+**(c) Misfiled `product-plan.md` items → backlog intentions** (per Decision 7):
+
+| Product-plan item | New file | front-matter |
+|---|---|---|
+| `debt-backfill` | `backlog-debt-backfill.md` | `type: backlog`, `scope: repo`, `status: open`, `first_recorded: 2026-07-21` (the plan's Created date, the best available provenance), `cycles: []`, `recurrence: 0`, `files: []` (an intention has no defect site yet — `files` is required by schema but legitimately empty for a not-yet-built backlog item) |
+| `debt-linear-promotion` | `backlog-debt-linear-promotion.md` | same shape |
+
+Their descriptive prose (including the "Depends on tech-debt-tracking" note and the deferral rationale)
+transfers into the body under `What:` / `Why:`. Note the slugs keep their existing `debt-` *names* even
+though `type: backlog` — the name is historical; the `type` field, not the slug, classifies them.
+
+**Migration collisions** (the edge case). The `<type>-` filename prefix means a `debt-*` item and a
+`backlog-*` item never collide even with the same slug. Within one type, a duplicate slug is resolved
+by the contract's existing instinct: **append the first cycle name** — `debt-<slug>-<first-cycle>.md`.
+Where a migrated item has no cycle (the two backlog intentions have `cycles: []`), disambiguate by
+appending a short qualifier from the source instead (e.g. `-from-product-plan`). Migration must apply
+this on write, exactly as the recurrence-merge procedure's create-bias makes near-duplicate titles the
+expected steady state today.
+
+**Execution is a follow-on cycle.** This section is the map; running it (creating the files, retiring
+`tech-debt.md` and the top-level `product-plan.md`, verifying counts) is deferred (Consequences).
