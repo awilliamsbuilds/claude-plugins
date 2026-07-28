@@ -40,8 +40,7 @@ discovered-or-asked, with nothing environment-specific hardcoded:
 
 ## Success Criteria
 1. `grep -n "Development/claude-plugins\|local-plugins" plugins/dev/skills/reflect/SKILL.md` returns
-   **zero** matches (the marketplace name `local-plugins` may still appear only if it is a generic
-   illustrative example, not a required identifier — target is zero).
+   **zero** matches.
 2. A repo-wide sweep of the `/dev` plugin for person-, company-, and environment-specific strings
    (`Development/claude-plugins`, `local-plugins`, `awilliamsbuilds`, `~/Development`, `adam`)
    returns nothing — the property the tech-debt entry was built around is restored.
@@ -108,4 +107,4 @@ and `~/Development/claude-plugins` as load-bearing identifiers entirely.
 
 ---
 *Auto-filled dimensions: none*
-*Grounding inventory: `grep -n "Development/claude-plugins\|local-plugins"` across `plugins/dev/` → single hit at reflect/SKILL.md:181 (verified sole repo-specific string in the plugin). `known_marketplaces.json` inspected → maps marketplace name `local-plugins` → GitHub slug `awilliamsbuilds/claude-plugins`, with `installLocation` pointing at CC's managed marketplace cache, NOT the user's dev checkout (so no stored mapping to the local source checkout exists — auto-discovery of an arbitrary plugin's local checkout is not possible; only the dogfood case is). Current repo `origin` = `git@github.com:awilliamsbuilds/claude-plugins.git`, which matches the marketplace slug → confirms the dogfood-detection signal is real and firing in this very session. Plugin cache dir (`~/.claude/plugins/cache/local-plugins/...`) is NOT itself a git checkout, so "where the plugin cache resolves" is not a viable git-remote discovery path — ruling out one of the tech-debt entry's suggested mechanisms.*
+*Grounding inventory: `grep -n "Development/claude-plugins\|local-plugins"` across `plugins/dev/` → single hit at reflect/SKILL.md:181 (verified sole repo-specific string in the plugin). `known_marketplaces.json` inspected → maps marketplace name `local-plugins` → GitHub slug `awilliamsbuilds/claude-plugins`, with `installLocation` = `~/.claude/plugins/marketplaces/local-plugins`. That `installLocation` IS a git checkout whose `origin` is the source repo — but it is a managed, `autoUpdate:true` deployment clone that Claude Code overwrites on update, deliberately NOT the user's dev working copy, so a skill edit must never be branched/PR'd from it. No stored mapping to the user's *working* checkout exists; auto-discovery is therefore limited to the dogfood case (the current cycle's checkout == the source repo, detectable by remote match), and every other case must ask. Current repo `origin` = `git@github.com:awilliamsbuilds/claude-plugins.git`, which matches the marketplace slug → confirms the dogfood-detection signal is real and firing in this very session. Plugin cache dir (`~/.claude/plugins/cache/local-plugins/...`) is NOT itself a git checkout, so "where the plugin cache resolves" is not a viable git-remote discovery path — ruling out one of the tech-debt entry's suggested mechanisms.*
