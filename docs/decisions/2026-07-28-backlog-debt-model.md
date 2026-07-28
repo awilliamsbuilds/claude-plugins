@@ -718,3 +718,15 @@ An ADR (above) deciding a single, durable backlog + tech-debt store for `/dev` t
 
 ### Artifacts (archived)
 Spec, plan, and validation committed at `4e38d9d` on branch `arch/backlog-debt-model` (pre-merge tip); merged to `main` via PR #51 (merge commit `b94bc2f`).
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-28*
+
+**Spec:** Confidence 86%/Ready matched actual clarity — `spec_revisions: 0`, no churn. The spec challenger yielded 1 blocker + 4 concerns, all 5 applied, 0 dismissed — high yield with zero downstream revision means the challenger caught the author's grounding gaps before the gate (working as designed), and was signal rather than noise.
+**Shape:** Skipped — correct for a no-UI architecture cycle.
+**Plan:** Accurate — plan challenger clean (0 blockers, 1 concern applied), no mid-build updates.
+**Validate:** 3/5 loops. Ran hotter than a typical architecture cycle because the load-bearing cross-repo delivery mechanism (Decision 5) was under-explored by the automated design: Build committed to writing item files directly into the plugin's checkout, which the user pressure-tested against the real install layout and found had no valid target (the installed plugin is a non-git, SHA-keyed cache). **The user caught the flaw *and* supplied the winning fix — GitHub issues as a triage inbox — which was never in the automated candidate set.** The ADR's "alternatives considered" discipline was satisfied on paper, but the initial candidate set for a cross-boundary mechanism was too narrow until the human widened it. Two cold-review rounds then hardened the redesign cleanly.
+**Flow:** Tier (deep) and stage selection (Shape skipped) were right; no unnecessary stages.
+**Token efficiency:** `files_read_in_build: 4` — low, appropriate for a design-only cycle. Spec was the longest stage (72 min), expected for a deep ADR carrying open trade-offs; no anomalous outliers.
+**Suggestions:** For architecture cycles, when a decision hinges on a **cross-boundary delivery/write mechanism**, require the design to (a) enumerate at least two *concretely different transports* (not variants of one), and (b) ground each candidate's target against the real runtime/install environment before committing — so the load-bearing mechanism is pressure-tested up front rather than discovered as flawed in Validate.
+**Deferred to tech debt:** "Architecture-cycle design doesn't pressure-test cross-boundary delivery mechanisms" (user declined the skill edit; recorded for a future cycle).
