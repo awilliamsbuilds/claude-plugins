@@ -3,20 +3,20 @@
   "feature": "tech-debt-migration",
   "branch": "feature/tech-debt-migration",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T22:36:57Z",
   "artifacts": {
     "spec": "docs/dev/tech-debt-migration/spec.md",
     "design": null,
     "plan": "docs/dev/tech-debt-migration/plan.md",
-    "validation": null,
+    "validation": "docs/dev/tech-debt-migration/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
   },
@@ -58,7 +58,9 @@
       "plan_start": "2026-07-28T22:54:28Z",
       "plan_end": "2026-07-28T22:58:26Z",
       "build_start": "2026-07-28T23:14:08Z",
-      "build_end": "2026-07-28T23:18:40Z"
+      "build_end": "2026-07-28T23:18:40Z",
+      "validate_start": "2026-07-28T23:21:08Z",
+      "validate_end": "2026-07-28T23:24:20Z"
     }
   }
 }
