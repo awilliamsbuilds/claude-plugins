@@ -201,20 +201,25 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
    Classification is by carrying cost, not by P3-vs-Nit — a Nit exposing a systemic convention
    gap qualifies, a P3 that is a local one-liner does not.
 
-2. For each item that qualifies, append an entry **at the end of the `## To Record` section —
-   immediately before `## To Close`, never at end-of-file** — in
-   `$WORKDIR/docs/dev/<feature>/debt-pending.md`, using the buffer format and entry field labels
-   from the contract. Create the buffer from the contract's template first if it does not exist.
-   (`## To Close` is last in the template, and the flush parses it as bullets: a full `###` entry
-   landing there is silently ignored and dies with the cycle directory.)
-   Set `**Files:**` to the paths the finding actually names — `dev:spec`'s cross-check keys its
-   matching on that field. Tag each entry `*Source: dev:validate (P3|Nit) · <feature>*`.
+2. For each item that qualifies, append a `### <slug>` entry to the `## To Record` section of
+   `$WORKDIR/docs/dev/<feature>/debt-pending.md` in the **P4 buffer format** from the contract — a
+   fenced ```` ```markdown ```` block (4-backtick outer fence) holding the item's front-matter
+   (`type: debt`, `scope: repo`, `status: open`, `first_recorded:` from `date -u +%Y-%m-%d`,
+   `cycles: [<feature>]`, `recurrence: 1`, `files: [<paths the finding names>]`) followed by the
+   `**What's wrong:** / **Why deferred:** / **Done looks like:**` body. Create the buffer from the
+   contract's template first if it does not exist. Set `files:` to the paths the finding actually
+   names — `dev:spec`'s cross-check keys its matching on that field.
+   **Carry the fix-loop severity as a front-matter field:** add `severity: P3` or `severity: Nit`
+   (this field replaces the old `*Source: dev:validate (P3|Nit)*` tag). `severity` is an
+   **informational** field the flush preserves verbatim — it is **not** one of the
+   routing/lifecycle fields and drives no procedure.
 
-   **Escape any Markdown heading in the text you copy.** Finding text often quotes the code
+   **Escape any Markdown heading in the body text you copy.** Finding text often quotes the code
    under review, and in a Markdown-heavy repo that quote can itself start with `#`. Indent such
-   lines by two spaces or fence them, per the contract's field rules. The buffer is parsed by
-   heading, and a raw `## To Close` inside an entry body would read as a real section to
-   `dev:done`'s flush — which closes entries.
+   lines by two spaces or rely on the 4-backtick outer fence, per the contract's P4 fence rule. The
+   buffer is parsed by heading and by fence: a raw `## To Close` inside a body value would otherwise
+   read as a real section to `dev:done`'s flush — which closes items — and the outer fence must
+   exceed any inner fence the body quotes.
 
 3. Items that do not qualify are dropped, not recorded and not mentioned further.
 
