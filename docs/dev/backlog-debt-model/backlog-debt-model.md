@@ -401,3 +401,61 @@ auto-flushed one does.
 **Design-only.** This section decides the capture flow's *shape*; it does **not** write a `SKILL.md`.
 Building `/dev:debt add` is a follow-on cycle (Consequences), which is also where the exact argument
 syntax and prompts are finalized against the real skill.
+
+## Decision 7 — Product-plan boundary + correction
+
+**The corrected model.** A product-plan is an **ephemeral milestone carrier for a single multi-cycle
+project, deleted on completion.** It is *not* a backlog and *not* a debt tracker: it holds the ordered
+milestones of one project while that project is in flight, and it is removed when the project is done.
+The backlog (`docs/backlog/`, this ADR) is the standing store of intentions and findings; a
+product-plan is the transient decomposition of *one* intention that grew large enough to need cycles.
+
+**This is a correction, not a description.** Today's *top-level* `docs/dev/product-plan.md` behaves the
+opposite way: it **survives cycles** (nothing ever deletes it — verified in the spec's grounding
+inventory: a grep for `rm .*product-plan` across all `dev:*` skills returned zero hits, and `dev:done`
+Step 3 only checks boxes), and the live one spans **three unrelated projects** (voice tooling,
+depersonalizing the writing plugin, tech-debt tracking) at "Cycles completed: 3/5". It has been serving
+as a de-facto multi-project backlog — which is exactly the misfiling this cycle corrects. The corrected
+model **changes current top-level behavior**: a product-plan will no longer be a durable multi-project
+list; that role moves to `docs/backlog/`.
+
+**What happens to the existing multi-project plan: migrate its unfinished items, then retire the file.**
+
+- Its **two unfinished items** — `debt-backfill` and `debt-linear-promotion` — are backlog *intentions*
+  misfiled here. They migrate into `docs/backlog/` as `type: backlog` items (Decision 8 handles the
+  physical migration).
+- Its **three completed milestones** (voice-extractor, depersonalize-writing, tech-debt-tracking, all
+  `[x]`) are historical; each already has its record in the cycle history and decision logs. They are
+  **not** carried into the backlog (a backlog holds *open* intentions, not a changelog).
+- With its unfinished items rehomed, the top-level `product-plan.md` is **retired** — not kept as a
+  standing multi-project list, because that role is now the backlog's. The retirement is a follow-on
+  action (Decision 8 / Consequences), not this cycle.
+
+**The one-way backlog → product-plan promotion flow.** A backlog item big enough to span cycles is
+**promoted**: it spawns a `product-plan.md` for that one project, the backlog item's `status` becomes
+`promoted` (Decision 4), and `promoted_to:` points at the spawned plan. The flow is one-way — a plan
+never demotes back to a backlog item. When the project completes, the plan is **deleted** (the corrected
+ephemeral behavior) and the backlog item moves `promoted → closed`. Promotion is the seam where the
+corrected "deleted on completion" behavior actually bites, so the follow-on that implements deletion is
+the same one that implements promotion.
+
+**Relation to the open entry "A nested product plan cannot outlive its parent."** That Open tracker
+entry sits on this exact surface: a nested plan at `docs/dev/<parent>/product-plan.md` is deleted by
+`dev:done` Step 7's `rm -rf` of the cycle directory, so a plan meant to be durable dies inside a
+directory designed to be destroyed. The corrected model bears on it directly: a promoted product-plan
+must live somewhere that survives for the project's life and is deleted *on project completion*, not on
+the parent cycle's teardown — i.e. **not** inside `docs/dev/<parent>/`. The implementing cycle (which
+builds promotion + deletion) is the natural place to **close** that entry. This ADR does **not** close
+it — a design-only cycle cannot pay implementation debt (noted in Consequences).
+
+**Alternatives considered.**
+
+- **Fold the product-plan into the backlog entirely** (no separate plan concept). Rejected: a
+  multi-cycle project needs an ordered milestone decomposition that a flat backlog of items does not
+  express; promotion gives the item a place to grow without turning the backlog into a project planner.
+- **Keep the top-level plan as the multi-project backlog** and only add a debt store. Rejected: that
+  leaves the misfiling in place — intentions still live in a file that also pretends to be a
+  single-project plan — and never gives "save this to build later" a correct home.
+- **Archive the existing plan wholesale** (keep the file, mark it done). Rejected: its two unfinished
+  items are real open intentions that must not be lost; they belong in the backlog, not frozen in a
+  retired file.
