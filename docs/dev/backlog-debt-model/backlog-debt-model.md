@@ -580,3 +580,55 @@ items become files in `docs/backlog/`. What changes is only the *shape* of what 
 - **Keep `references/tech-debt.md` as-is and add a second contract for the backlog.** Rejected: two
   contracts for one store is the second-copy-drifts failure again; the contract is rewritten once to
   cover the unified store.
+
+## Consequences
+
+**What this enables.**
+
+- **A real backlog.** Deferred *intentions* get a first-class home (`docs/backlog/`, `type: backlog`)
+  instead of being misfiled into a product-plan, and "save this to build later" becomes a one-line
+  `/dev:debt add` — removing the pull toward Linear for solo and plugin work.
+- **Plugin debt collected where it can be acted on.** `scope: plugin` items route to the plugin repo
+  instead of scattering across every repo the plugin runs in.
+- **Per-item lifecycle.** `open → in-progress → promoted → closed` lets the store show what is being
+  worked on and what has grown into a plan — expressiveness the open/closed binary never had.
+- **A corrected product-plan.** The plan reverts to its true role — an ephemeral single-project
+  milestone carrier, deleted on completion — and the backlog absorbs the standing-list role it had
+  drifted into.
+
+**What this forecloses / costs.**
+
+- **The single-file overview is gone.** No one file shows all debt at a glance; that view is now
+  reconstructed on demand by `/dev:debt` listing the directory. Accepted deliberately (Decision 1).
+- **A new dependency on YAML front-matter parsing** in every reading skill, replacing the bespoke
+  prose-field machinery. Simpler overall, but it is a real format change every consumer must adopt at
+  once (Decision 9).
+- **A cross-repo write** (routing into the plugin repo) is a genuinely new capability with its own
+  failure surface — mitigated by target confirmation and the local-degrade fallback (Decision 5), but
+  it is more moving parts than a same-repo append.
+
+**The follow-on cycles this ADR requires** (implementation is entirely deferred — this cycle is
+design-only):
+
+1. **Store implementation + producing-stage edits + contract rewrite.** Build `docs/backlog/`, rewrite
+   `references/tech-debt.md` for the new store, and update every seam in Decision 9's integration map
+   (`dev:init`, `dev:build`, `dev:validate`, `dev:reflect`, `dev:spec`, `dev:done`, `dev:debt`).
+2. **Migration execution.** Run Decision 8's map: create the item files, retire `docs/dev/tech-debt.md`
+   and the top-level `docs/dev/product-plan.md`, verify counts.
+3. **The capture verb.** Build `/dev:debt add` per Decision 6 (type/scope defaults, recurrence-merge on
+   capture, plugin-routing hook).
+4. **Product-plan deletion + promotion.** Implement the corrected ephemeral behavior and the one-way
+   `backlog → product-plan` promotion (Decision 7) — the seam where "deleted on completion" bites.
+
+These may be sequenced or combined, but the storage/contract cycle (1) must land before migration (2)
+and capture (3), which both target the store it defines.
+
+**Two open tracker entries the follow-ons naturally close** (this ADR notes them; a design-only cycle
+does not pay them):
+
+- ***"A nested product plan cannot outlive its parent"*** — the product-plan correction cycle (follow-on
+  4) is where a durable, project-lifetime plan location is defined, which is exactly what that entry
+  asks for (Decision 7).
+- ***"dev:reflect dogfood shortcut can open a PR against a fork's upstream"*** — the routing cycle
+  (follow-on 1) supersedes the PR-based cross-repo delivery the entry was filed against, replacing
+  `gh pr create` with a confirmed direct file-write (Decision 5).
