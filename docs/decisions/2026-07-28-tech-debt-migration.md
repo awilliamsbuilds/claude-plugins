@@ -20,3 +20,22 @@ Carried all 11 deferred tech-debt entries (4 Open + 7 Closed) out of the orphane
 
 ## Artifacts (archived)
 Spec and plan committed at: 41501984a6609419969c1950a06483e585dde882 on branch feature/tech-debt-migration
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-28*
+
+**Spec:** Confidence (95/Ready) matched actual clarity — `spec_revisions: 0`, and the spec cold review's 4 findings (2 blockers, 2 concerns) were all applied, none dismissed, so the challenger's net was signal, not noise.
+
+**Shape:** Skipped — correct for a data-only migration with no interface.
+
+**Plan:** Accurate, no mid-build updates; `files_read_in_build: 2` confirms the plan's verbatim line-range map made Build near-lookup-free. The plan challenger's one concern needed no change.
+
+**Validate:** 1/3 loops, clean on the first pass — both cold reviews returned zero findings at any severity.
+
+**Flow:** Tier (standard) was right — the verbatim-faithfulness requirement and the `recurrence: 2` exception warranted the full net. **Cross-cycle defect surfaced by the maintainer:** `state.json` stage-advancement is committed only at each stage's approval gate, while the stage artifact and the challenger's in-place state write commit earlier — so an interrupted gate (`/clear`, session end, or any discard of working-tree changes) leaves committed state lagging the artifacts and commits that prove the stage was reached, forcing manual "state repair." Recurs across cycles; not specific to this one. Plan's resume-mid-approval check (`plan/SKILL.md:49`) covers only the single-stage-lag case; Build/Validate trust committed state on entry.
+
+**Token efficiency:** No outliers — low build reads, zero visual screens, balanced stage durations.
+
+**Suggestions:** Harden state-advancement durability across the `/dev` stage handoffs — either commit `completed[]`/`stage` atomically with the stage artifact, or add a state-reconciliation step at each stage's entry that repairs committed state lagging the on-disk artifacts+commits. Cross-cutting (spec/plan/build/validate); warrants its own cycle. Recorded to tech debt rather than hand-patched.
+
+**Deferred to tech debt:** `state-advancement-commit-durability`
