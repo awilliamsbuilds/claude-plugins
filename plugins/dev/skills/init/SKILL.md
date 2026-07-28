@@ -39,20 +39,20 @@ Check which scenario applies and follow that path:
 **Scenario D — Already initialized** (`docs/dev/config.json` exists):
 - Read and display current config
 - Ask: "Update config or keep it as-is?"
-- If keep: before exiting, check for `docs/dev/tech-debt.md`. If it is absent, create it exactly
-  as in **Create Directories** below and name it in the exit line — "Config unchanged. Created
-  docs/dev/tech-debt.md (untracked — review, commit, and push when ready). Run /dev to start a
+- If keep: before exiting, check whether `docs/backlog/` exists. If it is absent, create the tree
+  exactly as in **Create Directories** below and name it in the exit line — "Config unchanged. Created
+  docs/backlog/ (untracked — review, commit, and push when ready). Run /dev to start a
   feature cycle." Do **not** `git add` or commit it: this path runs outside a cycle, usually with the
-  checkout on `main`, and staging a file the user didn't ask for means their next unrelated
-  commit silently carries it. If it already exists, exit with "Config unchanged. Run /dev to
+  checkout on `main`, and staging files the user didn't ask for means their next unrelated
+  commit silently carries them. If it already exists, exit with "Config unchanged. Run /dev to
   start a feature cycle."
-  This is the only automatic path by which a repo initialized before the tracker shipped ever
-  gets the file: `dev:init` is auto-triggered only when `config.json` is missing, which is false
-  for exactly those repos. (`dev:done`'s flush creates the file too, but only once a cycle there
+  This is the only automatic path by which a repo initialized before the store shipped ever
+  gets `docs/backlog/`: `dev:init` is auto-triggered only when `config.json` is missing, which is false
+  for exactly those repos. (`dev:done`'s flush creates the store too, but only once a cycle there
   actually defers something.)
 - If update: run a **safe migration** in place — never a fixed-template rewrite. This is the
   general mechanism by which an older/drifted repo gains new config keys and artifacts
-  (generalizing the former `tech-debt.md`-only backfill above):
+  (generalizing the `docs/backlog/`-only backfill above):
   1. Read and JSON-parse the existing `config.json`. **Malformed-config guard:** if the file does
      not parse as valid JSON, or `schema_version` is present but not a non-negative integer, do
      **not** rewrite it — STOP and report the file as malformed for manual repair. (Silently
@@ -74,9 +74,8 @@ Check which scenario applies and follow that path:
      place** — do not strip it and do not error on encountering it. (Edge: `worktree_root` in an
      existing config.)
   5. Stamp `schema_version = SCHEMA_VERSION` (`1`).
-  6. Ensure `docs/dev/tech-debt.md` exists — create it from the canonical header (as in **Create
-     Directories**) if absent.
-  7. **Leave the updated `config.json` and any newly created `tech-debt.md` unstaged** — no
+  6. Ensure `docs/backlog/` exists — create the tree (as in **Create Directories**) if absent.
+  7. **Leave the updated `config.json` and any newly created `docs/backlog/` tree unstaged** — no
      `git add`, no commit (same rule as **Do not commit — leave unstaged**). Report: "migrated
      config to schema v1; left unstaged — review, commit, and push when ready."
 
@@ -147,27 +146,25 @@ touch docs/decisions/.gitkeep
 grep -qxF '.dev-worktrees/' .gitignore 2>/dev/null || echo '.dev-worktrees/' >> .gitignore
 ```
 
-Then create the tech-debt tracker — **only when it is absent**, so re-running init never
-clobbers real entries. Do not `touch` it: an empty file is not ready to receive its first entry.
-Write the canonical header from `../../references/tech-debt.md` plus both section headings:
+Then seed the `docs/backlog/` store — the directory that holds one file per backlog/debt item. Do
+**not** create any single aggregate tracker file. `mkdir -p` and the README `[ -f … ] ||` guard make
+this **idempotent**: a re-run never clobbers existing item files (Edge: `dev:init` re-run on an
+existing tree = no-op). Write the store's `README.md` **only when it is absent**:
 
 ```bash
-[ -f docs/dev/tech-debt.md ] || cat > docs/dev/tech-debt.md <<'EOF'
-# Tech Debt
+mkdir -p docs/backlog/closed
+[ -f docs/backlog/README.md ] || cat > docs/backlog/README.md <<'EOF'
+# Backlog + Tech Debt
 
-Deferred items discovered by `/dev` cycles — recorded rather than fixed, with enough context to
-act on later without re-deriving the finding. Written automatically by `dev:done` when a cycle
-completes; read, ranked, and closed via `/dev:debt`. Format and rules: the `/dev` plugin's
-`references/tech-debt.md`.
-
-## Open
-
-## Closed
+Deferred backlog intentions and tech-debt findings discovered by `/dev` cycles — one Markdown file
+per item, named `<type>-<slug>.md` (`type` is `debt` or `backlog`). Closed items are archived under
+`closed/`. Written automatically by `dev:done` when a cycle defers something; read, ranked, and
+closed via `/dev:debt`. Format and rules: the `/dev` plugin's `references/tech-debt.md`.
 EOF
 ```
 
-It lives at `docs/dev/`, beside `product-plan.md` and one level above the per-cycle directory
-`dev:done` Step 7 deletes — which is why it survives cycles.
+The store lives at `docs/backlog/`, one level above the per-cycle directory `dev:done` Step 7
+deletes — which is why it survives cycles.
 
 ### Create or Update CLAUDE.md
 
@@ -241,7 +238,7 @@ skip changelog; `changelog_versioned` → absent ⇒ `false`; `schema_version` �
 
 Do **not** `git add` and do **not** commit any file this skill created or modified. Leave every
 one of them (`docs/dev/.gitkeep`, `docs/decisions/.gitkeep`, `docs/dev/config.json`,
-`docs/dev/tech-debt.md`, `CLAUDE.md`, `.gitignore`) **unstaged** in the working tree. This mirrors
+`docs/backlog/` (README + tree), `CLAUDE.md`, `.gitignore`) **unstaged** in the working tree. This mirrors
 the "keep" path (Scenario D): init usually runs with the checkout on `main`, and a file the user
 didn't explicitly ask to commit must not silently ride their next unrelated commit to `main`. The
 developer reviews the scaffolding, then commits and pushes it themselves.
@@ -252,16 +249,16 @@ developer reviews the scaffolding, then commits and pushes it themselves.
 ✓ /dev workflow initialized
 
   Created: docs/dev/  docs/decisions/
-  Created: docs/dev/tech-debt.md
+  Created: docs/backlog/ (README + closed/)
   Written: docs/dev/config.json
   Updated: CLAUDE.md (Component Registry added)
   Changelog: [path detected] (versioned: yes/no) — or "No changelog configured"
 
 These files are unstaged — review, commit, and push when ready. Until they are pushed, a cycle
-worktree cut from origin/main won't see config.json / tech-debt.md.
+worktree cut from origin/main won't see config.json / docs/backlog/.
 
 Run /dev to start your first feature cycle.
 ```
 
-Omit the `Created: docs/dev/tech-debt.md` line if the file already existed — the creation is
-guarded by `[ -f … ] ||`, so on a re-init nothing was created.
+Omit the `Created: docs/backlog/ (README + closed/)` line if the store already existed — its
+creation is guarded (`mkdir -p` + the README `[ -f … ] ||`), so on a re-init nothing new was created.
