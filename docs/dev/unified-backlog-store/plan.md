@@ -262,7 +262,9 @@ Implementation steps:
 What: Step 6a's flush writes one `docs/backlog/<type>-<slug>.md` per buffered `## To Record` item (running
 P6 recurrence-merge), executes each `## To Close` close-intent (`status: closed` + move to `closed/`), and
 creates the store on first write; the commit/push/recovery sequence retargets from one file to the directory.
-Used by: `dev:done` Step 6a (lines ~260–352) and the Step 8 report line (lines ~490–497).
+Used by: `dev:done` Step 6a (lines ~260–352), the Step 4a docs-prose durable-record buffer write
+(Step 4a item 6, lines ~196–207 — a producing-stage buffer write **inside** `dev:done` itself, missed
+in the original enumeration), and the Step 8 report line (lines ~490–497).
 Depends on: Task 1 (P1 schema, P2 naming, P3 lifecycle close-move, P4 buffer parse, P5 corpus, P6 merge, P7 writer create-if-absent).
 Files: plugins/dev/skills/done/SKILL.md (modify)
 Interfaces:
@@ -306,7 +308,16 @@ Implementation steps:
    (re-read `origin/$INTEGRATION`'s `docs/backlog/`, re-apply this cycle's writes so **both** cycles' items
    survive, push again; STOP if it still fails; buffer is still on disk). Keep the Step 7 mid-rebase guard
    (lines ~356–364) — the buffer is still the only copy; wording change only.
-9. **Step 8 report line** (lines ~490–497): keep the `Tech debt: N recorded, M closed` line format and the
+9. **Step 4a durable-record buffer write** (Step 4a item 6, lines ~196–207) — *added during Build: a
+   producing-stage buffer write inside `dev:done` that the original enumeration missed.* It must emit the
+   **P4** format like Tasks 3/4/5, not the old `###` + `**Files:**` + `*Source:*` shape: a `### <slug>`
+   entry whose fenced ```` ```markdown ```` block holds front-matter (`type: debt`, `scope: repo`,
+   `status: open`, `first_recorded:` from the clock, `cycles: [<feature>]`, `recurrence: 1`,
+   `files: [README.md, CLAUDE.md as affected]`) + the debt body; drop the `*Source:*` line. Retarget the
+   following prose paragraph from "turns this into a tracked `## Open` entry / increments `Recurrence:`" to
+   P6 against the P5 corpus (merge keys on front-matter `files:` overlap + same defect; a repeat bumps the
+   matched file's `recurrence:`). Escape note → P4 fence rule.
+10. **Step 8 report line** (lines ~490–497): keep the `Tech debt: N recorded, M closed` line format and the
    anomaly-append discipline (unmatched close, ambiguous, malformed buffer). Optionally reword "Tech debt:"
    → keep as-is for continuity (the store still holds debt items); update the malformed-buffer anomaly text
    to the P4 structure. Do **not** touch the docs-prose or primary-checkout reconciliation lines.
