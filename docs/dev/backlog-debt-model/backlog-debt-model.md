@@ -172,7 +172,7 @@ recurrence: 1
 files:
   - plugins/dev/skills/autopilot/SKILL.md
 possibly_related_to:    # optional — slug of a suspected duplicate (Decision 4)
-routing: delivered      # optional — delivered | pending (Decision 5), plugin-scope only
+routing: pending        # optional — set only on a local-degrade hold (Decision 5), plugin-scope only
 promoted_to:            # optional — path of the product-plan an item spawned (Decision 7)
 closed: 2026-07-22      # optional — set on close
 closed_by:              # optional — cycle name that closed it
@@ -299,67 +299,106 @@ The recurrence *ranking* (sort by `recurrence` descending, ties broken by the mo
 ## Decision 5 — Cross-repo routing
 
 **Decision.** An item's `scope:` field (Decision 3) is `repo` or `plugin`. A `repo`-scoped item stays
-in the current repo's `docs/backlog/`. A `plugin`-scoped item belongs in the `/dev` plugin's own
-`docs/backlog/` tree, and gets there by **writing the item file directly into the plugin repo's
-checkout** — never by opening a pull request.
+in the current repo's `docs/backlog/`. A `plugin`-scoped item belongs to the `/dev` plugin's own
+store — and it gets there by **opening a GitHub issue in the plugin repo**, which serves as a
+**triage inbox** the maintainer later converts into a `docs/backlog/` file. Routing **never** writes
+into another checkout and **never** opens a pull request.
+
+**Why an issue — not a file-write, not a PR.** The plugin, *as installed*, has no committable working
+tree. The marketplace `github` source materializes it as a content-addressed cache under
+`~/.claude/plugins/cache/…`, keyed by commit SHA — verified on disk: **not a git repo** (no `.git`,
+no remote), versioned side-by-side by SHA (so a write is orphaned on the next `/plugin update`), and
+it does **not** even carry the repo's `docs/` tree. So "write the item file into the plugin's
+checkout" has **no valid target in the very case routing exists for** — a cycle running in *another*
+repo. The one place a file-write would stick, a local *source* checkout, exists only in the dogfood
+case, which needs no routing at all. The only durable destination is the plugin's **GitHub repo**,
+and its native surface for "a thing to act on here" is an **issue**. An issue also sidesteps the
+fork/upstream flaw **by construction**: that flaw is specific to `gh pr create` defaulting its *base*
+to a fork's upstream — **issues have no base branch**, so an issue created against an explicit
+`--repo` lands there and nowhere else.
+
+**The target is read, not guessed.** The destination is the slug the marketplace registration already
+names — `extraKnownMarketplaces.<marketplace>.source.repo` (here `awilliamsbuilds/claude-plugins`) —
+passed explicitly to `gh issue create --repo <slug>`. This is the non-guessing source of truth: it is
+**not** inferred from the foreign repo's `origin`, so a foreign remote can never misdirect delivery.
+If the marketplace itself was registered from a fork, that field *names the fork* — the correct home —
+and the explicit target keeps the issue in the fork, never its upstream. Delivery uses the
+`GITHUB_PERSONAL_ACCESS_TOKEN` the repo already requires, so it works **from any repo without a local
+plugin checkout**.
 
 **Classification** happens at capture (Decision 6) and is **legible and hand-correctable**: `scope`
 is one front-matter line. A misclassified item (repo-scoped tagged `plugin`, or the reverse) is fixed
-by editing that line and moving the file to the right repo's tree — no tooling, no re-capture. This
+by editing that line — and, if it was already delivered as an issue, closing that issue — no tooling,
+no re-capture. This
 directly answers the "Misclassification" edge case: the model makes the classification a visible,
 editable field rather than an irreversible routing act.
 
-**Delivery reuses `dev:reflect`'s portable plugin-source discovery** — the git-remote / plugin-cache
-resolution that finds the plugin's source repo with no hardcoded path and no hardcoded marketplace
-name. Routing does **not** invent a second discovery path; it calls the one the plugin already has.
+**The inbox is an inbox, not a terminal home.** A routed issue is a *queue entry*, not the item's
+final resting place. The maintainer, working in the plugin repo, drains the queue — one label filter,
+`gh issue list --label <dev-backlog> --state open` — by **converting** each issue into a
+`docs/backlog/<type>-<slug>.md` file (lifting the front-matter block the issue body carries) and
+closing the issue with a reference to the file, or by simply fixing and closing it. `docs/backlog/`
+remains the single authoritative store *within* the plugin repo; the issue tracker is only the
+cross-repo transport into it. (The `/dev:debt` convert verb that fronts this is Decisions 6 and 9;
+design-only here. The exact label set is left to the implementing cycle — the design requires only
+*a* stable label + slug marker to filter and dedup on.)
 
-**Designing around the known discovery flaw — not past it.** There is a live Open tracker entry,
-*"dev:reflect dogfood shortcut can open a PR against a fork's upstream"*: the `origin`-slug ==
-marketplace-slug heuristic misfires on a fork (a user's fork of the plugin repo has an `origin` slug
-that matches the marketplace slug), and `gh pr create` then defaults its base to the fork's *upstream*
-— a repo the user may not own. The dogfood gate verifies the current checkout, not the PR base. This
-ADR treats that flaw as real and designs so routing cannot inherit it:
+**Dedup is two-layer, so the inbox stays bounded — this is the scalability guarantee.**
 
-1. **No PR in the routing path.** A backlog/debt note is not a code change; delivering it does not need
-   `gh pr create`. Routing writes the item **file** into the resolved plugin checkout's `docs/backlog/`.
-   Removing the PR step removes the exact mechanism (`gh pr create` defaulting to upstream) that the
-   open entry describes. The follow-on that implements routing is the natural place to **close** that
-   entry, because routing supersedes the PR-based delivery it was filed against (noted in Consequences,
-   not closed here — this is a design-only cycle).
-2. **Confirm the target before writing.** Discovery resolves a *candidate* plugin repo; routing then
-   **confirms the target** — surface the resolved repo path/slug and require confirmation, or accept an
-   explicit target the user passed — before writing anything. Because the origin-slug heuristic can
-   resolve a fork, the resolved target is treated as a proposal, not a fact. Confirmation is a human
-   surface (the capture flow, Decision 6), consistent with the mode-symmetry carve-out for
-   scope-affecting acts.
+- **At intake**, before opening an issue, search open inbox issues for the item's slug marker
+  (`gh issue list --search`). On a hit, **add a comment** ("recurred in `<repo>` on `<date>`") instead
+  of a duplicate — the same create-over-merge bias the recurrence-merge procedure uses, and a comment
+  is a richer recurrence log than a bumped counter. This keeps the *open-issue queue* free of
+  duplicates.
+- **At conversion**, the item is merged into `docs/backlog/*.md` under the ordinary recurrence-merge
+  procedure (Decision 4): `files` overlap **and** same defect → bump `recurrence:` on the existing file
+  and close the issue **without** creating a new file. This catches recurrences whose earlier issue was
+  already converted-and-closed (and is therefore invisible to the intake search over *open* issues).
+
+Intake dedups the queue cheaply; conversion dedups against the authoritative store. The queue is
+drained by triage and cannot grow unbounded — the two failure modes of a naive inbox (duplicate
+entries, and unbounded accumulation) are both closed.
+
+**Dogfood exception.** When a cycle runs *inside the plugin repo itself* (`git remote get-url origin`
+resolves to the marketplace slug — as in this very cycle), a `plugin`-scoped finding is already home:
+it is written straight to the local `docs/backlog/` as an ordinary file. No issue, no conversion — it
+never left.
 
 **The failure case, specified end to end** (Success Criteria + the "Plugin repo unreachable" edge
-case). When a `plugin`-scoped item cannot be delivered — the plugin repo is **not present locally**,
-or is present but **not writable**, or the target **cannot be confirmed**:
+case). When a `plugin`-scoped item cannot be delivered as an issue — **no network, no auth, the
+GitHub API call fails, or the target slug cannot be resolved**:
 
 - The item is **recorded locally** in the current repo's `docs/backlog/` with `scope: plugin` and
   `routing: pending`.
 - The `routing: pending` marker is **surfaced** — `/dev:debt` list (Decision 9) shows pending-routing
-  items distinctly, so the user knows an item is waiting to go home.
+  items distinctly, so a stranded item is visible.
 - The item is **never silently dropped.** This mirrors the contract's silent-degrade discipline
   exactly, but for a *writer*: a reader degrades by printing nothing; a writer degrades by writing
   **locally plus a visible marker**, never by discarding.
-- Delivery is retried later — on the next capture/sync when the plugin repo is reachable, or by the
-  user moving the file by hand. On successful delivery the local copy's marker flips to
-  `routing: delivered` (or the local placeholder is removed once the item lives in the plugin repo).
+- Delivery is **retried** on a later capture/sync when the API is reachable, or the user files it by
+  hand. On success the local `pending` copy is **removed** — the item now lives as an issue in the
+  plugin repo. In the healthy path there is **no lingering copy** in the foreign repo: the item lives
+  in exactly one place, upholding the anti-scatter goal.
 
 **Alternatives considered.**
 
-- **PR-based delivery** (mirror `dev:reflect`'s dogfood path: open a PR against the plugin repo).
-  Rejected: it inherits the fork/upstream flaw verbatim, and it is disproportionate — a debt note is
-  not reviewable code and does not warrant a PR round-trip. Direct file-write with target confirmation
-  is both safer and lighter.
-- **Auto-write on resolved origin with no confirmation.** Rejected: this is precisely what the open
-  entry warns against — a fork's `origin` resolves to a repo the user did not intend, and an
-  unconfirmed write puts the item in the wrong repo. Confirmation is the guard.
-- **Silently keep every plugin item local** (no routing, just a `scope` tag). Rejected: that is the
-  status quo the cycle exists to fix — plugin debt scattered across repos, never collected where it
-  can be acted on.
+- **Direct file-write into the plugin's checkout** (the intuitive first design, and this ADR's own
+  earlier draft). Rejected on inspection of the real install layout: the installed plugin is a
+  non-git, SHA-keyed cache with no `docs/` tree, so there is **nothing committable to write to** in
+  the cross-repo case; and the one place a write *would* stick — a local *source* checkout — is
+  exactly the dogfood case that needs no routing. A file-write is a dead drop everywhere routing
+  actually fires. (This is the P2 that reopened validation; the issue-inbox model replaces it.)
+- **PR-based delivery** (open a PR against the plugin repo). Rejected: heavier than a debt note
+  warrants — a note is not reviewable code — and a PR is the one mechanism that carries the
+  fork/upstream base-defaulting flaw. An issue is lighter and, having no base branch, cannot be
+  misdirected.
+- **Reuse `dev:reflect`'s discovery and confirm a guessed target.** Rejected: the fork flaw lives in
+  *guessing* the target from a local `origin`, not in the delivery verb. Reading the explicit slug
+  from the marketplace config removes the guess outright, so no per-item confirmation prompt is
+  needed — the target is known, not proposed.
+- **Silently keep every plugin item local** (a `scope` tag, no routing). Rejected: that is the status
+  quo the cycle exists to end — plugin debt scattered across every repo, never collected where it can
+  be acted on.
 
 ## Decision 6 — Capture skill shape
 
@@ -377,12 +416,14 @@ with them. The skill is renamed in spirit to cover the unified store, but the in
   producing stages defaults the other way — `debt` — because those write *findings*; see Decision 9.)
   Overridable inline (`/dev:debt add --debt …` or a prompt).
 - **`scope`** — `repo | plugin`. Defaults to **`repo`**; override to `plugin` (`--plugin`) when the
-  item is about the `/dev` plugin's own skills. A `plugin` scope triggers the Decision 5 routing flow,
-  including target confirmation and the local-degrade failure case.
+  item is about the `/dev` plugin's own skills. A `plugin` scope triggers the Decision 5 routing flow —
+  an issue into the plugin repo (or the dogfood-local / degrade-to-pending paths), no confirmation
+  prompt, because the target slug is read from the marketplace config, not guessed.
 
 Capture writes the front-matter (Decision 3), sets `status: open` (the initial lifecycle state,
 Decision 4), assigns the `<type>-<slug>.md` filename (Decision 2) with collision disambiguation, and —
-before writing a `plugin`-scoped item — runs the Decision 5 confirm-target step. On capture it also
+for a `plugin`-scoped item off the plugin repo — runs the Decision 5 issue-delivery step (with its
+intake dedup and degrade-to-pending fallback). On capture it also
 runs the **recurrence-merge scan** (Decision 4) against `docs/backlog/*.md`, so a manually captured
 item that duplicates an existing one merges (or creates-with-`possibly_related_to`) exactly as an
 auto-flushed one does.
@@ -535,8 +576,8 @@ a known list rather than discovering seams piecemeal.
 | `dev:validate` | Appends `###` entries to `debt-pending.md`, tagged `*Source: dev:validate (P3\|Nit)*` | Same — front-matter'd items into the buffer; the `Source`/severity tag carries as a front-matter field |
 | `dev:reflect` | Appends to buffer (in-cycle) or directly to the tracker (standalone) | In-cycle → buffer as above; standalone → write item file(s) directly into `docs/backlog/` (no buffer exists) |
 | `dev:spec` | Step 7 cross-check parses `## Open` entries; writes `## To Close` bullet | Cross-check scans `docs/backlog/*.md` front-matter `files:` (Decision 3); "close" a paid item = set `status: closed` + move to `closed/` (Decision 1/4) rather than a bullet in a buffer section |
-| `dev:done` | Step 6a flushes buffer → one tracker file; Step 7 deletes cycle dir | Flush writes **one file per buffered item** into `docs/backlog/`, running recurrence-merge (Decision 4) against `docs/backlog/*.md`; a `scope: plugin` item triggers Decision 5 routing |
-| `dev:debt` | Reads/ranks/closes the aggregate; user-invoked | Reads the directory, ranks by front-matter `recurrence:`, closes by editing `status:` + moving to `closed/`; **gains `add` (Decision 6)**; surfaces `routing: pending` items (Decision 5) |
+| `dev:done` | Step 6a flushes buffer → one tracker file; Step 7 deletes cycle dir | Flush writes **one file per buffered item** into `docs/backlog/`, running recurrence-merge (Decision 4) against `docs/backlog/*.md`; a `scope: plugin` item off the plugin repo is delivered per Decision 5 (`gh issue create` into the inbox, or `routing: pending` on degrade) instead of a local file |
+| `dev:debt` | Reads/ranks/closes the aggregate; user-invoked | Reads the directory, ranks by front-matter `recurrence:`, closes by editing `status:` + moving to `closed/`; **gains `add` (Decision 6)**; surfaces `routing: pending` items (Decision 5); **gains an inbox/convert verb** — list open inbox issues in the plugin repo and convert each into a `docs/backlog/` file, running recurrence-merge on conversion (Decision 5) |
 | `references/tech-debt.md` | The shared contract for the aggregate | **Rewritten** for the new store: front-matter schema replaces the "where a field ends" prose-parsing rules; the buffer/flush/recurrence-merge/silent-degrade/mode-symmetry sections are retargeted to per-item files |
 
 `dev:autopilot` writes no debt itself (it orchestrates and delegates), so it needs **no store change** —
@@ -558,9 +599,11 @@ items become files in `docs/backlog/`. What changes is only the *shape* of what 
   (build, validate, reflect, done) must run identically in both modes; `dev:spec`'s `## To Close`
   equivalent (now a status-close) stays the one human-gated scope act. Any new `state.json` key the
   implementation adds still needs its `(writes: …)` tag at its single write site.
-- **Worktree-relative writes** — **preserved.** `docs/backlog/` writes are worktree-relative like every
-  other artifact; the one deliberate exception is Decision 5's cross-repo write into the *plugin* repo,
-  which is by definition outside the current worktree and is guarded by target confirmation.
+- **Worktree-relative writes** — **preserved, and now cleanly.** `docs/backlog/` writes are
+  worktree-relative like every other artifact. Cross-repo routing no longer writes any *file* outside
+  the worktree at all — it calls the GitHub **API** (`gh issue create`) against an explicit remote
+  slug — so the earlier design's "write into another checkout" carve-out is gone. The only local write
+  routing makes is the in-worktree degrade file (`routing: pending`).
 - **"Where a field ends" prose-parsing rules** — **retired** for structured fields (front-matter makes
   them unambiguous); the body's bold-label prose keeps the no-`#`-heading-in-a-value escape rule, since
   bodies still quote Markdown-bearing text.
@@ -588,8 +631,10 @@ items become files in `docs/backlog/`. What changes is only the *shape* of what 
 - **A real backlog.** Deferred *intentions* get a first-class home (`docs/backlog/`, `type: backlog`)
   instead of being misfiled into a product-plan, and "save this to build later" becomes a one-line
   `/dev:debt add` — removing the pull toward Linear for solo and plugin work.
-- **Plugin debt collected where it can be acted on.** `scope: plugin` items route to the plugin repo
-  instead of scattering across every repo the plugin runs in.
+- **Plugin debt collected where it can be acted on.** `scope: plugin` items are routed as issues into
+  the plugin repo's triage inbox (then converted to `docs/backlog/` files on triage) instead of
+  scattering across every repo the plugin runs in — landing in GitHub's native "act on this here"
+  surface, reachable from any repo via the PAT with no local plugin checkout.
 - **Per-item lifecycle.** `open → in-progress → promoted → closed` lets the store show what is being
   worked on and what has grown into a plan — expressiveness the open/closed binary never had.
 - **A corrected product-plan.** The plan reverts to its true role — an ephemeral single-project
@@ -603,9 +648,12 @@ items become files in `docs/backlog/`. What changes is only the *shape* of what 
 - **A new dependency on YAML front-matter parsing** in every reading skill, replacing the bespoke
   prose-field machinery. Simpler overall, but it is a real format change every consumer must adopt at
   once (Decision 9).
-- **A cross-repo write** (routing into the plugin repo) is a genuinely new capability with its own
-  failure surface — mitigated by target confirmation and the local-degrade fallback (Decision 5), but
-  it is more moving parts than a same-repo append.
+- **A cross-repo API call** (routing an issue into the plugin repo) is a genuinely new capability with
+  its own failure surface — network and auth — mitigated by the local degrade-to-`pending` fallback
+  (Decision 5). And it splits the store across two media for the inbound plugin subset: those items are
+  GitHub **issues** until triage converts them to files, so they are not hand-editable `docs/backlog/`
+  Markdown while queued (queried via `gh issue` instead of `grep`). Accepted deliberately: across a
+  repo boundary a transport is unavoidable, and an issue is the honest one.
 
 **The follow-on cycles this ADR requires** (implementation is entirely deferred — this cycle is
 design-only):
@@ -615,20 +663,23 @@ design-only):
    (`dev:init`, `dev:build`, `dev:validate`, `dev:reflect`, `dev:spec`, `dev:done`, `dev:debt`).
 2. **Migration execution.** Run Decision 8's map: create the item files, retire `docs/dev/tech-debt.md`
    and the top-level `docs/dev/product-plan.md`, verify counts.
-3. **The capture verb.** Build `/dev:debt add` per Decision 6 (type/scope defaults, recurrence-merge on
-   capture, plugin-routing hook).
+3. **The capture + inbox verbs.** Build `/dev:debt add` per Decision 6 (type/scope defaults,
+   recurrence-merge on capture, the plugin issue-routing hook of Decision 5) **and** the inbox/convert
+   verb that drains open plugin-repo issues into `docs/backlog/` files (Decision 5).
 4. **Product-plan deletion + promotion.** Implement the corrected ephemeral behavior and the one-way
    `backlog → product-plan` promotion (Decision 7) — the seam where "deleted on completion" bites.
 
 These may be sequenced or combined, but the storage/contract cycle (1) must land before migration (2)
 and capture (3), which both target the store it defines.
 
-**Two open tracker entries the follow-ons naturally close** (this ADR notes them; a design-only cycle
-does not pay them):
+**Related open tracker entries** (this ADR notes them; a design-only cycle does not pay them):
 
-- ***"A nested product plan cannot outlive its parent"*** — the product-plan correction cycle (follow-on
-  4) is where a durable, project-lifetime plan location is defined, which is exactly what that entry
-  asks for (Decision 7).
-- ***"dev:reflect dogfood shortcut can open a PR against a fork's upstream"*** — the routing cycle
-  (follow-on 1) supersedes the PR-based cross-repo delivery the entry was filed against, replacing
-  `gh pr create` with a confirmed direct file-write (Decision 5).
+- ***"A nested product plan cannot outlive its parent"*** — **closed** by the product-plan correction
+  cycle (follow-on 4), which defines a durable, project-lifetime plan location — exactly what that
+  entry asks for (Decision 7).
+- ***"dev:reflect dogfood shortcut can open a PR against a fork's upstream"*** — **not closed by
+  routing** (routing uses issues, which have no base, and never touches `dev:reflect`'s skill-edit PR
+  path). But Decision 5 establishes the fix *pattern* that entry needs — read the target slug
+  explicitly from the marketplace config, never guess it from `origin`, and pass `--repo` so nothing
+  defaults to a fork's upstream. The follow-on that hardens `dev:reflect`'s PR path closes the entry by
+  adopting that same explicit-target discipline; it is a separate change from routing.
