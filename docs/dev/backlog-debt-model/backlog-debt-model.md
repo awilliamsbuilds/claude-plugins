@@ -112,3 +112,46 @@ one-field edit, not a file move across trees.
 **Technical Constraints honored.** Plain Markdown, hand-editable without tooling; fits the
 `references/` shared-contract pattern (the contract is rewritten for this store in a follow-on, per
 Decision 9); writes are worktree-relative like every other `/dev` artifact.
+
+## Decision 2 — File naming / identity
+
+**Decision.** An item's identity is a **stable kebab-case slug**, fixed at creation and unchanged
+for the item's life. The filename is **`<type>-<slug>.md`** where `type ∈ {debt, backlog}` — e.g.
+`debt-autopilot-grounding-gate.md`, `backlog-debt-backfill.md`. The filename encodes **type**, but
+**not status**: status lives in the header (Decision 3) and, terminally, in the `closed/` location
+(Decision 1). Slugs must be unique within the tree; on a collision, disambiguate on the way in by
+appending the first cycle name — `debt-<slug>-<first-cycle>.md` — reusing the contract's existing
+title-collision instinct.
+
+**The user's stated leaning was per-item files whose names reflect status.** This ADR adopts the
+per-item files but **declines status-in-filename**, resolving the leaning at the coarse level that
+actually matters (open vs. closed, via the `closed/` archive) rather than the fine-grained level
+that churns.
+
+**Alternatives considered.**
+
+- **Status in the filename** (e.g. `debt-open-<slug>.md` → `debt-closed-<slug>.md`, or a
+  `docs/backlog/open/` ↔ `docs/backlog/closed/` move on every transition). What it buys: `ls` alone
+  tells you an item's status. What it costs: a **rename on every lifecycle transition**. With the
+  four-state lifecycle of Decision 4 (open → in-progress → promoted → closed), an item's path would
+  change up to three times. Each rename breaks any cross-reference to the file (a `possibly_related_to`
+  pointer, a commit that mentions the path, a `promoted_to` back-link), fragments `git log` history
+  for the item, and turns a status change — logically a one-field edit — into a path mutation that
+  every reader must chase. The status is one `grep` of the header away; encoding it in the name buys
+  legibility that the header already provides and pays for it in churn.
+
+- **Type also omitted** (filename is just `<slug>.md`, type read only from the header). What it buys:
+  even less to rename, and no prefix to keep in sync if type is re-judged. What it costs: `ls debt-*.md`
+  no longer works — listing "all debt" or "all backlog" from the shell requires reading headers.
+  Type is far more stable than status (it changes rarely, and only by deliberate re-judgement), so the
+  prefix's sync cost is near zero while its greppability payoff is real. Type stays in the name; status
+  does not.
+
+**Identity across the lifecycle.** The slug never changes. On close, the file moves from
+`docs/backlog/<type>-<slug>.md` to `docs/backlog/closed/<type>-<slug>.md` — same basename, new
+directory — so `git log --follow` and `grep -r docs/backlog/` both still find it, and a
+`possibly_related_to: <slug>` pointer stays valid because it references the slug, not the path.
+
+If Decision 1 had chosen aggregate-only, a filename scheme would be N/A and items would be
+identified by unique `###` titles within the file (as today's tracker requires). It did not; the
+slug is the identity.
