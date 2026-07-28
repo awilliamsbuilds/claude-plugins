@@ -37,11 +37,14 @@ The complete file set is the **contract + 7 skills** verified as the store's con
      create-with-`possibly_related_to` on uncertainty, and the recurrence *ranking* — all carried
      over verbatim, only the corpus changes.
    - **Redesign the buffer format** to hold front-matter'd items (Decision 9: "the buffer's internal
-     structure is redesigned by the implementing cycle"); preserve its intent (a malformed buffer is
-     surfaced, never half-acted-on).
+     structure is redesigned by the implementing cycle"); it retains a **close-intent section** (the
+     `## To Close` analog) that `dev:spec` records into and `dev:done`'s flush executes. Preserve its
+     intent (a malformed buffer is surfaced, never half-acted-on).
    - Invariants: **retire** the "where a field ends" prose-parsing rules (front-matter makes them
-     unnecessary); **preserve** silent-degrade (retargeted to "`docs/backlog/` absent or holding no
-     active `*.md`"), mode-symmetry, and entry-text-is-data, unchanged.
+     unnecessary); **preserve** silent-degrade — readers print nothing when `docs/backlog/` is absent
+     or holds no active `*.md`, and **writers create the store on first write** (`dev:done`'s flush and
+     standalone `dev:reflect` create `docs/backlog/` when absent rather than dropping the item) — plus
+     mode-symmetry and entry-text-is-data, unchanged.
 2. **`dev:init`** — seed the `docs/backlog/` tree (with `closed/` and a `README.md` stating the
    store's contract) instead of creating `tech-debt.md`. The re-run/idempotent path must **create
    `docs/backlog/` if absent**, mirroring how init today ensures `tech-debt.md` exists on re-run —
@@ -52,12 +55,18 @@ The complete file set is the **contract + 7 skills** verified as the store's con
    front-matter field; `dev:reflect` standalone (no buffer) writes item file(s) directly into
    `docs/backlog/`.
 4. **`dev:spec`** — Step 7's cross-check scans `docs/backlog/*.md` front-matter `files:` instead of
-   parsing `## Open`; "closing" a paid item means `status: closed` + move to `closed/` rather than a
-   `## To Close` bullet against the aggregate. Keep the mode-gating (this write stays the one
-   human-gated scope act).
+   parsing `## Open`. When a paid item is folded into scope, `dev:spec` **records** the gated close
+   decision into the buffer's close-intent section (the `## To Close` analog) — it does **not** move
+   the file itself. Execution is deferred to `dev:done` (item 5), preserving the deferred-close safety
+   property: a cycle that agrees at spec-time to pay a debt may never finish, and premature close is
+   the unrecoverable direction. This spec-time record stays the one human-gated scope act.
 5. **`dev:done`** — the flush writes **one file per buffered item** into `docs/backlog/`, running the
-   repo-scope recurrence-merge against `docs/backlog/*.md`. Preserve the buffer→flush split and the
-   push-conflict recovery discipline, retargeted from one aggregate file to the directory.
+   repo-scope recurrence-merge against `docs/backlog/*.md`, and **executes** the buffer's close-intent
+   decisions at cycle end (`status: closed` + move to `docs/backlog/closed/`). The flush **creates
+   `docs/backlog/` (and `closed/`) on first write when absent** — the writer side of silent-degrade,
+   so buffered debt is never lost in the transition window before a manual `dev:init` re-run. Preserve
+   the buffer→flush split and the push-conflict recovery discipline, retargeted from one aggregate file
+   to the directory.
 6. **`dev:debt`** — read the `docs/backlog/` directory, rank by front-matter `recurrence:`, close by
    editing `status:` + moving to `closed/`. Reads/rank/close only.
 7. **Lifecycle states** (Decision 4) implemented for the flows this cycle carries: `open`,
@@ -107,8 +116,8 @@ The complete file set is the **contract + 7 skills** verified as the store's con
 3. At `dev:done`, the flush reads the buffer and writes one `docs/backlog/<type>-<slug>.md` per item,
    running repo-scope recurrence-merge against `docs/backlog/*.md` (bump-on-match, create-on-uncertain).
 4. Later, `dev:spec` in a new cycle scans `docs/backlog/*.md`, surfaces items whose `files:` intersect
-   the cycle, and (if a paid item is folded in) `dev:done`/`dev:spec` set `status: closed` + move it to
-   `docs/backlog/closed/`.
+   the cycle, and (if a paid item is folded in) **records** a close-intent into the buffer; **`dev:done`'s
+   flush executes** the close at cycle end — `status: closed` + move to `docs/backlog/closed/`.
 5. `dev:debt` on demand lists the directory ranked by `recurrence:`.
 
 ## Edge Cases
@@ -121,8 +130,10 @@ The complete file set is the **contract + 7 skills** verified as the store's con
 - **Slug collision** on write: append the first cycle name (`<type>-<slug>-<first-cycle>.md`).
 - **`dev:init` re-run** in a repo that already has `docs/backlog/`: idempotent no-op on the tree; must
   not clobber existing items.
-- **Transition window** after merge before init-rerun/migration: the new skills read a nonexistent
-  `docs/backlog/` → silent-degrade; the old `tech-debt.md` still sits on disk, unread. Accepted.
+- **Transition window** after merge before init-rerun/migration: readers of a nonexistent
+  `docs/backlog/` silent-degrade; the old `tech-debt.md` sits on disk, unread. A cycle that *defers*
+  debt in this window reaches `dev:done`'s flush with `docs/backlog/` absent — the flush **creates it
+  and writes** (writer-side degrade), so buffered debt is never lost. Accepted.
 
 ## Audience
 
