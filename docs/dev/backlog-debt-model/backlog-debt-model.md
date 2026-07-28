@@ -295,3 +295,68 @@ The recurrence *ranking* (sort by `recurrence` descending, ties broken by the mo
 - **Two states only (open/closed), as today.** Rejected: a backlog needs to express "being worked on"
   and "grew into a plan"; folding those into `open` would make `/dev:debt` unable to distinguish a
   fresh intention from one already under construction.
+
+## Decision 5 — Cross-repo routing
+
+**Decision.** An item's `scope:` field (Decision 3) is `repo` or `plugin`. A `repo`-scoped item stays
+in the current repo's `docs/backlog/`. A `plugin`-scoped item belongs in the `/dev` plugin's own
+`docs/backlog/` tree, and gets there by **writing the item file directly into the plugin repo's
+checkout** — never by opening a pull request.
+
+**Classification** happens at capture (Decision 6) and is **legible and hand-correctable**: `scope`
+is one front-matter line. A misclassified item (repo-scoped tagged `plugin`, or the reverse) is fixed
+by editing that line and moving the file to the right repo's tree — no tooling, no re-capture. This
+directly answers the "Misclassification" edge case: the model makes the classification a visible,
+editable field rather than an irreversible routing act.
+
+**Delivery reuses `dev:reflect`'s portable plugin-source discovery** — the git-remote / plugin-cache
+resolution that finds the plugin's source repo with no hardcoded path and no hardcoded marketplace
+name. Routing does **not** invent a second discovery path; it calls the one the plugin already has.
+
+**Designing around the known discovery flaw — not past it.** There is a live Open tracker entry,
+*"dev:reflect dogfood shortcut can open a PR against a fork's upstream"*: the `origin`-slug ==
+marketplace-slug heuristic misfires on a fork (a user's fork of the plugin repo has an `origin` slug
+that matches the marketplace slug), and `gh pr create` then defaults its base to the fork's *upstream*
+— a repo the user may not own. The dogfood gate verifies the current checkout, not the PR base. This
+ADR treats that flaw as real and designs so routing cannot inherit it:
+
+1. **No PR in the routing path.** A backlog/debt note is not a code change; delivering it does not need
+   `gh pr create`. Routing writes the item **file** into the resolved plugin checkout's `docs/backlog/`.
+   Removing the PR step removes the exact mechanism (`gh pr create` defaulting to upstream) that the
+   open entry describes. The follow-on that implements routing is the natural place to **close** that
+   entry, because routing supersedes the PR-based delivery it was filed against (noted in Consequences,
+   not closed here — this is a design-only cycle).
+2. **Confirm the target before writing.** Discovery resolves a *candidate* plugin repo; routing then
+   **confirms the target** — surface the resolved repo path/slug and require confirmation, or accept an
+   explicit target the user passed — before writing anything. Because the origin-slug heuristic can
+   resolve a fork, the resolved target is treated as a proposal, not a fact. Confirmation is a human
+   surface (the capture flow, Decision 6), consistent with the mode-symmetry carve-out for
+   scope-affecting acts.
+
+**The failure case, specified end to end** (Success Criteria + the "Plugin repo unreachable" edge
+case). When a `plugin`-scoped item cannot be delivered — the plugin repo is **not present locally**,
+or is present but **not writable**, or the target **cannot be confirmed**:
+
+- The item is **recorded locally** in the current repo's `docs/backlog/` with `scope: plugin` and
+  `routing: pending`.
+- The `routing: pending` marker is **surfaced** — `/dev:debt` list (Decision 9) shows pending-routing
+  items distinctly, so the user knows an item is waiting to go home.
+- The item is **never silently dropped.** This mirrors the contract's silent-degrade discipline
+  exactly, but for a *writer*: a reader degrades by printing nothing; a writer degrades by writing
+  **locally plus a visible marker**, never by discarding.
+- Delivery is retried later — on the next capture/sync when the plugin repo is reachable, or by the
+  user moving the file by hand. On successful delivery the local copy's marker flips to
+  `routing: delivered` (or the local placeholder is removed once the item lives in the plugin repo).
+
+**Alternatives considered.**
+
+- **PR-based delivery** (mirror `dev:reflect`'s dogfood path: open a PR against the plugin repo).
+  Rejected: it inherits the fork/upstream flaw verbatim, and it is disproportionate — a debt note is
+  not reviewable code and does not warrant a PR round-trip. Direct file-write with target confirmation
+  is both safer and lighter.
+- **Auto-write on resolved origin with no confirmation.** Rejected: this is precisely what the open
+  entry warns against — a fork's `origin` resolves to a repo the user did not intend, and an
+  unconfirmed write puts the item in the wrong repo. Confirmation is the guard.
+- **Silently keep every plugin item local** (no routing, just a `scope` tag). Rejected: that is the
+  status quo the cycle exists to fix — plugin debt scattered across repos, never collected where it
+  can be acted on.
