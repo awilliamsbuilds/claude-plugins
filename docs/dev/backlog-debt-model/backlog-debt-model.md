@@ -47,3 +47,68 @@ follow-on feature cycles that react to this document (see Consequences).
 - `docs/dev/product-plan.md` — the live multi-project plan, "Cycles completed: 3/5", spanning
   three unrelated projects, with the two misfiled backlog items named above still unchecked.
   Decision 7 corrects the model this file embodies.
+
+## Decision 1 — Storage model
+
+**Decision.** Move to **per-item files**: one Markdown file per item, in a single shared
+`docs/backlog/` tree. Debt and backlog items live in the **same tree**, distinguished by a
+`type:` header field (Decision 3), not by separate directories. Active items sit flat in
+`docs/backlog/`; a closed item is archived to `docs/backlog/closed/` — the one and only
+file move in an item's life, made on close, not on every transition.
+
+```
+docs/backlog/
+  debt-<slug>.md         # active debt item
+  backlog-<slug>.md      # active backlog intention
+  closed/
+    debt-<slug>.md       # archived, status: closed
+    backlog-<slug>.md
+```
+
+The recurrence-merge corpus (Decision 4) is exactly `docs/backlog/*.md` — the top-level,
+non-recursive glob — so a merge scan sees active items and is never diluted by the closed archive.
+
+**Alternatives considered.**
+
+- **Keep the single aggregate** (`docs/dev/tech-debt.md`, one file, `## Open` / `## Closed`).
+  What it buys: a one-file overview, and a recurrence-merge scan that is a single-file read. What
+  it costs: cross-repo routing becomes text surgery — to send a plugin finding home you must
+  extract one `###` entry from a file and splice it into another repo's file, preserving that
+  file's section structure; and there is no natural place for backlog items without either a third
+  section that overloads the file or a parallel second aggregate. Routing is the whole reason this
+  cycle exists, and the aggregate makes the movable unit a *fragment of a file* rather than a file.
+
+- **Hybrid** — per-item files for content plus a generated aggregate index. What it buys: per-item
+  movability *and* a one-file overview. What it costs: the index is a second copy of the truth that
+  drifts on every hand-edit, and the contract already forbids exactly this shape elsewhere (the
+  per-key write-mode rule bans a standing registry table "which would be a second copy that drifts").
+  The overview is recoverable on demand from the directory (`/dev:debt` list, Decision 9), so the
+  standing index earns its drift risk nothing.
+
+**Confronting the aggregate's real strengths** (Success Criteria requires this — the new model must
+not silently lose them):
+
+- **Hand-editability.** *Preserved, arguably improved.* Each item is a small self-contained file
+  instead of one entry buried in a growing aggregate; editing one item no longer risks the
+  "where does a field end" ambiguity that only exists because many entries share one file.
+- **Greppability.** *Preserved.* `grep -r docs/backlog/` searches every item; `ls docs/backlog/debt-*.md`
+  lists all active debt; the closed archive is one `grep -r docs/backlog/closed/` away. The one
+  thing lost — reading every entry by opening a single file — is replaced by listing a directory,
+  which `/dev:debt` already fronts.
+- **Recurrence-merge.** *Preserved by retargeting, not by shape.* The procedure scanned one file
+  because that file *was* the corpus of open entries; it now scans `docs/backlog/*.md`, which *is*
+  that same corpus. Recurrence is carried as a per-item header field (Decision 3), so the "this
+  keeps happening" signal is a property of the item, not of the aggregate's single-file layout.
+  Decision 4 specifies the retargeted procedure in full; the point here is that per-item storage
+  does not fragment the signal, because the merge step's corpus is the directory.
+
+**Debt and backlog share one tree** rather than splitting into `docs/debt/` and `docs/backlog/`.
+Rationale: the two kinds share their header schema, lifecycle, routing, and capture flow — a split
+would duplicate all four sets of rules and force a directory commitment at capture time, when an
+item's `type` can legitimately be re-judged (a "build X" intention that turns out to be a debt fix,
+or vice versa). One tree filtered by a `type:` field means one set of rules and a type change is a
+one-field edit, not a file move across trees.
+
+**Technical Constraints honored.** Plain Markdown, hand-editable without tooling; fits the
+`references/` shared-contract pattern (the contract is rewritten for this store in a follow-on, per
+Decision 9); writes are worktree-relative like every other `/dev` artifact.
