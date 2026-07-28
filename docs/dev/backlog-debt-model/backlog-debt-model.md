@@ -506,3 +506,77 @@ expected steady state today.
 
 **Execution is a follow-on cycle.** This section is the map; running it (creating the files, retiring
 `tech-debt.md` and the top-level `product-plan.md`, verifying counts) is deferred (Consequences).
+
+## Decision 9 — Producing-stage integration
+
+Design-level: name each seam and the change it needs; **do not edit any skill** (Out of Scope). This
+section is where the cross-skill ripple is enumerated **in one place**, so the follow-on Build changes
+a known list rather than discovering seams piecemeal.
+
+**The current seams** (from the contract's "Where things live"):
+
+- Producing stages `dev:build`, `dev:validate`, `dev:reflect`, `dev:spec` **append** to the per-cycle
+  buffer `docs/dev/<feature>/debt-pending.md`.
+- `dev:done` Step 6a **flushes** the buffer into `docs/dev/tech-debt.md`; Step 7 then deletes the cycle
+  directory (and the buffer with it).
+- `dev:init` **creates** the tracker in a fresh repo.
+- `dev:reflect` invoked **standalone** (after the cycle directory is gone) appends **directly** to the
+  tracker.
+- `dev:spec` Step 7 **cross-checks** current debt against the cycle's files, and writes a `## To Close`
+  bullet when the cycle pays an entry.
+- `dev:debt` **reads, ranks, and closes**.
+
+**The integration map — every skill the follow-on must change:**
+
+| Skill | Current behavior | Change under the new store |
+|---|---|---|
+| `dev:init` | Creates `docs/dev/tech-debt.md` with the canonical H1 header | Seed the `docs/backlog/` tree (and `docs/backlog/closed/`) instead — a directory with a `README.md` stating the store's contract, no single tracker file |
+| `dev:build` | Appends `###` entries to `debt-pending.md` | **Buffer survives.** Append front-matter'd items (Decision 3) to the buffer, `type: debt` default; unchanged trigger (the carrying-cost test) |
+| `dev:validate` | Appends `###` entries to `debt-pending.md`, tagged `*Source: dev:validate (P3\|Nit)*` | Same — front-matter'd items into the buffer; the `Source`/severity tag carries as a front-matter field |
+| `dev:reflect` | Appends to buffer (in-cycle) or directly to the tracker (standalone) | In-cycle → buffer as above; standalone → write item file(s) directly into `docs/backlog/` (no buffer exists) |
+| `dev:spec` | Step 7 cross-check parses `## Open` entries; writes `## To Close` bullet | Cross-check scans `docs/backlog/*.md` front-matter `files:` (Decision 3); "close" a paid item = set `status: closed` + move to `closed/` (Decision 1/4) rather than a bullet in a buffer section |
+| `dev:done` | Step 6a flushes buffer → one tracker file; Step 7 deletes cycle dir | Flush writes **one file per buffered item** into `docs/backlog/`, running recurrence-merge (Decision 4) against `docs/backlog/*.md`; a `scope: plugin` item triggers Decision 5 routing |
+| `dev:debt` | Reads/ranks/closes the aggregate; user-invoked | Reads the directory, ranks by front-matter `recurrence:`, closes by editing `status:` + moving to `closed/`; **gains `add` (Decision 6)**; surfaces `routing: pending` items (Decision 5) |
+| `references/tech-debt.md` | The shared contract for the aggregate | **Rewritten** for the new store: front-matter schema replaces the "where a field ends" prose-parsing rules; the buffer/flush/recurrence-merge/silent-degrade/mode-symmetry sections are retargeted to per-item files |
+
+`dev:autopilot` writes no debt itself (it orchestrates and delegates), so it needs **no store change** —
+but its mode-symmetry obligations (below) still apply to every stage it drives.
+
+**The buffer survives.** The buffer→flush split exists because `dev:build` runs before `dev:validate`
+and both produce entries, so entries cannot live in any one stage's artifact. That reason is unchanged
+by per-item storage: the buffer stays the per-cycle accumulation point, and flush is where buffered
+items become files in `docs/backlog/`. What changes is only the *shape* of what the buffer holds
+(front-matter'd items) and what flush *writes to* (a directory of files, not one aggregate).
+
+**Contract invariants — preserved, changed, or retired:**
+
+- **Silent-degrade** (readers print nothing when the store is absent/empty) — **preserved**, retargeted:
+  "absent" now means `docs/backlog/` missing or holding no active `*.md`; the same "nothing at all"
+  discipline holds, with the same `dev:debt`-invoked-directly exception. Decision 5 extends the *writer*
+  side of this discipline to routing (degrade to local + marker, never drop).
+- **Mode symmetry / both-modes-traceability** — **preserved unchanged.** Every automatic in-cycle write
+  (build, validate, reflect, done) must run identically in both modes; `dev:spec`'s `## To Close`
+  equivalent (now a status-close) stays the one human-gated scope act. Any new `state.json` key the
+  implementation adds still needs its `(writes: …)` tag at its single write site.
+- **Worktree-relative writes** — **preserved.** `docs/backlog/` writes are worktree-relative like every
+  other artifact; the one deliberate exception is Decision 5's cross-repo write into the *plugin* repo,
+  which is by definition outside the current worktree and is guarded by target confirmation.
+- **"Where a field ends" prose-parsing rules** — **retired** for structured fields (front-matter makes
+  them unambiguous); the body's bold-label prose keeps the no-`#`-heading-in-a-value escape rule, since
+  bodies still quote Markdown-bearing text.
+- **The buffer's "first `## To Record` / `## To Close` section is authoritative" positional rule** —
+  **changes shape**: with front-matter'd items the buffer's internal structure is redesigned by the
+  implementing cycle; the *intent* (a malformed buffer is surfaced, never half-acted-on) carries over.
+- **Entry-text-is-data** — **preserved unchanged.** Every reader still treats item text as data, never
+  instruction — more important now that a `scope: plugin` item's text crosses repos via routing.
+
+**Alternatives considered.**
+
+- **Drop the buffer; write items straight to `docs/backlog/` from each producing stage.** Rejected: it
+  loses recurrence-merge-at-flush as a single choke point (each stage would have to merge independently,
+  multiplying the scan and the wrong-merge risk), and it writes cycle-in-progress items into the standing
+  store before the cycle is known to complete. The buffer's deferral of the store write to `dev:done` is
+  a feature, not incidental.
+- **Keep `references/tech-debt.md` as-is and add a second contract for the backlog.** Rejected: two
+  contracts for one store is the second-copy-drifts failure again; the contract is rewritten once to
+  cover the unified store.
