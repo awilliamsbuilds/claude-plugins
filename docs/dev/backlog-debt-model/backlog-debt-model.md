@@ -328,7 +328,7 @@ plugin checkout**.
 
 **Classification** happens at capture (Decision 6) and is **legible and hand-correctable**: `scope`
 is one front-matter line. A misclassified item (repo-scoped tagged `plugin`, or the reverse) is fixed
-by editing that line — and, if it was already delivered as an issue, closing that issue — no tooling,
+by editing that line — and, if it was already opened as an issue, closing that issue — no tooling,
 no re-capture. This
 directly answers the "Misclassification" edge case: the model makes the classification a visible,
 editable field rather than an irreversible routing act.
@@ -345,11 +345,17 @@ design-only here. The exact label set is left to the implementing cycle — the 
 
 **Dedup is two-layer, so the inbox stays bounded — this is the scalability guarantee.**
 
-- **At intake**, before opening an issue, search open inbox issues for the item's slug marker
-  (`gh issue list --search`). On a hit, **add a comment** ("recurred in `<repo>` on `<date>`") instead
-  of a duplicate — the same create-over-merge bias the recurrence-merge procedure uses, and a comment
-  is a richer recurrence log than a bumped counter. This keeps the *open-issue queue* free of
-  duplicates.
+- **At intake**, use the label + slug marker to *find candidate* open inbox issues
+  (`gh issue list --search`), then apply **Decision 4's clear-match test to each candidate** — `files`
+  overlap **and** the same defect, **never the slug/topic alone** (two items that both slug to
+  `debt-state-json` are not thereby the same item). On a **clear match**, add a comment ("recurred in
+  `<repo>` on `<date>`") to that issue instead of opening a duplicate — a richer recurrence log than a
+  bumped counter. On **uncertainty**, **open a new issue** (noting the suspected sibling), because
+  Decision 4's create-over-merge bias holds in the issue medium too: a visible duplicate issue is cheap
+  to merge by hand, while a wrong merge silently buries a distinct finding as a comment. The slug is
+  how you *find* candidates; the two-condition test is what *merges* them. (The `gh` search index is
+  eventually-consistent, so intake dedup is best-effort against a race between near-simultaneous
+  cross-repo captures; the conversion-time merge below is the authoritative backstop.)
 - **At conversion**, the item is merged into `docs/backlog/*.md` under the ordinary recurrence-merge
   procedure (Decision 4): `files` overlap **and** same defect → bump `recurrence:` on the existing file
   and close the issue **without** creating a new file. This catches recurrences whose earlier issue was
@@ -362,7 +368,11 @@ entries, and unbounded accumulation) are both closed.
 **Dogfood exception.** When a cycle runs *inside the plugin repo itself* (`git remote get-url origin`
 resolves to the marketplace slug — as in this very cycle), a `plugin`-scoped finding is already home:
 it is written straight to the local `docs/backlog/` as an ordinary file. No issue, no conversion — it
-never left.
+never left. (This reuses the `origin`==marketplace-slug comparison the fork discussion above distrusts
+— deliberately: the comparison is *sound for detecting "am I home"* — a fork correctly registered as
+its own marketplace **is** the item's home — and the flaw it carried was only `gh pr create`
+base-defaulting, which this path never touches. We distrust that same comparison only for *resolving a
+delivery target*, which is why the target slug is read from config instead.)
 
 **The failure case, specified end to end** (Success Criteria + the "Plugin repo unreachable" edge
 case). When a `plugin`-scoped item cannot be delivered as an issue — **no network, no auth, the
@@ -375,10 +385,13 @@ GitHub API call fails, or the target slug cannot be resolved**:
 - The item is **never silently dropped.** This mirrors the contract's silent-degrade discipline
   exactly, but for a *writer*: a reader degrades by printing nothing; a writer degrades by writing
   **locally plus a visible marker**, never by discarding.
-- Delivery is **retried** on a later capture/sync when the API is reachable, or the user files it by
-  hand. On success the local `pending` copy is **removed** — the item now lives as an issue in the
-  plugin repo. In the healthy path there is **no lingering copy** in the foreign repo: the item lives
-  in exactly one place, upholding the anti-scatter goal.
+- Delivery is **retried by a named seam** — running `/dev:debt` in that repo (the same surface that
+  *lists* `routing: pending` items also **re-attempts** their delivery when the plugin repo is
+  reachable), and the next `dev:done` flush in that repo re-attempts any `routing: pending` items
+  before writing new ones — or the user files it by hand. Surfacing and retrying are the same verb, so
+  a stranded item is never merely displayed. On success the local `pending` copy is **removed** — the
+  item now lives as an issue in the plugin repo. In the healthy path there is **no lingering copy** in
+  the foreign repo: the item lives in exactly one place, upholding the anti-scatter goal.
 
 **Alternatives considered.**
 
@@ -576,8 +589,8 @@ a known list rather than discovering seams piecemeal.
 | `dev:validate` | Appends `###` entries to `debt-pending.md`, tagged `*Source: dev:validate (P3\|Nit)*` | Same — front-matter'd items into the buffer; the `Source`/severity tag carries as a front-matter field |
 | `dev:reflect` | Appends to buffer (in-cycle) or directly to the tracker (standalone) | In-cycle → buffer as above; standalone → write item file(s) directly into `docs/backlog/` (no buffer exists) |
 | `dev:spec` | Step 7 cross-check parses `## Open` entries; writes `## To Close` bullet | Cross-check scans `docs/backlog/*.md` front-matter `files:` (Decision 3); "close" a paid item = set `status: closed` + move to `closed/` (Decision 1/4) rather than a bullet in a buffer section |
-| `dev:done` | Step 6a flushes buffer → one tracker file; Step 7 deletes cycle dir | Flush writes **one file per buffered item** into `docs/backlog/`, running recurrence-merge (Decision 4) against `docs/backlog/*.md`; a `scope: plugin` item off the plugin repo is delivered per Decision 5 (`gh issue create` into the inbox, or `routing: pending` on degrade) instead of a local file |
-| `dev:debt` | Reads/ranks/closes the aggregate; user-invoked | Reads the directory, ranks by front-matter `recurrence:`, closes by editing `status:` + moving to `closed/`; **gains `add` (Decision 6)**; surfaces `routing: pending` items (Decision 5); **gains an inbox/convert verb** — list open inbox issues in the plugin repo and convert each into a `docs/backlog/` file, running recurrence-merge on conversion (Decision 5) |
+| `dev:done` | Step 6a flushes buffer → one tracker file; Step 7 deletes cycle dir | Flush writes **one file per buffered item** into `docs/backlog/`, running recurrence-merge (Decision 4) against `docs/backlog/*.md`. A `scope: plugin` item off the plugin repo **bypasses** the local recurrence-merge (that corpus structurally can't contain it) and is delivered per Decision 5 — intake dedup + `gh issue create`, or `routing: pending` on degrade — instead of a local file. Flush also re-attempts any existing `routing: pending` items first |
+| `dev:debt` | Reads/ranks/closes the aggregate; user-invoked | Reads the directory, ranks by front-matter `recurrence:`, closes by editing `status:` + moving to `closed/`; **gains `add` (Decision 6)**; surfaces **and re-attempts delivery of** `routing: pending` items (Decision 5); **gains an inbox/convert verb** — list open inbox issues in the plugin repo and convert each into a `docs/backlog/` file, running recurrence-merge on conversion (Decision 5) |
 | `references/tech-debt.md` | The shared contract for the aggregate | **Rewritten** for the new store: front-matter schema replaces the "where a field ends" prose-parsing rules; the buffer/flush/recurrence-merge/silent-degrade/mode-symmetry sections are retargeted to per-item files |
 
 `dev:autopilot` writes no debt itself (it orchestrates and delegates), so it needs **no store change** —
