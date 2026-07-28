@@ -26,34 +26,36 @@ The nine decisions form a DAG rooted at the storage model. Core decisions (2→3
 before the dependent designs (6, 7, 8, 9) can reference a concrete store. Migration (Task 10)
 and Consequences (Task 11) come last because they depend on every prior decision.
 
+The per-task `Depends on:` / `Consumes:` lines are the authoritative dependency source; this
+diagram is a reading aid. Cross-edges are annotated textually rather than drawn, so no arrow
+implies a dependency a task doesn't actually declare.
+
 ```
 Task 1 (scaffold + Context)
         │
         ▼
-Task 2 (D1 Storage model)  ◀── root of the DAG; everything downstream reads it
+Task 2 (D1 Storage model)  ◀── root of the DAG; every later task reads it
         │
-        ├──► Task 3 (D2 Naming/identity)
-        ├──► Task 4 (D3 Header schema)
-        │            │
-        │            ▼
-        │       Task 5 (D4 Lifecycle) ─────┐
-        │            │                     │
-        │            ▼                     ▼
-        ├──► Task 6 (D5 Cross-repo routing)
-        ├──► Task 7 (D7 Product-plan boundary)
-        │            │
-        │            ▼
-        ├──► Task 8 (D6 Capture skill)   ◀── also reads Task 5, Task 6
-        ├──► Task 9 (D9 Producing-stage integration) ◀── reads Task 4, Task 5
+        ├──► Task 3 (D2 Naming / identity)      — reads Task 2
+        ├──► Task 4 (D3 Header schema)          — reads Task 2; produces `status` + `scope`
+        │           │
+        │           ├──► Task 5 (D4 Lifecycle)          — reads Task 2, Task 4 (`status`)
+        │           └──► Task 6 (D5 Cross-repo routing) — reads Task 2, Task 4 (`scope`)
+        │
+        ├──► Task 7 (D7 Product-plan boundary)  — reads Task 2 only
+        ├──► Task 8 (D6 Capture skill)          — reads Task 2, 4, 5, 6
+        └──► Task 9 (D9 Producing-stage integ.) — reads Task 2, 4, 5
         │
         ▼
-Task 10 (D8 Migration)  ◀── reads Tasks 2,3,4,5,7 (target shape must be final)
+Task 10 (D8 Migration)  ◀── reads Task 2, 3, 4, 5, 7 (target shape must be final)
         │
         ▼
 Task 11 (Consequences + cross-consistency pass)  ◀── reads all
 ```
 
-**Parallel-safe once the core is written:** Tasks 6, 7, 9 have no dependency on each other and
+Task 5 and Task 6 are **siblings** — both read Task 4's fields, neither depends on the other.
+
+**Parallel-safe once the core is written:** Tasks 5, 6, 7, 9 have no dependency on each other and
 may be drafted in any order after Tasks 2/4. Task 8 (capture) additionally reads Tasks 5 and 6, so
 it follows both. All sections live in one file, so "parallel" here means order-independent, not
 concurrent writes.
