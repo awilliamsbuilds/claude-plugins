@@ -3,8 +3,8 @@
   "feature": "unified-backlog-store",
   "branch": "feature/unified-backlog-store",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "plan", "build"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T03:45:28Z",
   "artifacts": {
@@ -56,7 +56,9 @@
       "spec_start": "2026-07-28T03:45:28Z",
       "spec_end": "2026-07-28T04:16:59Z",
       "plan_start": "2026-07-28T04:19:33Z",
-      "plan_end": "2026-07-28T04:31:40Z"
+      "plan_end": "2026-07-28T04:31:40Z",
+      "build_start": "2026-07-28T04:36:40Z",
+      "build_end": "2026-07-28T13:08:41Z"
     }
   }
 }
