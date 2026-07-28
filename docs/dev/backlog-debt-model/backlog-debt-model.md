@@ -155,3 +155,71 @@ directory — so `git log --follow` and `grep -r docs/backlog/` both still find 
 If Decision 1 had chosen aggregate-only, a filename scheme would be N/A and items would be
 identified by unique `###` titles within the file (as today's tracker requires). It did not; the
 slug is the identity.
+
+## Decision 3 — Header schema
+
+**Decision.** Each item file carries a **YAML front-matter block** for structured metadata,
+followed by a **Markdown body** in the current tracker's bold-label prose shape.
+
+```markdown
+---
+type: debt              # debt | backlog
+scope: repo             # repo | plugin
+status: open            # open | in-progress | promoted | closed
+first_recorded: 2026-07-21
+cycles: [spec-grounding-and-clock]
+recurrence: 1
+files:
+  - plugins/dev/skills/autopilot/SKILL.md
+possibly_related_to:    # optional — slug of a suspected duplicate (Decision 4)
+routing: delivered      # optional — delivered | pending (Decision 5), plugin-scope only
+promoted_to:            # optional — path of the product-plan an item spawned (Decision 7)
+closed: 2026-07-22      # optional — set on close
+closed_by:              # optional — cycle name that closed it
+---
+
+**What's wrong:** …          # debt body (unchanged prose fields)
+**Why deferred:** …
+**Done looks like:** …
+```
+
+Backlog items use `What:` / `Why:` / `Done looks like:` in the body instead of the debt trio; the
+front-matter is identical across both types.
+
+**The floor.** Today's Open meta line carries `First recorded`, `Cycles`, `Recurrence`, and the
+body carries `**Files:**` (required), `**What's wrong:**`, `**Why deferred:**`, `**Done looks
+like:**`, and optionally `**Possibly related to:**`. Every one of those survives — `first_recorded`,
+`cycles`, `recurrence`, `files`, `possibly_related_to` move into front-matter; the prose fields stay
+in the body verbatim. The Closed meta line's `Closed …` and `by cycle …` map to `closed` /
+`closed_by`. Nothing today's header carries is dropped.
+
+**The new fields the unified model needs:**
+
+- `type` — `debt | backlog`. The single field that lets one tree hold both kinds (Decision 1).
+- `scope` — `repo | plugin`. **This is the field Decision 5's routing keys on.** Named here so
+  routing binds to it cleanly; legible and hand-correctable by editing one line.
+- `status` — `open | in-progress | promoted | closed`. **This is the field Decision 4's lifecycle
+  drives.** Named here so the lifecycle binds to it cleanly.
+
+**Syntax: front-matter vs. the current bold-label prose.**
+
+- **Chosen: YAML front-matter for structured fields + prose body.** Per-item files make front-matter
+  clean — exactly one block per file, no ambiguity about which entry a field belongs to. It is still
+  hand-editable plain text, and it **retires the fragile "where does a field end" machinery** in the
+  contract (the rules about line-initial labels, mid-line bold-colon spans, and never terminating at
+  a blank line). That machinery exists *only* because many multi-paragraph entries share one aggregate
+  file; with one item per file and structured fields in front-matter, a value's extent is unambiguous.
+  The narrative fields stay in the body in the same prose the tracker uses today, so migration
+  (Decision 8) is a lift of existing text, not a rewrite of it.
+
+- **Rejected: keep everything as bold-label prose** (just split across files). What it buys: zero
+  parsing change — the existing field-boundary rules carry over unchanged. What it costs: it keeps a
+  set of rules whose entire reason for existing (disambiguating packed entries in one file) is gone,
+  and it leaves structured fields like `status` and `scope` as prose that every reader must parse out
+  of a paragraph rather than read as a key. Front-matter is the better fit for fields that routing and
+  lifecycle machine-read.
+
+**Invariant carried forward:** `recurrence` still equals the number of names in `cycles`, maintained
+together, `cycles` authoritative on disagreement (Decision 4). `files` remains **required** — it is
+what `dev:spec`'s cross-check keys on (Decision 9), and an item without it is invisible at the one
+moment it would be actionable.
