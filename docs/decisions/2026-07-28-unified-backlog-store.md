@@ -23,3 +23,15 @@ Cycle 1 of the backlog/debt-model ADR: the `/dev` tech-debt store was cut over f
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 49c802ef607289b7e7a69ca15c4ffb9ac36be1ee on branch feature/unified-backlog-store
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-28*
+
+**Spec:** Confidence (90/Ready) matched actual clarity — 0 revisions. The spec cold-review caught 1 blocker + 1 concern upstream, both applied, none dismissed; the spec then held with no post-gate churn.
+**Shape:** Skipped — ADR-implementation cycle, no UI.
+**Plan:** Accurate; one minor mid-build step added to Task 7. The self-contained contract kept `files_read_in_build` at 1. Plan cold-review logged 1 concern, carried as acknowledged.
+**Validate:** 1/5 loops, clean. A P2 (buffer-template backtick fence), two P3s (stale `tech-debt.md` citation in `dev:spec`; slug-collision check ignoring `closed/`), and a Nit (slug charset) all resolved in loop 1; cold re-review found no regression.
+**Flow:** Tier `deep` was right — shared contract + 7 skills with load-bearing safety properties. No unnecessary stages.
+**Token efficiency:** No outliers. The multi-hour Build span was wall-clock elapsed with real-time gaps, not a spend signal; `visual_screens_shown=0` correct for a no-UI cycle.
+**Suggestions:** Low-value only — a Build-time grep of Success Criteria phrased as "no skill references X" could have caught the stale `tech-debt.md` citation before Validate, but Validate already catches it reliably.
+**Deferred to tech debt:** none
