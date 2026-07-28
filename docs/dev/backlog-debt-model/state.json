@@ -3,8 +3,8 @@
   "feature": "backlog-debt-model",
   "branch": "arch/backlog-debt-model",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T01:20:55Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/backlog-debt-model/plan.md",
     "validation": "docs/dev/backlog-debt-model/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/51",
+    "pr_number": 51
   },
   "validate": {
     "loops_run": 3,
@@ -60,7 +60,8 @@
       "build_start": "2026-07-28T02:48:34Z",
       "build_end": "2026-07-28T02:57:56Z",
       "validate_start": "2026-07-28T02:59:28Z",
-      "validate_end": "2026-07-28T03:31:27Z"
+      "validate_end": "2026-07-28T03:31:27Z",
+      "pr_created": "2026-07-28T03:35:29Z"
     }
   }
 }
