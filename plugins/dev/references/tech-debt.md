@@ -63,7 +63,7 @@ fields.
 ---
 type: debt              # debt | backlog — required
 scope: repo             # repo | plugin — default repo (reserved: routing, cycle 3)
-status: open            # open | in-progress | closed (promoted is reserved — see P3)
+status: open            # open | in-progress | closed | promoted (promoted is backlog-only, see P3)
 first_recorded: 2026-07-28
 cycles: [unified-backlog-store]
 recurrence: 1
@@ -72,7 +72,7 @@ files:
 possibly_related_to:    # optional — slug of a suspected duplicate (P6)
 severity:               # optional — P3 | Nit — informational, written by dev:validate; preserved verbatim
 routing:                # optional — reserved (Decision 5, cycle 3); no procedure here
-promoted_to:            # optional — reserved (Decision 7, cycle 4); no procedure here
+promoted_to:            # optional — for a promoted backlog item, repo-relative path of the product-plan it spawned (docs/dev/product-plans/<slug>.md); set by dev:spec, one-way — see P3
 closed:                 # optional — set on close (P3)
 closed_by:              # optional — cycle name that closed it
 ---
@@ -89,7 +89,7 @@ closed_by:              # optional — cycle name that closed it
 - `scope` — `repo | plugin`. Default `repo`. **Reserved schema field** — cross-repo routing keys on it,
   but that behavior is a follow-on cycle (Decision 5, cycle 3). This cycle writes the default and acts
   on nothing; a `plugin`-scoped item is written locally like any other.
-- `status` — `open | in-progress | closed` (plus the reserved `promoted`, P3). The lifecycle field.
+- `status` — `open | in-progress | closed`, plus `promoted` (backlog-only, live — see P3). The lifecycle field.
 - `first_recorded` — `YYYY-MM-DD`, read from the clock (see the clock rule below).
 - `cycles` — YAML list of cycle names that have recorded or re-hit the item.
 - `recurrence` — integer. **Invariant: `recurrence == len(cycles)`**, maintained together; `cycles` is
@@ -106,8 +106,10 @@ closed_by:              # optional — cycle name that closed it
 - `routing` — optional. **Reserved** (Decision 5, cycle 3): the local-degrade hold marker for a
   plugin-scoped item that couldn't be delivered. Documented here so the on-disk format is stable; **no
   procedure this cycle.**
-- `promoted_to` — optional. **Reserved** (Decision 7, cycle 4): path of a product-plan a backlog item
-  spawned. Documented here; **no procedure this cycle.**
+- `promoted_to` — optional. For a backlog item **promoted** to a product-plan, the repo-relative path
+  of the plan it spawned (`docs/dev/product-plans/<project-slug>.md`). Set by `dev:spec` when it spawns
+  a product-plan **from** this item; **one-way** — never cleared, never demoted. See the promotion-flow
+  subsection under P3.
 - `closed` — optional `YYYY-MM-DD`, set on close (P3).
 - `closed_by` — optional cycle name that closed it.
 
@@ -154,11 +156,13 @@ transitions this cycle carries:
 |-------|---------|
 | `open` | Recorded, not yet being acted on |
 | `in-progress` | A cycle is actively paying (debt) or building (backlog) it |
+| `promoted` | Backlog-only: this item was spawned into a product-plan (`promoted_to` set); one-way |
 | `closed` | Paid, built, dropped, or obsolete — archived to `docs/backlog/closed/` |
 
 ```
 open ──► in-progress ──► closed
   │                        ▲
+  ├──► promoted ───────────┤   (backlog item spawned into a product-plan, then completed)
   └──► closed  (paid directly / dropped / obsolete)
 ```
 
@@ -166,8 +170,29 @@ open ──► in-progress ──► closed
 `open → closed` covers the direct paths (a debt paid inside the cycle that found it, or a stale item
 dropped).
 
-`promoted` is a **reserved** state value (backlog-only, Decision 7, cycle 4) — documented so the
-on-disk format is stable, with **no procedure here.**
+`open → promoted` (backlog-only) when `dev:spec` spawns a product-plan **from** this item — it sets the
+item `status: promoted` and `promoted_to: <plan-path>`. `promoted → closed` when that product-plan's
+project completes: `dev:done` reverse-looks-up the item by `promoted_to`, sets `closed`/`closed_by`, and
+archives it to `docs/backlog/closed/`. `promoted` is **one-way** — a plan never demotes back to a
+backlog item.
+
+### One-way promotion flow + ephemeral product-plan lifecycle
+
+This subsection is the **single source of truth** for how a product-plan relates to the backlog; the
+individual skills implement against it and hold no second copy.
+
+- A **product-plan** is an **ephemeral single-project milestone carrier**, living at
+  `docs/dev/product-plans/<project-slug>.md` — one directory outside any single cycle's dir, so it
+  survives child-cycle `dev:done` teardown. It is **deleted on project completion** (when every
+  milestone checkbox is `[x]`), never on a mid-project child teardown and never on a timer. It is **not**
+  a standing backlog; the standing store is `docs/backlog/`.
+- Promotion is **one-way**: `dev:spec` spawns a product-plan from a `docs/backlog/` item and sets that
+  item `status: promoted` + `promoted_to: <plan-path>`. On project completion `dev:done` deletes the plan
+  and moves the source item `promoted → closed` (archived to `docs/backlog/closed/`), reverse-looked-up
+  by `promoted_to`. A plain product-scale request with **no** originating backlog item spawns a plan with
+  **no** back-link (there is nothing to link).
+- A **promoted-but-never-completed** project leaves its plan in place by design (deleted on completion,
+  not on a timer); `/dev:debt` surfaces the item as `promoted` so it is never silently stranded.
 
 `closed` is **terminal** and is the **only** state whose entry triggers the archival move to
 `docs/backlog/closed/` (P2 keeps the basename identical across the move).
