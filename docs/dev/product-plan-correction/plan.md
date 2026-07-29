@@ -309,7 +309,11 @@ Implementation steps:
    nested path as debt-qualification *teaching text*, not a live operation. Leave those unless their
    surrounding contract prose was itself rewritten in Task 2.
 4. Final verification: `grep -rn "docs/dev/product-plan\.md\|docs/dev/<parent>/product-plan\.md"
-   plugins/dev/` returns only the two exempt example rows and no live read/write.
+   plugins/dev/` must return **zero** rows once the live sites are rewritten — a zero result is the
+   pass condition (no live read/write of the old paths remains). Note the two exempt rows (~361–362)
+   do **not** appear in this narrow grep: they cite the slug `product-plan-worktree-safe`, not the
+   literal path strings, so only the broad step-3 grep (`grep -rn "product-plan"`) surfaces them, and
+   they are left in place by design.
 
 ## Edge Cases
 | Edge case | Handled in | Approach |
