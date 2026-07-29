@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-07-29
+closed_by: product-plan-correction
 first_recorded: 2026-07-22
 cycles: [tech-debt-tracking]
 recurrence: 1
