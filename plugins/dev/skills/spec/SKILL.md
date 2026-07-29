@@ -270,11 +270,14 @@ like `spec.md` and `plan.md`.
 
 ```bash
 # The plan path is always docs/dev/product-plans/<project-slug>.md — one scheme, no fork.
-# Substitute <product-name> as a plain literal — do not let a name containing quotes or $(...) break the -m quoting.
+# Use <project-slug> (allowlisted ^[a-z0-9][a-z0-9-]*$) in the -m message, not the raw
+# <product-name>: the slug is already shell-safe, so no name containing quotes or $(...) can
+# break the -m quoting. (If the human-readable name is wanted in the message, carry it in a
+# single-quoted shell var — MSG='docs: record product plan for <product-name>' — and pass -m "$MSG".)
 git -C "$WORKDIR" add docs/dev/product-plans/<project-slug>.md docs/dev/<feature-name>/state.json
 # Include the source backlog item in the same commit ONLY when this plan was promoted from one:
 #   git -C "$WORKDIR" add docs/backlog/<source-slug>.md
-git -C "$WORKDIR" commit -m "docs: record product plan for <product-name>"
+git -C "$WORKDIR" commit -m "docs: record product plan for <project-slug>"
 ```
 
 This commit rides the cycle's PR to `$INTEGRATION` — there is no direct push. If neither Step 2 nor

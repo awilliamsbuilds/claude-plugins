@@ -97,7 +97,7 @@ scannable when deciding what to fold into an upcoming cycle.
 A `promoted` item is an **active-corpus** item — it lives at `docs/backlog/backlog-<slug>.md`, outside
 `closed/`, so the P5 corpus glob already includes it: it is listed and counted here, and a lone
 promoted item must never be mis-reported as "no items". If the active corpus is empty but
-`docs/backlog/closed/` has items, say "No open tech debt. N closed items — `/dev:debt closed`."
+`docs/backlog/closed/` has items, say "No active tech debt. N closed items — `/dev:debt closed`."
 
 ## Step 4: Show One Item
 
