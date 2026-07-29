@@ -50,21 +50,31 @@ promotion's terminus; migration is the concrete proof of the corrected model):
    **project** completes — not on each child cycle's `dev:done` teardown. This is the "deleted on
    completion" behavior the corrected model requires.
 
-4. **One-way `backlog → product-plan` promotion.** Emergent in `dev:spec` **Step 2** (Scale Detection),
-   which already owns the "this is product-scale → map into cycles → write a product-plan" machinery.
-   When a backlog item is picked up and specced and turns out to span cycles, promotion is that
-   existing path **plus a back-link to the source item**: spawn the product-plan, set the source
-   backlog item `status: promoted` and `promoted_to: <plan path>`. The flow is **one-way** — a plan
-   never demotes back to a backlog item. On project completion the item moves `promoted → closed`
-   (and is archived to `docs/backlog/closed/`). This activates the `promoted` status value and the
-   `promoted_to` field that `references/tech-debt.md` currently marks **reserved**.
+4. **One-way `backlog → product-plan` promotion.** Emergent in `dev:spec` — promotion is the existing
+   "product-scale → map into cycles → write a product-plan" machinery **plus a back-link to the source
+   item**: spawn the product-plan, set the source backlog item `status: promoted` and
+   `promoted_to: <plan path>`. `dev:spec` has **two** plan-writing paths and promotion must set the
+   back-link at **both**: **Step 2** (Scale Detection — product-scale obvious up front) and **Step 4**
+   (Scope Check — multi-cycle nature emerging *through conversation*). Whenever either path writes a
+   product-plan **for a source that is a `docs/backlog/` item**, it also writes the back-link; a plain
+   product-scale request with no originating backlog item writes a plan but no back-link (nothing to
+   link to). This closes the invariant hole where a backlog item that only reveals product-scale at
+   Step 4 would otherwise spawn a plan with no back-link. The flow is **one-way** — a plan never demotes
+   back to a backlog item. On project completion the item moves `promoted → closed` (and is archived to
+   `docs/backlog/closed/`). This activates the `promoted` status value and the `promoted_to` field that
+   `references/tech-debt.md` currently marks **reserved**.
 
 **Durable plan location (pinned).** Product-plans move to a dedicated
 **`docs/dev/product-plans/<project-slug>.md`** directory — outside any single cycle's dir, so a plan
 survives child-cycle `dev:done` teardown and is deleted only on project completion. This replaces the
 two current locations (`docs/dev/product-plan.md` top-level, `docs/dev/<parent>/product-plan.md`
 nested — the latter being the one that dies with its parent cycle). Pinning this location **closes
-`debt-nested-product-plan-lifetime`**. Plan refines the exact write/delete mechanics.
+`debt-nested-product-plan-lifetime`**. Plan refines the exact write/delete mechanics — and must
+**define `<project-slug>` explicitly**: today a top-level plan has no project identity (just
+`product-plan.md`) and a nested plan is keyed by `<parent>`, so the single new scheme needs a stated
+slug source **and** a rule by which a child cycle recovers the *same* slug (e.g. from `state.json`) so
+`dev:done` can locate the exact plan to check off and delete. The slug is load-bearing three ways
+(relocated writes, `dev:done` delete, promotion spawn) and must not be left to builder guess.
 
 **Skills changed:** `dev:spec` (Steps 2/4/6 — promotion back-link + new plan location), `dev:done`
 (Step 3 check-off relocation + new project-completion deletion trigger), `dev:debt` (surface
@@ -91,7 +101,8 @@ migration + file retirement are one-time operations Build executes.
 - No live data lost: the two intentions are rehomed; the three completed milestones are intentionally
   dropped (verifiable against the decision logs / cycle history).
 - Every product-plan read/write in the skills targets `docs/dev/product-plans/<project-slug>.md`;
-  no reference to the old singular/nested paths remains.
+  no live read/write of the old singular/nested paths remains (illustrative/historical mentions, e.g.
+  the `references/tech-debt.md` example rows, are exempt — see Edge Cases).
 - `dev:done` deletes a project's product-plan on project completion and never on a mid-project child
   cycle's teardown.
 - `dev:spec` Step 2, on speccing an oversized backlog item, spawns a product-plan and sets the source
@@ -118,10 +129,16 @@ migration + file retirement are one-time operations Build executes.
 
 ## Edge Cases
 
-- **Reference sweep must be exhaustive.** Every existing `docs/dev/product-plan.md` and
-  `docs/dev/<parent>/product-plan.md` mention in the skills must move to the new scheme, or a stage
-  writes/reads a path that no longer exists. A missed reference is a silent breakage — Build must grep
-  the full `plugins/dev/` surface, not just the skills named in Scope.
+- **Reference sweep must be exhaustive — but targets live path reads/writes, not textual mentions.**
+  Every place a skill actually *reads or writes* `docs/dev/product-plan.md` or
+  `docs/dev/<parent>/product-plan.md` must move to the new scheme, or a stage reads/writes a path that
+  no longer exists. Build must grep the full `plugins/dev/` surface, not just the skills named in Scope.
+  **Explicitly excluded from rewriting:** *illustrative* or *historical* mentions of the old path that
+  aren't live operations — notably the two carrying-cost example rows in `references/tech-debt.md`
+  (~lines 361–362) that cite the nested product-plan path as debt-qualification *examples*. Those are
+  teaching text, not reads; leave them unless the surrounding contract prose is itself being rewritten
+  for the new lifecycle. The "no reference to old paths remains" success criterion means no live
+  read/write remains — not that every string is scrubbed.
 - **Promoted-but-never-completed project.** A promoted item whose project never finishes leaves its
   plan in place by design (ephemeral means *deleted on completion*, not on a timer); `/dev:debt` shows
   it as `promoted` so it's visible, never silently stranded.
