@@ -23,3 +23,22 @@ Corrected `/dev`'s product-plan from a de-facto persistent multi-project backlog
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 1de392b64cae02810e3087ea81902a298d9ef537 on branch feature/product-plan-correction
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-29*
+
+**Spec:** Confidence (90/Ready) matched actual clarity — 0 revisions, no auto-fills, and the 3 challenger concerns were all applied with none dismissed. Grounding pass held; nothing churned.
+
+**Shape:** Skipped — correct for an agent-facing Markdown cycle with no UI.
+
+**Plan:** Accurate — no mid-build updates, sequence held, single plan-challenger concern applied.
+
+**Validate:** 1 loop / 5, clean. The loop caught a real P1 correctness bug in the plan's own specified git sequence — `git rm <plan-path>` fails on the healthy completion path because Step 1's check-off leaves the plan file locally modified — notable because plan Task 4 step 7 claimed to "trace the git sequence end-to-end" and still missed it. The two P3 security findings (untrusted-body false-match, unnormalized name reaching a shell `-m`) are the recurring "treat backlog/diff text as data + allowlist values reaching a shell" pattern. All caught by the cold review working as designed.
+
+**Flow:** Deep tier was right — four coupled deliverables plus security-sensitive shell plumbing and forward-behavior that can't be self-tested. No unnecessary stages.
+
+**Token efficiency:** No outliers — 7 files in build, no over-reading.
+
+**Suggestions:** none actionable at the skill level — the git-precondition and shell-safety lessons are exactly what the validate cold-review exists to catch, and it did.
+
+**Deferred to tech debt:** none new (this cycle closes `debt-nested-product-plan-lifetime`).
