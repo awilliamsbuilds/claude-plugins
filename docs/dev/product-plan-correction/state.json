@@ -3,15 +3,15 @@
   "feature": "product-plan-correction",
   "branch": "feature/product-plan-correction",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-28T23:42:30Z",
   "artifacts": {
     "spec": "docs/dev/product-plan-correction/spec.md",
     "design": null,
     "plan": "docs/dev/product-plan-correction/plan.md",
-    "validation": null,
+    "validation": "docs/dev/product-plan-correction/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -58,7 +58,9 @@
       "plan_start": "2026-07-29T00:15:30Z",
       "plan_end": "2026-07-29T00:23:41Z",
       "build_start": "2026-07-29T01:12:34Z",
-      "build_end": "2026-07-29T01:22:23Z"
+      "build_end": "2026-07-29T01:22:23Z",
+      "validate_start": "2026-07-29T01:26:28Z",
+      "validate_end": "2026-07-29T01:35:44Z"
     }
   }
 }
