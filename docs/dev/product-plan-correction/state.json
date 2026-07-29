@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/product-plan-correction/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/product-plan-correction/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -54,7 +54,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-28T23:42:30Z",
-      "spec_end": "2026-07-29T00:14:52Z"
+      "spec_end": "2026-07-29T00:14:52Z",
+      "plan_start": "2026-07-29T00:15:30Z",
+      "plan_end": "2026-07-29T00:23:41Z"
     }
   }
 }
