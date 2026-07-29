@@ -127,9 +127,23 @@ When a stage name is given as argument (e.g., `/dev build`):
 
 ## Step 6: Product Plan Continuation
 
-When a `docs/dev/product-plan.md` exists and no in-progress session:
+Product plans now live under `docs/dev/product-plans/` — one file per project
+(`docs/dev/product-plans/<slug>.md`), and multiple projects can coexist there. Scope first, then
+scan:
 
-Under the PR-propagation model, a product plan created by a decomposition cycle becomes visible here only **after that cycle's PR merges** (`dev:spec` writes the plan into the creating cycle's worktree, and it reaches `main` via that cycle's PR). A parallel cycle cut from `origin/main` before the creating cycle merges won't see it yet — the plan-creating cycle should merge first.
+- **Scope to the governing plan first.** If a `state.json.product_plan` is in scope and non-null (a
+  session whose state names its project), show **only** that single project's plan — never a blanket
+  list.
+- **Fall back to a directory scan only when no `product_plan` is in scope.** This is the common
+  no-in-progress-session discovery case — a completed cycle's `state.json` is gone by then, so
+  `product_plan` is usually unavailable here. Read `docs/dev/product-plans/*.md`:
+  - **one** plan → show it;
+  - **several** → list each project's slug + X/N cycles and let the user pick which to continue;
+  - **none** → skip Step 6 entirely.
+
+Under the PR-propagation model, a product plan created by a decomposition cycle becomes visible here only **after that cycle's PR merges** (`dev:spec` writes the plan into the creating cycle's worktree at `docs/dev/product-plans/<slug>.md`, and it reaches `main` via that cycle's PR). A parallel cycle cut from `origin/main` before the creating cycle merges won't see it yet — the plan-creating cycle should merge first.
+
+For the single plan being shown, keep the existing per-milestone rendering:
 
 ```
 Product plan: X/N cycles complete.
