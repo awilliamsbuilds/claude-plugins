@@ -285,15 +285,24 @@ Depends on: Task 3 (new path scheme) and Task 2 (the `promoted` status value).
 Files: modify `plugins/dev/skills/dev/SKILL.md` (Step 6, ~line 128–130) and
 `plugins/dev/skills/debt/SKILL.md` (Step 3, ~line 65–93).
 Interfaces:
-- Consumes: the `docs/dev/product-plans/<slug>.md` scheme (Task 3); the `promoted` status (Task 2).
+- Consumes: the `docs/dev/product-plans/<slug>.md` scheme and `state.json.product_plan` full-path
+  semantics (Task 3, read to scope the continuation); the `promoted` status (Task 2).
 - Produces: nothing later tasks reference.
 - State keys: none.
 
 Implementation steps:
-1. **dev:dev Step 6 (line ~130):** the "When a `docs/dev/product-plan.md` exists" continuation
-   trigger no longer matches a fixed path. Rewrite to detect any plan under
-   `docs/dev/product-plans/*.md` (a decomposition cycle's plan reaches `main` via its PR). Update the
-   surrounding prose (line ~128) that references the old singular path.
+1. **dev:dev Step 6 (lines ~128–141):** the "When a `docs/dev/product-plan.md` exists" continuation
+   trigger no longer matches a fixed path, and multiple plans can now coexist under
+   `docs/dev/product-plans/`. Rewrite the continuation with an explicit scope-then-scan rule:
+   - **Scope to the governing plan first.** If a `state.json.product_plan` is in scope and non-null,
+     show only that single project's plan — never a blanket list.
+   - **Fall back to a directory scan only when no `product_plan` is in scope** (the common
+     no-in-progress-session discovery case — a completed cycle's `state.json` is gone by then, so
+     `product_plan` is usually unavailable here): read `docs/dev/product-plans/*.md`. **One** plan →
+     show it; **several** → list each project's slug + X/N and let the user pick which to continue;
+     **none** → skip Step 6 entirely.
+   - Keep the existing per-milestone `✓ done / → next` rendering for whichever single plan is shown.
+   - Update the surrounding PR-propagation prose (line ~132) that references the old singular path.
 2. **dev:debt Step 3 (lines ~71–87):** add a status indicator to each printed item block. For items
    whose front-matter `status` is not `open` (notably `promoted`), print a `Status: <status>` line
    (e.g. `Status: promoted`) so promoted items are visible and distinguished from plain open debt.
