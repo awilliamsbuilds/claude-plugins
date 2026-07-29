@@ -68,29 +68,36 @@ Read the P5 corpus (`docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`), par
 front-matter, and rank by **the recurrence ranking** (P8) from the contract: `recurrence:`
 descending, ties broken by the most recent name in `cycles:`.
 
-Print one block per item — index, slug, recurrence, cycles, files, and the **first sentence**
-of the body's `Done looks like:` field (the contract's summary rule: first *sentence*, not the
-first line — these files are hard-wrapped and a line usually ends mid-phrase):
+Print one block per item — index, slug, **status**, recurrence, cycles, files, and the **first
+sentence** of the body's `Done looks like:` field (the contract's summary rule: first *sentence*, not
+the first line — these files are hard-wrapped and a line usually ends mid-phrase):
 
 ```
-Open tech debt — N items (ranked by recurrence):
+Active tech debt — N items (ranked by recurrence):
 
 1. <slug>
-   Recurrence: 3 · Cycles: alpha, beta, gamma
+   Status: promoted · Recurrence: 3 · Cycles: alpha, beta, gamma
    Files: path/one.md, path/two.md
    Done looks like: <first sentence of done-looks-like>
 
 2. <slug>
+   Status: open · Recurrence: 1 · Cycles: delta
    ...
 
 Full detail: /dev:debt show <n>   ·   Close one: /dev:debt close <n>
 ```
 
+Print the `Status: <status>` field on **every** item, uniformly — most read `open`; a backlog item
+that has been spawned into a product-plan reads `promoted` (see `../../references/tech-debt.md` P3).
+Surfacing it is what keeps a promoted-but-never-completed item from being silently stranded.
+
 **Do not dump the full body here** — that's what `show` is for. The list is meant to be
 scannable when deciding what to fold into an upcoming cycle.
 
-If the active corpus is empty but `docs/backlog/closed/` has items, say "No open tech debt. N
-closed items — `/dev:debt closed`."
+A `promoted` item is an **active-corpus** item — it lives at `docs/backlog/backlog-<slug>.md`, outside
+`closed/`, so the P5 corpus glob already includes it: it is listed and counted here, and a lone
+promoted item must never be mis-reported as "no items". If the active corpus is empty but
+`docs/backlog/closed/` has items, say "No open tech debt. N closed items — `/dev:debt closed`."
 
 ## Step 4: Show One Item
 
