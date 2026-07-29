@@ -44,7 +44,19 @@ Before any questions, assess the scope of the request.
 2. Map the product into sub-features grouped by milestone
 3. **Standard mode:** Show the milestone map in the visual companion browser — "Here's how I'd break this down. Does this structure look right?"
 4. **Autopilot mode:** Self-review the breakdown for completeness, continue without browser
-5. Determine the target path using Step 1's Nesting Detection result: if a parent feature was found, `docs/dev/<parent>/product-plan.md` (nested); otherwise the top-level `docs/dev/product-plan.md`. Prepare this content now — the **write is deferred until after Step 6 creates the cycle worktree** (see the product-plan write at the end of Step 6). It is written into `$WORKDIR`, never the primary tree, and reaches the integration branch through this cycle's own PR (like every other artifact this cycle commits — `spec.md`, `plan.md`):
+5. **Target path (single durable scheme):** the product plan is written to
+   `docs/dev/product-plans/<project-slug>.md` — one directory outside any single cycle's dir, per the
+   ephemeral-plan lifecycle in `../../references/tech-debt.md` (§ One-way promotion flow + ephemeral
+   product-plan lifecycle). `<project-slug>` is the kebab-cased product name (from the
+   `# [Product Name] — Product Plan` header), normalized to `^[a-z0-9][a-z0-9-]*$` by the **same**
+   construction Step 6 applies to `<feature-name>` (lowercase, collapse every non-`[a-z0-9]` run to a
+   single `-`, strip leading/trailing `-`; if it normalizes empty, ask for a product slug). The slug is
+   chosen **once**, when the plan is first spawned. There is **no** parent-vs-top-level fork — a nested
+   cycle's product plan lives at this same durable location, never inside the parent's cycle dir.
+   Prepare this content now — the **write is deferred until after Step 6 creates the cycle worktree**
+   (see the product-plan write at the end of Step 6). It is written into `$WORKDIR`, never the primary
+   tree, and reaches the integration branch through this cycle's own PR (like every other artifact this
+   cycle commits — `spec.md`, `plan.md`):
    ```markdown
    # [Product Name] — Product Plan
    *Created: YYYY-MM-DD · Cycles completed: 0/N*
@@ -59,6 +71,13 @@ Before any questions, assess the scope of the request.
    If a product plan already exists, append as a new milestone rather than overwriting. The cycle worktree (Step 6) is created from `origin/main` (or the parent's HEAD for a nested cycle), so any existing product plan is already present in `$WORKDIR` to append to.
 6. Ask: "Which feature should we start with? I'd suggest [Milestone 1 first item]."
 7. Proceed with the chosen feature as a normal feature-scale spec — the prepared product-plan content is carried in the stage's working context and written by the deferred block at the end of Step 6.
+
+**Promotion back-link (Step 2).** If this product-scale spec **originates from a `docs/backlog/<slug>.md`
+item** (the user named or pointed the spec at a backlog item), carry that source slug forward: the
+deferred Step 6 write will set the source item `status: promoted` +
+`promoted_to: docs/dev/product-plans/<project-slug>.md`, per the one-way promotion flow in
+`../../references/tech-debt.md`. If there is **no** originating backlog item, there is no back-link — a
+plain product-scale request spawns a plan with nothing to link.
 
 **Feature scale** (default) — single bounded deliverable. Proceed to Step 3.
 
@@ -75,8 +94,9 @@ Record `cycle_type: "feature" | "architecture"` in state.json.
 
 For feature-scale: check if the single request describes multiple independent sub-features (e.g., "add auth, billing, and analytics"). If so, flag it: "This covers N independent things — each needs its own /dev cycle. Which should we start with?" — and, before asking, **write the decomposition to a product plan** rather than letting it live only in conversation memory:
 
-- Target path: if the Nesting Detection result from Step 1 found a parent feature, `docs/dev/<parent>/product-plan.md` (nested product plan, scoped to that parent's own sub-milestones); otherwise the top-level `docs/dev/product-plan.md`.
+- Target path: `docs/dev/product-plans/<project-slug>.md` — the same single durable scheme as Step 2 (no nested/top-level fork). `<project-slug>` is derived and normalized exactly as in Step 2.
 - Use the same format as Step 2's product-plan template (Milestone headers, `- [ ]` checkbox items). If a product plan already exists, append the new items as a new milestone — don't overwrite existing ones.
+- **Promotion back-link (Step 4).** Step 4 is the path where multi-cycle nature emerges *through conversation*, so the back-link must fire here too. If the decomposed request originates from a `docs/backlog/<slug>.md` item, carry that source slug forward so the deferred Step 6 write sets it `status: promoted` + `promoted_to: docs/dev/product-plans/<project-slug>.md` — closing the invariant hole where a Step-4-emergent product-scale backlog item would otherwise spawn a plan with no back-link. No originating backlog item ⇒ no back-link.
 - **Prepare the decomposition content now; the write is deferred to the end of Step 6** (the same deferred `$WORKDIR` write as Step 2) — no bare `git add`/`git commit`, no push to `origin/$INTEGRATION`. Carry the prepared content in the stage's working context until Step 6's product-plan write lands it in `$WORKDIR`.
 - This is the mechanism that closes the gap where a request's multi-cycle nature only becomes clear through conversation (Step 4) rather than being obvious up front (Step 2) — both paths now produce the same durable artifact in the cycle's worktree, reaching the integration branch via the cycle's PR.
 
@@ -209,6 +229,8 @@ If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill t
 
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
+**Product-plan inheritance (path (B) — nested child of a plan-bearing parent).** `(writes: both)` Independent of whether *this* cycle authored a plan: if Step 1's Nesting Detection found an active parent whose **committed** `state.json.product_plan` is non-null, set this child's `state.json.product_plan` to that same path (inherit the parent's value — do **not** compute a new slug). This runs even for a plain nested feature cycle that never triggers Step 2/4, so `dev:done` can still locate and check off the governing plan. **Precedence (never run both):** a cycle that is *itself* product-scale takes path (A) below and authors its own plan/slug; else a nested cycle under a plan-bearing parent inherits here (path (B)); else `product_plan` stays `null`. Read the parent's *committed* `state.json` — a child cut before the parent set `product_plan` inherits `null` and simply skips plan updates (safe degradation, matching today's nested-without-plan behavior). This is a mode-agnostic write (no gate), part of the initial state.json commit below.
+
 Set `challenge.loops_max` from the tier detected in Step 5 — micro 1 / standard 3 / deep 5. The challenger (Step 12a) runs inside this skill, so the cap must be correct at initialization.
 
 Set `challenge_plan.loops_max` from the same tier — micro 1 / standard 3 / deep 5. Unlike `challenge.loops_max` (consumed by Step 12a inside this skill), this cap is consumed later by `dev:plan`'s challenger, but is set here so the sole state.json template stays the single initialization point — no later stage re-guards it. Micro never reaches Plan, so its value is inert; set it anyway for shape consistency.
@@ -223,31 +245,41 @@ git -C "$WORKDIR" commit -m "spec: initialize /dev session for <feature-name>"
 
 All subsequent spec commits (spec.md and other artifacts) also use `git -C "$WORKDIR"`.
 
-### Product-plan write (deferred from Step 2 / Step 4)
+### Product-plan write (deferred from Step 2 / Step 4) — path (A): this cycle authored a plan
 
 If Step 2 (product-scale) or Step 4 (decomposition) prepared a product plan, write it **now** —
 after the worktree and initial state.json exist — as a plain file inside `$WORKDIR`. It is never
 pushed to `origin/$INTEGRATION`; it rides this cycle's own PR to the integration branch, exactly
 like `spec.md` and `plan.md`.
 
-- **Top-level cycle** (no parent): path `$WORKDIR/docs/dev/product-plan.md`. Set
-  `state.json.product_plan` to `"docs/dev/product-plan.md"` so `dev:done` Step 3's top-level
-  check-off fires.
-- **Nested cycle** (parent found in Step 1): path `$WORKDIR/docs/dev/<parent>/product-plan.md`.
-  Leave `state.json.product_plan` as `null` — `dev:done` locates a nested plan via `parentFeature`.
-- **Append-if-exists:** if a product plan already exists at that path (present because the worktree
-  was cut from `origin/main` or the parent's HEAD), append the prepared milestone(s) rather than
+- **Single durable location (no fork).** The path is
+  `$WORKDIR/docs/dev/product-plans/<project-slug>.md`, where `<project-slug>` is the value derived in
+  Step 2/4. Create `docs/dev/product-plans/` if absent (writer-side create-if-absent, same discipline
+  as the `docs/backlog/` store). This holds for **both** top-level and nested cycles — a nested cycle's
+  plan lives here too, so it survives the parent's `dev:done` teardown.
+- **Set `state.json.product_plan`** `(writes: both)` to `"docs/dev/product-plans/<project-slug>.md"`
+  (the full repo-relative path). `dev:done` reads this exact value to locate the plan for check-off and
+  deletion.
+- **Append-if-exists:** if a product plan already exists at that path (present because the worktree was
+  cut from `origin/main` or the parent's HEAD), append the prepared milestone(s) rather than
   overwriting; otherwise create it from the Step 2 template.
+- **Promotion back-link (from Step 2/4):** if this spec originated from a
+  `docs/backlog/<source-slug>.md` item, also write the back-link now — set that item's front-matter
+  `status: promoted` and `promoted_to: docs/dev/product-plans/<project-slug>.md` (one-way; see
+  `../../references/tech-debt.md` § One-way promotion flow) — and stage it in the same commit.
 
 ```bash
-# <product-plan-path> is docs/dev/product-plan.md (top-level) or docs/dev/<parent>/product-plan.md (nested)
+# The plan path is always docs/dev/product-plans/<project-slug>.md — one scheme, no fork.
 # Substitute <product-name> as a plain literal — do not let a name containing quotes or $(...) break the -m quoting.
-git -C "$WORKDIR" add <product-plan-path> docs/dev/<feature-name>/state.json
+git -C "$WORKDIR" add docs/dev/product-plans/<project-slug>.md docs/dev/<feature-name>/state.json
+# Include the source backlog item in the same commit ONLY when this plan was promoted from one:
+#   git -C "$WORKDIR" add docs/backlog/<source-slug>.md
 git -C "$WORKDIR" commit -m "docs: record product plan for <product-name>"
 ```
 
-This commit rides the cycle's PR to `$INTEGRATION` — there is no direct push. If neither Step 2
-nor Step 4 prepared a plan, skip this block entirely.
+This commit rides the cycle's PR to `$INTEGRATION` — there is no direct push. If neither Step 2 nor
+Step 4 prepared a plan, skip this authoring block — but path (B) above may still have set
+`product_plan` by inheritance (that write rode the initial state.json commit, not this block).
 
 ## Step 7: Ground the Spec in the Codebase
 
