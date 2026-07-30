@@ -50,7 +50,8 @@ awilliamsbuilds/claude-plugins/
 │   └── marketplace.json           # Registry of all plugins
 ├── docs/
 │   ├── decisions/                 # Architecture & /dev decision logs
-│   └── dev/                       # /dev workflow state (config, tech-debt tracker)
+│   ├── backlog/                   # Unified backlog + tech-debt store (one file per item)
+│   └── dev/                       # /dev workflow state (config, in-flight cycle artifacts)
 └── plugins/
     └── <plugin-name>/
         ├── .claude-plugin/
