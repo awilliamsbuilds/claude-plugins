@@ -3,15 +3,15 @@
   "feature": "debt-capture-routing",
   "branch": "feature/debt-capture-routing",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-07-29T02:55:52Z",
   "artifacts": {
     "spec": "docs/dev/debt-capture-routing/spec.md",
     "design": null,
     "plan": "docs/dev/debt-capture-routing/plan.md",
-    "validation": null,
+    "validation": "docs/dev/debt-capture-routing/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -58,7 +58,9 @@
       "plan_start": "2026-07-30T02:50:11Z",
       "plan_end": "2026-07-30T02:55:18Z",
       "build_start": "2026-07-30T03:57:01Z",
-      "build_end": "2026-07-30T04:05:15Z"
+      "build_end": "2026-07-30T04:05:15Z",
+      "validate_start": "2026-07-30T05:31:54Z",
+      "validate_end": "2026-07-30T05:51:28Z"
     }
   }
 }
