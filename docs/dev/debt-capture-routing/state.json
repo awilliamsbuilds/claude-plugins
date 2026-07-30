@@ -3,8 +3,8 @@
   "feature": "debt-capture-routing",
   "branch": "feature/debt-capture-routing",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "plan", "build", "validate", "pr"],
   "skipped": ["shape"],
   "startedAt": "2026-07-29T02:55:52Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": null,
     "plan": "docs/dev/debt-capture-routing/plan.md",
     "validation": "docs/dev/debt-capture-routing/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/56",
+    "pr_number": 56
   },
   "validate": {
     "loops_run": 1,
@@ -60,7 +60,8 @@
       "build_start": "2026-07-30T03:57:01Z",
       "build_end": "2026-07-30T04:05:15Z",
       "validate_start": "2026-07-30T05:31:54Z",
-      "validate_end": "2026-07-30T05:51:28Z"
+      "validate_end": "2026-07-30T05:51:28Z",
+      "pr_created": "2026-07-30T13:18:53Z"
     }
   }
 }
