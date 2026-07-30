@@ -24,8 +24,9 @@ skill.
 - `/dev:debt add <free text>` files an item; `/dev:debt add` with no argument prompts for the text.
 - Defaults: `type: backlog`, `scope: repo` (the manual "save to build later" is an *intention*).
 - Overrides: `--debt` (→ `type: debt`), `--plugin` (→ `scope: plugin`), and `--repo <owner/name|URL>`
-  (an explicit routing target, meaningful only with `--plugin`). Everything not a recognized flag is
-  the description.
+  (an explicit routing target, meaningful only with `--plugin`; supplying `--repo` **without**
+  `--plugin` is a user error and is **rejected with a message** — never silently ignored, and never
+  treated as implying `--plugin`). Everything not a recognized flag is the description.
 - Writes the full P1 front-matter, `status: open`, `first_recorded` from the clock, a P2-allowlisted
   `<type>-<slug>.md` filename with collision disambiguation, and the correct body labels
   (`What:/Why:/Done looks like:` for backlog, `What's wrong:/Why deferred:/Done looks like:` for
@@ -60,7 +61,13 @@ is delivered as a GitHub issue in the plugin repo.
   ones. On success the local `pending` copy is removed — the item now lives as the issue.
 - **`dev:done` flush hook** (Decision 9): in `dev:done` Step 6a, a `scope: plugin` item off the plugin
   repo **bypasses local recurrence-merge** (that corpus structurally can't hold it) and routes per
-  above instead of writing a local file.
+  above instead of writing a local file; the flush **also re-attempts any existing `routing: pending`
+  items before writing new ones**. Note the two halves have different reachability: **no producing
+  stage in scope emits a `scope: plugin` buffered item** — `/dev:debt add` routes directly rather than
+  through the buffer, and giving `dev:build`/`dev:validate`/`dev:reflect` a plugin-classification path
+  is out of scope. So the buffered-route branch is **forward-defensive** (it exists for when a later
+  cycle adds that classification path, and is exercised meanwhile only by hand-editing a buffered
+  item); the **pending-retry half is the always-reachable one** this cycle actually exercises.
 
 **Part 3 — `/dev:debt inbox` (drain/convert verb)** (Decision 5 triage). Run in the plugin repo.
 - `/dev:debt inbox` lists open `dev-backlog` issues (`gh issue list --label dev-backlog --state open`).
@@ -73,6 +80,17 @@ is delivered as a GitHub issue in the plugin repo.
 `routing: pending`: replace the "reserved (Decision 5, cycle 3) / no procedure this cycle" language
 with the actual routing procedure, making the contract the **single source of truth** for it — the
 skills link here and hold no second copy.
+
+**Notes carried to Plan** (surfaced by the spec cold review; decisions left to the plan/build stage):
+- **Build sequencing / split seam.** This is on the upper edge for one deep cycle. If Plan judges it too
+  large, a clean seam exists: land **Part 1 + the contract routing procedure + Part 2** first, then
+  **Part 3 (`inbox`)** second. Routing degrades gracefully without the drain — routed issues simply
+  accumulate until `inbox` ships, convertible by hand meanwhile. Default is one cycle; this is Plan's call.
+- **Slug-marker format (must be pinned by Plan/Build).** Intake dedup and the convert verb key on a
+  stable, greppable marker that ties an issue to its slug. The ADR deferred the exact format to this
+  cycle. It must be stable across `create`/`list`/`comment`/`convert` and machine-findable via
+  `gh issue list --search`; the front-matter block in the issue body remains the authoritative content
+  the convert verb lifts.
 
 ## Out of Scope
 
@@ -95,16 +113,19 @@ skills link here and hold no second copy.
    front-matter (`type: backlog`, `scope: repo`, `status: open`, clock-stamped `first_recorded`,
    `cycles`/`recurrence` consistent, `files`, populated body) and runs recurrence-merge on capture.
 2. `--debt`, `--plugin`, and `--repo <owner/name|URL>` override the defaults; the no-arg form prompts;
-   free text is preserved verbatim as the description.
+   free text is preserved verbatim as the description; `--repo` without `--plugin` is rejected with a
+   message.
 3. A `scope: plugin` item captured **off** the plugin repo opens a `dev-backlog`-labelled issue in the
    config-resolved target repo, its body carrying the full front-matter block; a clear-match candidate
    gets a recurrence **comment** instead of a duplicate; delivery failure yields a local
    `routing: pending` item, never a dropped one.
 4. A `scope: plugin` item captured **in** the plugin repo (dogfood) is written to local `docs/backlog/`
    with no issue created.
-5. `dev:done`'s flush routes a `scope: plugin`-off-plugin buffered item (bypassing local
-   recurrence-merge) and re-attempts existing `routing: pending` items before writing new ones —
-   identically in both standard and autopilot modes.
+5. In `dev:done`'s flush, existing `routing: pending` items are re-attempted before any new item is
+   written — identically in both standard and autopilot modes (this is the reachable, always-exercised
+   half). The buffered `scope: plugin`-off-plugin **routing branch** (bypass local recurrence-merge,
+   route instead of writing locally) is present and correct but forward-defensive — verified by
+   hand-editing a buffered item, since no in-scope producer emits one.
 6. `/dev:debt list` surfaces `routing: pending` items distinctly and re-attempts their delivery,
    removing the local copy on success.
 7. `/dev:debt inbox` (run in the plugin repo) lists open `dev-backlog` issues and converts each into a
