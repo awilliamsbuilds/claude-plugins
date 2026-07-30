@@ -62,17 +62,19 @@ question directly and deserves an answer, not silence.
 | `/dev:debt show <n>` | Step 4 — full detail for one item |
 | `/dev:debt closed` | Step 5 — list closed items |
 | `/dev:debt close <n\|slug>` | Step 6 — close an item |
-| `/dev:debt add [<text>] [--debt] [--plugin] [--repo <t>]` | Step 7 — capture a new item |
+| `/dev:debt add [<text>] [--debt] [--plugin] [--repo <owner/name\|URL>]` | Step 7 — capture a new item |
 | `/dev:debt inbox` | Step 8 — drain routed issues into the local store (plugin repo only) |
 
 ## Step 3: List Open Items
 
 **Pending-retry pass (runs first).** Before ranking and printing, re-attempt delivery of every active
 item whose front-matter carries `routing: pending` (P9.retry-seam): resolve the target
-(P9.target-resolution) and deliver (P9.delivery + P9.intake-dedup). **On success, remove the local
+(P9.target-resolution) and deliver (P9.intake-dedup → P9.delivery). **On success, remove the local
 file** — the item now lives as the issue. On continued failure, leave it in place as `routing:
 pending`. This pass runs **only over an already-non-empty corpus** — Step 1 already stopped on an empty
-store — so it never changes the "No tech debt tracked" message.
+store. **Re-check emptiness after the pass:** if the retry delivered-and-removed every remaining item so
+the P5 corpus is now empty, print the plain "No tech debt tracked in this repo yet." message (the P7
+direct-invocation exception) and stop — don't fall through to "Active tech debt — 0 items."
 
 This is a **deliberate network side effect** on a read verb: `list` both re-attempts delivery and can
 mutate the store (removing a delivered `pending` copy). It is intended — surfacing a stranded item and
@@ -229,23 +231,37 @@ routing target and only `--plugin` items route, so `--repo` on its own is a user
   like:`** — prompt for it if it isn't derivable from the description — so list summaries (the
   contract's summary rule) stay meaningful.
 
-**4. Run recurrence-merge (P6) on capture**, against the active corpus (P5), exactly as an auto-flushed
-item does. A **clear match** (`files:` overlap **and** same defect — never slug/topic alone) → append
-the synthetic marker `manual` to the matched file's `cycles:` (only if not already present) **and**
-increment its `recurrence:` in lockstep (keeping `recurrence == len(cycles)`), then append this
-capture's detail — **never replace**. Uncertainty → a new file carrying `possibly_related_to:`.
-Appending `manual` rather than skipping the bump keeps the recurrence signal honest (a hand-captured
-re-hit is still a re-hit) without inventing a false cycle name.
+**4. Run recurrence-merge (P6) on capture — local-write items only.** Run this **only** for an item
+that will be written to the **local** corpus: `scope: repo`, or `scope: plugin` in the dogfood repo
+(P9.dogfood). For a `scope: plugin` item captured **off** the plugin repo, **skip local
+recurrence-merge entirely** — the local corpus belongs to a different repo and structurally can't hold
+an item bound for another; **P9.intake-dedup** (applied in step 5) is its cross-repo equivalent, so a
+local merge here would leave a stray file in the wrong repo's store, contradicting step 5's "nothing
+written locally." This mirrors `dev:done`'s buffered-route branch, which bypasses local
+recurrence-merge for the same reason.
+
+For a local-write item, merge against the active corpus (P5) exactly as an auto-flushed item does. A
+**clear match** (`files:` overlap **and** same defect — never slug/topic alone) → append the synthetic
+marker `manual` to the matched file's `cycles:` **and** increment its `recurrence:` in lockstep, then
+append this capture's detail — **never replace**. Uncertainty → a new file carrying
+`possibly_related_to:`. **The synthetic `manual` marker may repeat in `cycles:`** (unlike a real cycle
+name, which is unique per cycle) — append it on every manual re-hit even if `manual` is already present,
+so `len(cycles)` grows in lockstep with `recurrence:` and the P1 invariant `recurrence == len(cycles)`
+stays true (a re-hit of an already-`[manual]` file becomes `[manual, manual]`, recurrence 2). Appending
+rather than skipping the bump keeps the recurrence signal honest — a hand-captured re-hit is still a
+re-hit — without inventing a false cycle name.
 
 **5. Route by scope:**
 - `scope: repo` → write the local `docs/backlog/<type>-<slug>.md` file. Done.
 - `scope: plugin` **and** dogfood (P9.dogfood: `origin` slug == resolved marketplace slug) → write the
   local file, no issue. Done.
-- `scope: plugin` **off** the plugin repo → resolve the target (P9.target-resolution, honoring
-  `--repo`), then **echo the normalized `owner/name` and confirm** before routing — routing crosses a
-  repo boundary and an unconfirmed typo would silently misfile. On confirm, apply P9.delivery +
-  P9.intake-dedup; on success **nothing is written locally**. On **any** failure, apply P9.degrade
-  (write a local `routing: pending` file so the item is held, surfaced, and re-attempted, never lost).
+- `scope: plugin` **off** the plugin repo → resolve the target (P9.target-resolution, honoring and
+  validating `--repo`), then **echo the normalized `owner/name` and confirm** before routing — routing
+  crosses a repo boundary and an unconfirmed typo would silently misfile. State at the confirm that the
+  item's **full body will be posted as an issue in `<owner/name>`, which may be a public tracker**. On
+  confirm, apply P9.intake-dedup → P9.delivery; on success **nothing is written locally**. On **any**
+  failure, apply P9.degrade (write a local `routing: pending` file so the item is held, surfaced, and
+  re-attempted, never lost).
 
 **6. Do not commit.** Like Step 6, the store is left modified but uncommitted — `/dev:debt` runs
 outside a cycle, usually on `main`, and the standing rule is never to commit to `main`. A routed issue
@@ -288,10 +304,21 @@ found inside one.
 - **No parseable front-matter block** (a hand-filed issue with no fenced block) → **skip it with a
   visible note** naming the issue number; never crash, and never fabricate a front-matter block. Leave
   such an issue **open**.
+- **Re-sanitize the filename token — the issue title is untrusted.** The `<type>-<slug>` that names the
+  local file is parsed off the issue **title** (`[dev-backlog] <type>-<slug>`), which crossed a repo
+  boundary and is the single most untrusted input here. Before it reaches any path, **re-apply the P2
+  allowlist**: `<type>` must be exactly `debt` or `backlog` (reject otherwise), and `<slug>` must match
+  `[a-z0-9-]+` — strip or reject every other character, so a crafted title like
+  `[dev-backlog] debt-../../../../tmp/evil` can never produce a path-traversal write. A title whose
+  token can't be sanitized to a valid `<type>-<slug>` is treated like an unparseable issue: skip with a
+  visible note, leave it open. Never trust the title token as-is just because `add` allowlisted it —
+  `inbox` re-derives on the receiving side regardless of origin.
 - Run **recurrence-merge (P6)** against the **local** active corpus (P5): a clear match (`files:`
-  overlap **and** same defect) → bump the existing file's `recurrence:` and append detail, **create no
-  new file**; otherwise create `docs/backlog/<type>-<slug>.md`, disambiguating the slug across the
-  **whole tree** (active **and** `closed/`) per P2 before writing.
+  overlap **and** same defect) → append the incoming item's cycle marker(s) to the existing file's
+  `cycles:` **and** increment its `recurrence:` in lockstep (keeping `recurrence == len(cycles)`; the
+  synthetic `manual` marker may repeat), append detail, **create no new file**; otherwise create
+  `docs/backlog/<type>-<slug>.md` from the sanitized token, disambiguating the slug across the **whole
+  tree** (active **and** `closed/`) per P2 before writing.
 
 **4. Close** each **successfully converted** issue with a reference to the resulting file, so the item
 then lives in exactly one place — the plugin's store:

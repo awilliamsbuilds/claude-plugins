@@ -345,8 +345,21 @@ items are included, and before Step 7 so the flush happens ahead of
 Run `date -u +%Y-%m-%d` now and use that output for every date this step stamps. Never infer
 today's date.
 
-1. If `$WORKDIR/docs/dev/<feature>/debt-pending.md` does not exist, **skip this whole step
-   silently** — most cycles defer nothing. Read the buffer **from disk, not from git**:
+**Before anything else — pending-retry pass (always-reachable, both modes).** This runs **independent
+of whether this cycle buffered anything** — it re-delivers items *earlier* cycles stranded, so it must
+not be gated behind the buffer-skip in item 1. If `$WORKDIR/docs/backlog/` exists, then for each active
+`docs/backlog/` item whose front-matter carries `routing: pending`, re-attempt delivery per §P9
+(P9.target-resolution → P9.intake-dedup → P9.delivery); on success, **remove the local copy** — the
+item now lives as the issue (P9.retry-seam). (If `docs/backlog/` is absent there are no stranded items,
+so this pass is a no-op.) It runs **identically in standard and autopilot** — a `dev:done` store write,
+self-applied in both modes (the contract's Mode symmetry rule; it is a store write, not a `state.json`
+key, so this both-modes statement is the equivalent of a `(writes: …)` tag). Routing **degrades, never
+STOPs** (P9.degrade): a failed re-attempt just leaves the item `routing: pending`, so this pass adds no
+new STOP to the flush and Step 7's rebase guard is unaffected.
+
+1. If `$WORKDIR/docs/dev/<feature>/debt-pending.md` does not exist, **skip the rest of this step**
+   (items 2–5, the buffer flush) silently — most cycles defer nothing. The pending-retry pass above
+   has already run regardless. Read the buffer **from disk, not from git**:
    `dev:reflect` writes to it after its own commit has already run, so the buffer can
    legitimately be uncommitted or dirty at this point.
 
@@ -367,17 +380,6 @@ today's date.
    the Step 8 display. Never act on it: the `## To Close` path *closes items*, and closing the
    wrong one is the unrecoverable direction.
 
-**Before writing new items — pending-retry pass (always-reachable, both modes).** For each existing
-active `docs/backlog/` item whose front-matter carries `routing: pending`, re-attempt delivery per §P9
-(P9.target-resolution → P9.delivery / P9.intake-dedup); on success, **remove the local copy** — the
-item now lives as the issue (P9.retry-seam). This runs **before** the `## To Record` write loop (item
-4) so a stranded item is delivered ahead of any new writes, and it runs **identically in standard and
-autopilot** — a `dev:done` store write, self-applied in both modes (the contract's Mode symmetry rule;
-it is a store write, not a `state.json` key, so this both-modes statement is the equivalent of a
-`(writes: …)` tag). Routing **degrades, never STOPs** (P9.degrade): a failed re-attempt just leaves the
-item `routing: pending`, so this pass adds no new STOP to the flush and Step 7's rebase guard is
-unaffected.
-
 4. **For each `## To Record` entry** (a `### <slug>` heading with a fenced item block): apply
    **the recurrence-merge procedure (P6)** against the active corpus (P5,
    `docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`). On a **clear match** (`files:` overlap
@@ -392,8 +394,8 @@ unaffected.
    **Buffered-route branch (forward-defensive).** Before the recurrence-merge above, check scope: if a
    buffered item is `scope: plugin` **and** the current repo is **not** the plugin repo (fails
    P9.dogfood), **bypass local recurrence-merge entirely** — that corpus structurally can't hold an
-   item that belongs to another repo — and **route it per §P9** (P9.target-resolution → P9.delivery /
-   P9.intake-dedup) instead of writing a local file. On success **nothing is written locally**; on any
+   item that belongs to another repo — and **route it per §P9** (P9.target-resolution →
+   P9.intake-dedup → P9.delivery) instead of writing a local file. On success **nothing is written locally**; on any
    failure apply **P9.degrade**, writing a local `routing: pending` file that item 7's commit guard then
    stages like any other store write (a routed-away item writes nothing, and the guard's no-op branch
    handles that). This branch is **forward-defensive**: no in-scope producing stage emits a

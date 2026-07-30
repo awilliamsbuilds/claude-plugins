@@ -349,16 +349,25 @@ item. It is pinned here so `create`, `list`, `comment`, and `convert` all cite o
 
 - **P9.target-resolution** — resolve the plugin repo slug from `~/.claude/settings.json`: find the
   `dev@<mp>` key in `enabledPlugins`, then read `extraKnownMarketplaces[<mp>].source.repo`. **Never
-  guessed from `origin`.** An explicit `--repo <owner/name|URL>` overrides this (normalized to
-  `owner/name`). If neither yields a slug → **degrade** (P9.degrade).
+  guessed from `origin`.** An explicit `--repo <owner/name|URL>` overrides this, normalized to
+  `owner/name`. **Validate the normalized target before it reaches `gh`:** it must match
+  `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$` (a github.com URL is normalized to the same `owner/name` shape
+  first) — reject anything else, and in particular any value beginning with `-` (an argument-injection
+  vector into the `gh --repo` invocation). A `--repo` that fails this is a user error: say so and stop,
+  never pass it to `gh`. If neither the config nor a valid `--repo` yields a slug → **degrade**
+  (P9.degrade).
 - **P9.dogfood** — compare `git remote get-url origin`'s slug against the resolved marketplace slug; on
   **equality** the item is already home → write it straight to local `docs/backlog/` as an ordinary
   file, no issue. (The plugin repo itself is this case.) This comparison answers **only** "am I home?" —
   it is **never** used to resolve a delivery target.
-- **P9.delivery** — `gh issue create --repo <slug> --label dev-backlog`, title `[dev-backlog]
-  <type>-<slug>`, body = the fenced `markdown` block carrying the item's complete front-matter + body.
-  Create the `dev-backlog` label first if absent — `gh label create dev-backlog --repo <slug>`,
-  tolerating an "already exists" error (idempotent create-if-missing).
+- **P9.delivery** — **P9.intake-dedup runs first** (it decides comment-vs-create before any issue is
+  opened); on a create decision, `gh issue create --repo <slug> --label dev-backlog`, title
+  `[dev-backlog] <type>-<slug>`, body = the fenced `markdown` block carrying the item's complete
+  front-matter + body. Create the `dev-backlog` label first if absent — `gh label create dev-backlog
+  --repo <slug>`, tolerating an "already exists" error (idempotent create-if-missing). **Delivery
+  publishes the item's full body into the target repo's issue tracker, which may be public** — so the
+  producer echoes and confirms the target (and that the body will be posted there) before a manual
+  `add` routes; only user-captured `scope: plugin` items ever travel this path.
 - **P9.intake-dedup** — before creating, list open `dev-backlog` issues (per the matching mechanism
   above) and filter to the `<type>-<slug>` marker to find *candidates*; then apply **P6's clear-match
   test** (`files:` overlap **and** same defect — never slug/topic alone) to decide: clear match → `gh
@@ -371,7 +380,11 @@ item. It is pinned here so `create`, `list`, `comment`, and `convert` all cite o
   discipline: degrade by writing locally + a visible marker, never by discarding.
 - **P9.retry-seam** — both `/dev:debt list` **and** the next `dev:done` flush re-attempt every
   `routing: pending` item (delivering it if the plugin repo is now reachable) **before** writing new
-  ones; on success the local `pending` copy is **removed** — the item now lives as the issue.
+  ones; on success the local `pending` copy is **removed** — the item now lives as the issue. The
+  retry re-resolves the target via **P9.target-resolution** (the config marketplace repo): the schema
+  holds no field for an explicit `--repo` override, so a `--repo` given on the original `add` is **not
+  carried across a degrade** — a degraded `--repo` capture falls back to the config target on retry. If
+  a non-config target matters, re-run `add --repo` once the repo is reachable.
 
 ### The `dev:done` flush-hook contract
 
