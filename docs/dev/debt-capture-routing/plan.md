@@ -136,10 +136,12 @@ Implementation steps:
 3. **Reject `--repo` without `--plugin`** with a message — it is a user error, never silently ignored
    and never treated as implying `--plugin`. State this as a hard guard before any write.
 4. **Build the item.** Full P1 front-matter: `type`/`scope` per flags, `status: open`,
-   `first_recorded` from `date -u +%Y-%m-%d` (the P1 clock rule — never inferred), `cycles: []`
-   empty and `recurrence: 0` for a manual capture that belongs to no cycle (or state the chosen
-   convention explicitly — a manual `add` is not a cycle hit; pick and document it), `files:` (may be
-   empty for a not-yet-built backlog intention, per P1). Derive the **slug** from the description
+   `first_recorded` from `date -u +%Y-%m-%d` (the P1 clock rule — never inferred). **A manual capture
+   belongs to no cycle**, so seed it with the synthetic marker `cycles: [manual]` and `recurrence: 1`
+   — this preserves the P1 invariant `recurrence == len(cycles)` and makes the merge-time behavior in
+   step 5 well-defined (see step 5). Do **not** use `cycles: []` + `recurrence: 0`: a later clear-match
+   merge would then bump `recurrence` with no matching `cycles` entry and break the invariant. `files:`
+   (may be empty for a not-yet-built backlog intention, per P1). Derive the **slug** from the description
    under the P2 allowlist `[a-z0-9-]+` (strip/reject any other char — the text can originate
    externally), and disambiguate collisions by appending nothing yet — a manual add has no cycle
    name, so on collision append a short numeric/`-2` suffix; check **both** the active corpus and
@@ -148,9 +150,12 @@ Implementation steps:
    for debt. **Ensure `Done looks like:` is populated** — prompt for it if not derivable — so list
    summaries stay meaningful.
 5. **Run recurrence-merge (P6) on capture** against the active corpus (P5), exactly as an
-   auto-flushed item does: clear match (`files:` overlap **and** same defect) → bump the existing
-   file's `recurrence:` and append this capture's detail, no new file; uncertainty → new file with
-   `possibly_related_to:`.
+   auto-flushed item does: clear match (`files:` overlap **and** same defect) → append the synthetic
+   marker `manual` to the matched file's `cycles:` (only if not already present) **and** increment its
+   `recurrence:` in lockstep, keeping `recurrence == len(cycles)`, then append this capture's detail —
+   never replace; uncertainty → new file with `possibly_related_to:`. Appending `manual` (rather than
+   skipping the bump) keeps the recurrence signal honest — a hand-captured re-hit is still a re-hit —
+   without inventing a false cycle name.
 6. **Route by scope:**
    - `scope: repo` → write the local file. Done.
    - `scope: plugin` **and** dogfood (P9.dogfood: `origin` slug == resolved marketplace slug) → write
@@ -290,10 +295,12 @@ Implementation steps:
 - **`gh` search eventual-consistency** (spec-acknowledged): near-simultaneous cross-repo captures may
   both open issues. Mitigated by design — Task 4's conversion-time recurrence-merge against the
   authoritative store is the backstop; no additional locking is in scope.
-- **Manual-`add` cycle/recurrence convention** (Task 2 step 4): a manual capture belongs to no cycle,
-  so `cycles`/`recurrence` seeding differs from a flushed item. Build must pick one convention
-  (`cycles: []` + `recurrence: 0`, keeping the `recurrence == len(cycles)` invariant) and apply it
-  consistently; recorded here so it is a deliberate choice, not an accident.
+- **Manual-`add` cycle/recurrence convention** (Task 2 steps 4–5): a manual capture belongs to no
+  cycle, so its `cycles`/`recurrence` seeding and its merge-time behavior are pinned to the synthetic
+  `manual` marker — seed `cycles: [manual]` + `recurrence: 1`, and on a clear-match merge append
+  `manual` to `cycles:` (if absent) in lockstep with the `recurrence:` bump. This keeps the P1
+  `recurrence == len(cycles)` invariant intact at both seed and merge time (the merge-time interaction
+  the cold review flagged), rather than the invariant-breaking `cycles: []` + `recurrence: 0` seed.
 - **Cross-repo test reachability**: the always-reachable pending-retry (SC5) and the dogfood-local
   path (SC4) are exercisable in this repo; the off-plugin delivery path (SC3) and the buffered-route
   branch (SC5, forward-defensive) require either a second repo or a hand-edited buffer to exercise —
