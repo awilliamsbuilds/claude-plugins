@@ -335,8 +335,8 @@ Pass to dev:reflect:
 ## Step 6a: Flush Tech Debt
 
 Flush this cycle's buffered items into the durable `docs/backlog/` store — one file per item — and
-execute any close-intent this cycle recorded. The full format and the named procedures (P1–P7) are
-in `../../references/tech-debt.md`.
+execute any close-intent this cycle recorded. The full format and the named procedures (P1–P7, and
+the cross-repo routing procedure P9) are in `../../references/tech-debt.md`.
 
 **The position of this step is load-bearing twice over:** after Step 6 so `dev:reflect`'s own
 items are included, and before Step 7 so the flush happens ahead of
@@ -345,8 +345,21 @@ items are included, and before Step 7 so the flush happens ahead of
 Run `date -u +%Y-%m-%d` now and use that output for every date this step stamps. Never infer
 today's date.
 
-1. If `$WORKDIR/docs/dev/<feature>/debt-pending.md` does not exist, **skip this whole step
-   silently** — most cycles defer nothing. Read the buffer **from disk, not from git**:
+**Before anything else — pending-retry pass (always-reachable, both modes).** This runs **independent
+of whether this cycle buffered anything** — it re-delivers items *earlier* cycles stranded, so it must
+not be gated behind the buffer-skip in item 1. If `$WORKDIR/docs/backlog/` exists, then for each active
+`docs/backlog/` item whose front-matter carries `routing: pending`, re-attempt delivery per §P9
+(P9.target-resolution → P9.intake-dedup → P9.delivery); on success, **remove the local copy** — the
+item now lives as the issue (P9.retry-seam). (If `docs/backlog/` is absent there are no stranded items,
+so this pass is a no-op.) It runs **identically in standard and autopilot** — a `dev:done` store write,
+self-applied in both modes (the contract's Mode symmetry rule; it is a store write, not a `state.json`
+key, so this both-modes statement is the equivalent of a `(writes: …)` tag). Routing **degrades, never
+STOPs** (P9.degrade): a failed re-attempt just leaves the item `routing: pending`, so this pass adds no
+new STOP to the flush and Step 7's rebase guard is unaffected.
+
+1. If `$WORKDIR/docs/dev/<feature>/debt-pending.md` does not exist, **skip the rest of this step**
+   (items 2–5, the buffer flush) silently — most cycles defer nothing. The pending-retry pass above
+   has already run regardless. Read the buffer **from disk, not from git**:
    `dev:reflect` writes to it after its own commit has already run, so the buffer can
    legitimately be uncommitted or dirty at this point.
 
@@ -377,6 +390,20 @@ today's date.
    `<type>-<slug>.md` filename already exists **in the active corpus or in `docs/backlog/closed/`**
    (P2 uniqueness spans the whole tree), disambiguate the slug per the contract's P2 rule
    (`<type>-<slug>-<first-cycle>.md`) before writing.
+
+   **Buffered-route branch (forward-defensive).** Before the recurrence-merge above, check scope: if a
+   buffered item is `scope: plugin` **and** the current repo is **not** the plugin repo (fails
+   P9.dogfood), **bypass local recurrence-merge entirely** — that corpus structurally can't hold an
+   item that belongs to another repo — and **route it per §P9** (P9.target-resolution →
+   P9.intake-dedup → P9.delivery) instead of writing a local file. On success **nothing is written locally**; on any
+   failure apply **P9.degrade**, writing a local `routing: pending` file that item 7's commit guard then
+   stages like any other store write (a routed-away item writes nothing, and the guard's no-op branch
+   handles that). This branch is **forward-defensive**: no in-scope producing stage emits a
+   `scope: plugin` buffered item (`/dev:debt add` routes directly, not through the buffer), so it is
+   exercised meanwhile only by a hand-edited buffer — but it must be present and correct (spec SC5).
+   Like the pending-retry pass, it is **self-applied by `dev:done` in both modes** and **degrades, never
+   STOPs** (P9.degrade), so it adds no autopilot stop condition and needs no change to `dev:autopilot`
+   Step 2.
 
    Two cycles finishing near-simultaneously now write **different item files**, which do not
    conflict unless both touch the *same* existing item via a merge (item 4's clear-match path). No
