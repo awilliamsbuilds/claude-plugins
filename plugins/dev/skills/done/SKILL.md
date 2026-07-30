@@ -335,8 +335,8 @@ Pass to dev:reflect:
 ## Step 6a: Flush Tech Debt
 
 Flush this cycle's buffered items into the durable `docs/backlog/` store — one file per item — and
-execute any close-intent this cycle recorded. The full format and the named procedures (P1–P7) are
-in `../../references/tech-debt.md`.
+execute any close-intent this cycle recorded. The full format and the named procedures (P1–P7, and
+the cross-repo routing procedure P9) are in `../../references/tech-debt.md`.
 
 **The position of this step is load-bearing twice over:** after Step 6 so `dev:reflect`'s own
 items are included, and before Step 7 so the flush happens ahead of
@@ -367,6 +367,17 @@ today's date.
    the Step 8 display. Never act on it: the `## To Close` path *closes items*, and closing the
    wrong one is the unrecoverable direction.
 
+**Before writing new items — pending-retry pass (always-reachable, both modes).** For each existing
+active `docs/backlog/` item whose front-matter carries `routing: pending`, re-attempt delivery per §P9
+(P9.target-resolution → P9.delivery / P9.intake-dedup); on success, **remove the local copy** — the
+item now lives as the issue (P9.retry-seam). This runs **before** the `## To Record` write loop (item
+4) so a stranded item is delivered ahead of any new writes, and it runs **identically in standard and
+autopilot** — a `dev:done` store write, self-applied in both modes (the contract's Mode symmetry rule;
+it is a store write, not a `state.json` key, so this both-modes statement is the equivalent of a
+`(writes: …)` tag). Routing **degrades, never STOPs** (P9.degrade): a failed re-attempt just leaves the
+item `routing: pending`, so this pass adds no new STOP to the flush and Step 7's rebase guard is
+unaffected.
+
 4. **For each `## To Record` entry** (a `### <slug>` heading with a fenced item block): apply
    **the recurrence-merge procedure (P6)** against the active corpus (P5,
    `docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`). On a **clear match** (`files:` overlap
@@ -377,6 +388,20 @@ today's date.
    `<type>-<slug>.md` filename already exists **in the active corpus or in `docs/backlog/closed/`**
    (P2 uniqueness spans the whole tree), disambiguate the slug per the contract's P2 rule
    (`<type>-<slug>-<first-cycle>.md`) before writing.
+
+   **Buffered-route branch (forward-defensive).** Before the recurrence-merge above, check scope: if a
+   buffered item is `scope: plugin` **and** the current repo is **not** the plugin repo (fails
+   P9.dogfood), **bypass local recurrence-merge entirely** — that corpus structurally can't hold an
+   item that belongs to another repo — and **route it per §P9** (P9.target-resolution → P9.delivery /
+   P9.intake-dedup) instead of writing a local file. On success **nothing is written locally**; on any
+   failure apply **P9.degrade**, writing a local `routing: pending` file that item 7's commit guard then
+   stages like any other store write (a routed-away item writes nothing, and the guard's no-op branch
+   handles that). This branch is **forward-defensive**: no in-scope producing stage emits a
+   `scope: plugin` buffered item (`/dev:debt add` routes directly, not through the buffer), so it is
+   exercised meanwhile only by a hand-edited buffer — but it must be present and correct (spec SC5).
+   Like the pending-retry pass, it is **self-applied by `dev:done` in both modes** and **degrades, never
+   STOPs** (P9.degrade), so it adds no autopilot stop condition and needs no change to `dev:autopilot`
+   Step 2.
 
    Two cycles finishing near-simultaneously now write **different item files**, which do not
    conflict unless both touch the *same* existing item via a merge (item 4's clear-match path). No
