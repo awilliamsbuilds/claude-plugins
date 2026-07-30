@@ -66,13 +66,27 @@ question directly and deserves an answer, not silence.
 
 ## Step 3: List Open Items
 
-Read the P5 corpus (`docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`), parse each file's
+**Pending-retry pass (runs first).** Before ranking and printing, re-attempt delivery of every active
+item whose front-matter carries `routing: pending` (P9.retry-seam): resolve the target
+(P9.target-resolution) and deliver (P9.delivery + P9.intake-dedup). **On success, remove the local
+file** — the item now lives as the issue. On continued failure, leave it in place as `routing:
+pending`. This pass runs **only over an already-non-empty corpus** — Step 1 already stopped on an empty
+store — so it never changes the "No tech debt tracked" message.
+
+This is a **deliberate network side effect** on a read verb: `list` both re-attempts delivery and can
+mutate the store (removing a delivered `pending` copy). It is intended — surfacing a stranded item and
+retrying it are the same verb, so a `routing: pending` item is never merely displayed while quietly
+staying undelivered. Designed behavior, not an open issue.
+
+Then read the P5 corpus (`docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`), parse each file's
 front-matter, and rank by **the recurrence ranking** (P8) from the contract: `recurrence:`
 descending, ties broken by the most recent name in `cycles:`.
 
 Print one block per item — index, slug, **status**, recurrence, cycles, files, and the **first
 sentence** of the body's `Done looks like:` field (the contract's summary rule: first *sentence*, not
-the first line — these files are hard-wrapped and a line usually ends mid-phrase):
+the first line — these files are hard-wrapped and a line usually ends mid-phrase). An item that is still
+`routing: pending` after the retry pass carries an explicit **`⚠ routing: pending`** marker on its
+status line, so a stranded item stands out rather than mixing silently into the list:
 
 ```
 Active tech debt — N items (ranked by recurrence):
@@ -83,7 +97,7 @@ Active tech debt — N items (ranked by recurrence):
    Done looks like: <first sentence of done-looks-like>
 
 2. <slug>
-   Status: open · Recurrence: 1 · Cycles: delta
+   Status: open · ⚠ routing: pending · Recurrence: 1 · Cycles: delta
    ...
 
 Full detail: /dev:debt show <n>   ·   Close one: /dev:debt close <n>
