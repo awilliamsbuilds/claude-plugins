@@ -22,15 +22,15 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-29*
+*Last updated by /dev · 2026-07-30*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `dev:autopilot` | plugins/dev/skills/autopilot/SKILL.md | No-gate orchestrator for the /dev workflow |
 | `dev:build` | plugins/dev/skills/build/SKILL.md | Stage 4 — implements the plan |
-| `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand tech debt tracker — list active entries (surfaces `promoted` status), show closed, close by hand |
+| `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand backlog + tech debt tracker — `list` (surfaces `promoted` + `routing: pending`, re-attempts stranded deliveries), `show`, `closed`, `close`, `add` (capture verb with `--debt`/`--plugin`/`--repo` overrides + P9 cross-repo routing), `inbox` (drain/convert routed `dev-backlog` issues into the local store; plugin repo only) |
 | `dev:dev` | plugins/dev/skills/dev/SKILL.md | Main entry point for the /dev workflow; Step 6 product-plan continuation scopes to the governing plan, else scans `docs/dev/product-plans/` (multi-plan-aware) |
-| `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles README/CLAUDE.md prose (Step 4a) and the primary checkout post-merge; deletes the product-plan on project completion (all `[x]`) and closes the promoted source backlog item |
+| `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles README/CLAUDE.md prose (Step 4a) and the primary checkout post-merge; deletes the product-plan on project completion (all `[x]`) and closes the promoted source backlog item; Step 6a's flush re-attempts `routing: pending` items before writing new ones and carries the forward-defensive buffered plugin-scope routing branch |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |
 | `dev:init` | plugins/dev/skills/init/SKILL.md | Sets up /dev workflow infrastructure in a repo |
 | `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan; Step 7a cold-reviews the plan via a fresh subagent (spec-coverage / sequencing / interface lenses) before the gate |
@@ -40,7 +40,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification; Step 12a cold-reviews it via a fresh subagent before the gate; seeds `validate.loops_max` tier-correctly at state init; writes product-plans to the durable `docs/dev/product-plans/<slug>.md` and sets the `backlog → product-plan` promotion back-link (Steps 2/4) |
 | `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
 | `dev:validate` | plugins/dev/skills/validate/SKILL.md | Stage 5 — code review and security check; the fix loop cold re-reviews each loop's own fix diff (Step 4 step 8) before it may exit, and states the healthy-path shell exit-code rule once for fix authors |
-| `dev` shared refs | plugins/dev/references/tech-debt.md | Shared tech-debt contract — per-item `docs/backlog/` store (front-matter schema, file identity, lifecycle, redesigned buffer, carrying-cost test, recurrence-merge, silent-degrade); documents the live `promoted`/`promoted_to` fields + one-way `backlog → product-plan` promotion flow and ephemeral product-plan lifecycle; loaded by `init`, `build`, `validate`, `reflect`, `done`, `debt`, `spec` |
+| `dev` shared refs | plugins/dev/references/tech-debt.md | Shared tech-debt contract — per-item `docs/backlog/` store (front-matter schema, file identity, lifecycle, redesigned buffer, carrying-cost test, recurrence-merge, silent-degrade); documents the live `promoted`/`promoted_to` fields + one-way `backlog → product-plan` promotion flow and ephemeral product-plan lifecycle; §P9 is the single source of truth for cross-repo routing of `scope: plugin` items (target resolution, dogfood-local, slug marker, intake dedup, degrade-to-local, retry seam, done-flush hook); loaded by `init`, `build`, `validate`, `reflect`, `done`, `debt`, `spec` |
 | `writing:humanize` | plugins/writing/skills/humanize/SKILL.md | AI pattern detection and human voice rewriting (voice-neutral; no personal-voice coupling) |
 | `writing:voice-extractor` | plugins/writing/skills/voice-extractor/SKILL.md | Extracts a person's writing voice into a reusable per-person voice skill; offers a `Writing voice:` pointer |
 | `writing:linkedin` | plugins/writing/skills/linkedin/SKILL.md | LinkedIn writing with an up-front message/post/article format gate |
