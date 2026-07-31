@@ -87,3 +87,46 @@ because routing crosses a repo boundary and a typo would otherwise misfile silen
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: `cde8b3d` on branch `feature/debt-capture-routing`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-07-30*
+
+**Spec:** Clean net — `spec_revisions: 0`, confidence 90/Ready, and it held (no mid-build plan
+updates, no backtracks). The cold review found 3 concerns, all applied, none dismissed; two became
+the "Notes carried to Plan" (split seam, slug-marker format) that Plan then resolved. Only 3
+questions asked, because the ADR did the grounding upstream.
+
+**Shape:** Skipped correctly — CLI skill-instruction and contract editing, no UI.
+
+**Plan:** Accurate — `files_read_in_build: 2`, five tasks, no unplanned work, Build ran ~8 minutes.
+The plan challenger's single concern (manual-capture `cycles`/`recurrence` seeding) was applied and
+written into Risks, **but that same invariant broke anyway at merge time** (Validate P2 #3 was the
+merge-time half of the risk Plan had already named). A risk documented in `plan.md` did not
+translate into Build getting it right.
+
+**Validate:** 1 loop / 5, clean on the first pass — but 4 P2s in one loop is high for a 3-file,
+doc-only diff. The pattern matters more than the count: two of the four were the same defect shape —
+`/dev:debt add` not mirroring the more careful plugin-scope handling `dev:done` got right. Plan
+sequenced Task 2 (`add`) before Task 5 (`done` hook) and gave Task 2 no instruction to match the
+other call site's branch structure, so the two implementations of §P9 drifted. The security P2 has a
+related cause: Task 4 lifted a filename from an untrusted cross-repo issue title, and the P2
+allowlist lived in the contract but was not restated at the crossing point.
+
+**Flow:** Deep tier was right — four P2s justify it. No unnecessary stages, no backtracks.
+
+**Token efficiency:** No outliers. `files_read_in_build: 2` is low. The 22h spec span is wall-clock
+across an overnight gap, not work time; Plan/Build/Validate were each under 20 minutes.
+
+**Suggestions:**
+1. `dev:plan` — when two or more tasks implement the same named procedure at different call sites,
+   require the plan to designate one canonical and have the others cite its branch structure
+   explicitly. This cycle's two biggest P2s were exactly that drift.
+2. `dev:plan` — mark trust boundaries in task Interfaces (a "Consumes: untrusted input" note), so a
+   task reading data that crosses a repo/issue boundary restates the sanitizing rule at the crossing
+   rather than relying on it being elsewhere in the contract.
+
+**User observations:** none raised at the Step 4 gate.
+**Skill updates:** suggestion 1 applied to `dev:plan` — a `Shared procedure:` Interfaces line, a
+matching Step 6 failure-mode bullet, and a clause on the Step 7a Interface-consistency lens
+(PR #57; takes effect after merge + `/plugin update`).
+**Deferred to tech debt:** `plan-task-trust-boundaries` (suggestion 2 — declined at the Step 6 gate).
