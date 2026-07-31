@@ -596,6 +596,27 @@ a known list rather than discovering seams piecemeal.
 `dev:autopilot` writes no debt itself (it orchestrates and delegates), so it needs **no store change** —
 but its mode-symmetry obligations (below) still apply to every stage it drives.
 
+**Amendment — `dev:spec`'s close is still deferred through the buffer** *(recorded 2026-07-31, after
+follow-ons 1–4 landed).* The `dev:spec` row above says a paid item is closed by setting `status: closed`
+and moving it to `closed/` "rather than a bullet in a buffer section." The implementing cycle **declined
+that half of the row** and kept the buffer bullet: `dev:spec` Step 7 appends a close-intent
+`- <type>-<slug> — <why this cycle pays it>` to `## To Close`, and `dev:done` Step 6a resolves the slug
+to `docs/backlog/<type>-<slug>.md` and executes the close (P3 — set `status`/`closed`/`closed_by`, move
+to `closed/`).
+
+The reason is a safety property this ADR values elsewhere but did not connect to this row: a spec-stage
+close would mutate the standing store **before the cycle is known to complete**, so a cycle abandoned
+after Spec would leave an item marked paid that nothing paid. This is the same argument the "Drop the
+buffer" alternative is rejected on below — *"it writes cycle-in-progress items into the standing store
+before the cycle is known to complete. The buffer's deferral of the store write to `dev:done` is a
+feature, not incidental."* That reasoning applies to closes as well as to writes; the row's wording
+simply missed it.
+
+What the row got right is preserved: the cross-check reads front-matter `files:` from the P5 corpus
+rather than parsing `## Open` entries, and the close is a status edit plus the `closed/` move rather
+than a section rewrite — only the *timing* of that edit differs. The `## To Close` section is retained
+as the deferred-close carrier, not as a vestige of the aggregate model.
+
 **The buffer survives.** The buffer→flush split exists because `dev:build` runs before `dev:validate`
 and both produce entries, so entries cannot live in any one stage's artifact. That reason is unchanged
 by per-item storage: the buffer stays the per-cycle accumulation point, and flush is where buffered
