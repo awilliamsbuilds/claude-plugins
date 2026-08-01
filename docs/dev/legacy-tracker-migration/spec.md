@@ -7,7 +7,7 @@
 Three repos still carry the pre-`docs/backlog/` tech-debt tracker — the single aggregate
 `docs/dev/tech-debt.md` with `## Open` / `## Closed` sections — because the migration that ran here
 (`tech-debt-migration`, 2026-07-28) was a one-repo, hand-mapped execution of ADR
-`2026-07-28-backlog-debt-model.md` Decision 8. It migrated *this* repo's ten entries and retired
+`2026-07-28-backlog-debt-model.md` Decision 8. It migrated *this* repo's eleven entries and retired
 *this* repo's tracker. Nothing generalized it.
 
 Verified: no `/dev` skill mentions the legacy tracker at all. The only thing in the plugin called a
@@ -29,12 +29,20 @@ in a position to go home.
 One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migrate-tracker`.
 
 - **Guard first — no-op when there is nothing to migrate.** Absent `docs/dev/tech-debt.md` ⇒ the skill
-  says nothing and exits (P7 silent-degrade). This is what makes the skill safe to keep after the three
-  repos are done, and makes re-running it in a migrated repo a no-op rather than an error.
+  prints one line (`No legacy tracker in this repo — nothing to migrate.`) and exits, writing nothing.
+  This follows `dev:debt` Step 1's documented **exception** to P7 silent-degrade rather than P7 itself:
+  the user typed an invocation, so they get an answer. Literal silence would be indistinguishable from a
+  skill that failed to load. This is what makes the skill safe to keep after the three repos are done,
+  and makes re-running it in a migrated repo a no-op rather than an error.
 - **Delegate store setup to `dev:init`.** `dev:init` Scenario D already creates `docs/backlog/` +
   `closed/` idempotently on *both* its branches, and self-describes as "the only automatic path by which
   a repo initialized before the store shipped ever gets `docs/backlog/`" (`init/SKILL.md:49-52`). This
   skill calls it and holds no second copy of the tree-creation logic.
+  **`dev:init` is interactive — say so before invoking it.** Scenario D opens with "Update config or keep
+  it as-is?" (`init/SKILL.md:41`), and a repo with **no** `config.json` gets a *full* fresh init: stack
+  detection, the setup question, `CLAUDE.md` Component Registry, `docs/decisions/`, `.gitignore`. The
+  skill must tell the user which of the two they are about to enter and that a no-config repo will gain
+  init artifacts beyond the store, so a migration does not silently turn into a first-time setup.
 - **Carry the old format's parsing rules.** This skill is the last consumer of that knowledge, so it
   states the source format itself rather than citing a contract that no longer describes it. The rules
   are recovered, not invented — see the grounding inventory for the exact SHAs.
@@ -48,8 +56,14 @@ One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migr
   each open item with its reason, prints them as one table, and takes a single confirmation (with the
   option to flip items by number) before anything leaves the repo. Confirmed `plugin`-scope items are
   delivered per §P9; `repo`-scope items are written locally.
-- **Merge, don't assume an empty store.** Each migrated item runs the existing **P6 recurrence-merge**
-  against the active P5 corpus, exactly as `dev:done`'s flush does.
+- **Merge, don't assume an empty store — local-write items only.** Each item that will be written to the
+  **local** corpus (`scope: repo`, or `scope: plugin` under P9.dogfood) runs the existing **P6
+  recurrence-merge** against the active P5 corpus, exactly as `dev:done`'s flush does. A confirmed
+  `scope: plugin` item **off** the plugin repo **skips local merge entirely** — the local corpus belongs
+  to a different repo and structurally cannot hold an item bound for another; **P9.intake-dedup** is its
+  cross-repo equivalent. This is `dev:debt add` Step 7 §4's rule verbatim in effect
+  (`debt/SKILL.md:234-241`), and merging locally anyway would leave a stray file in the wrong repo's
+  store, contradicting P9.delivery's "nothing written locally."
 - **Verify, then retire.** Count entries parsed vs. items written vs. items routed; only on a clean
   reconciliation delete `docs/dev/tech-debt.md`.
 - **Never commit, never stage.** Same rule and same reason as `dev:init` and `dev:debt`: this runs
@@ -62,7 +76,9 @@ One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migr
   different yield profile. Named here because "backfill the backlog" and "migrate the tracker" are
   easy to read as one thing. This cycle does not touch it and does not close it.
 - **Product-plan migration** — the old model misfiled backlog intentions into `docs/dev/product-plan.md`.
-  Confirmed with the user: none of the three target repos has one. If a fourth repo ever does, that is
+  Per the user, none of the three target repos has one. That is recollection, not something verifiable
+  from this repo, so the skill does not *depend* on it: if `docs/dev/product-plan.md` **is** present it
+  **reports the file and leaves it untouched**, rather than assuming it cannot exist. Migrating one is
   its own cycle.
 - **`type` classification** — everything migrates `type: debt` (see Scope). No heuristic, no gate.
 - **Changing `dev:init`, `dev:debt`, `dev:done`, or `references/tech-debt.md`.** This skill *calls*
@@ -78,12 +94,28 @@ One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migr
 
 ## Success Criteria
 
-1. Run in a repo with no `docs/dev/tech-debt.md`: **no output at all**, no files created, exit clean.
+1. Run in a repo with no `docs/dev/tech-debt.md`: **one line** (`No legacy tracker in this repo —
+   nothing to migrate.`), no files created, exit clean.
 2. Run in a repo with one: every `## Open` entry becomes exactly one
    `docs/backlog/debt-<slug>.md` with `type: debt`, `status: open`, and `first_recorded` / `cycles` /
    `recurrence` / `files` derived from the entry's meta line and `**Files:**` field; every `## Closed`
    entry becomes `docs/backlog/closed/debt-<slug>.md` with `status: closed` plus `closed` / `closed_by`
-   from its Closed meta line.
+   from its Closed meta line. Three mapping rules the meta line does not supply on its own:
+   - **Slug.** Not mechanically derivable from `### <title>` — the real migration produced editorialized
+     slugs (*"Architecture-cycle design doesn't pressure-test cross-boundary delivery mechanisms"* →
+     `debt-arch-cross-boundary-transport`), and P2 fixes the slug as the item's **permanent** identity,
+     so two runs must not diverge irreversibly. The skill **proposes** a slug per entry (kebab-case
+     matching `^[a-z0-9][a-z0-9-]*$`, ≤5 words, shortened for readability) and shows it in the **same
+     table** the scope classification is confirmed in — one review point for both.
+   - **`cycles:` for closed items.** The Closed meta line carries no `Cycles:` list, only
+     `by cycle <name>` and `Recurrence: N` — so P1's `recurrence == len(cycles)` invariant is
+     underivable where `N > 1`, a case that provably exists in the fixture
+     (`7ebe89a^:docs/dev/tech-debt.md:110`, `Recurrence: 2`) and that the hand migration got wrong
+     (`closed/debt-gate-path-state-writes.md` carries one cycle name against `recurrence: 2`). Rule:
+     seed `cycles:` from `closed_by`, then pad to `N` with the synthetic marker `migrated` so the
+     invariant holds — the same device `dev:debt add` uses with `manual`.
+   - **`scope:` for closed items.** Written `scope: repo` unconditionally. Closed items are never
+     classified and never routed (Criterion 5), so no heuristic runs on them.
 3. Body prose (`**What's wrong:** / **Why deferred:** / **Done looks like:**`) transfers **verbatim** —
    the migration lifts text, never rewrites it.
 4. The scope table is displayed and confirmed **before** any `gh issue create` fires. No item is routed
@@ -94,8 +126,15 @@ One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migr
 7. An item that clear-matches an existing store item (P6: `files:` overlap **and** same defect) merges
    into it — `cycles:` appended, `recurrence:` bumped, body detail appended, never replaced — rather
    than creating a duplicate file.
-8. `docs/dev/tech-debt.md` is deleted **only** after parsed-count == written-count + routed-count.
-   On any mismatch the tracker survives and the discrepancy is reported.
+8. **Every parsed entry lands in exactly one of five disjoint buckets:** (a) a new local file written,
+   (b) merged into an existing store item per P6, (c) delivered as a `dev-backlog` issue per
+   P9.delivery, (d) held locally as `routing: pending` per P9.degrade, (e) unparseable and unmigrated.
+   `docs/dev/tech-debt.md` is deleted **only** when bucket (e) is empty **and**
+   (a)+(b)+(c)+(d) == parsed-count. On any shortfall the tracker survives and the discrepancy is
+   reported per bucket. The buckets must be disjoint because a merged item (b) creates **no new file**
+   and a degraded item (d) is both written and route-attempted — a naive
+   `parsed == written + routed` test would fail every mixed-state repo, which is the case this spec
+   calls expected rather than exotic.
 9. Nothing is `git add`ed and nothing is committed; the closing report says the store is modified but
    uncommitted.
 10. Re-running the skill in a repo it already migrated hits criterion 1 (the tracker is gone) and is
@@ -106,16 +145,20 @@ One new skill: `plugins/dev/skills/migrate-tracker/SKILL.md`, invoked `/dev:migr
 
 1. User runs `/dev:migrate-tracker` in a repo still on the legacy model.
 2. Skill finds `docs/dev/tech-debt.md` and reads it.
-3. Skill invokes `dev:init` to ensure `docs/backlog/` + `closed/` exist.
+3. Skill tells the user whether `dev:init` will run as a config check (Scenario D) or a full fresh
+   init, then invokes it to ensure `docs/backlog/` + `closed/` exist.
 4. Skill parses the aggregate into N open + M closed entries using the old-format rules it carries.
-5. Skill proposes `scope` for each of the N open entries and prints the classification table with a
+5. Skill prints one table covering all N open entries: proposed `slug`, proposed `scope`, and a
    one-line reason per item.
 6. User confirms, or names numbers to flip.
-7. Skill writes every item (P6-merging against the existing corpus, P2-disambiguating collisions),
-   then routes the confirmed `plugin`-scope open items via §P9.
-8. Skill reconciles counts, deletes `docs/dev/tech-debt.md`, and prints a report: items written by
-   scope, items routed with their issue numbers, anything degraded to `routing: pending`, anything
-   flagged.
+7. Skill writes the **local-write** items — every closed item, every `scope: repo` item, and any
+   `scope: plugin` item under P9.dogfood — P6-merging against the existing corpus and
+   P2-disambiguating collisions. It then routes the confirmed off-repo `scope: plugin` items via
+   P9.intake-dedup → P9.delivery, writing **nothing locally** for them on success; on failure
+   P9.degrade writes a local `routing: pending` file instead.
+8. Skill reconciles the five buckets, deletes `docs/dev/tech-debt.md`, and prints a report: items
+   written by scope, items merged, items routed with their issue numbers, anything degraded to
+   `routing: pending`, anything flagged.
 
 ## Edge Cases
 
@@ -224,9 +267,14 @@ legacy-tracker migration; the only "migration" in the plugin is `dev:init`'s con
 boundaries; first-sentence-is-summary with the backtick-period exception) — the source-format spec Build
 must carry, confirmed **absent** from the live contract, which retains only the one-line retirement note
 at `:417`;
-`git show 7ebe89a^:docs/dev/tech-debt.md` → a real 10-entry example (3 Open, 7 Closed) with the Open meta
-line `*First recorded: … · Cycles: … · Recurrence: N*` and the Closed meta line `*Closed YYYY-MM-DD by
-cycle <name> · First recorded: … · Recurrence: N*` — Build's parser fixture;
+`git show 7ebe89a^:docs/dev/tech-debt.md` → a real **11-entry** example (**4 Open, 7 Closed**; counted by
+`### ` headings per section, and cross-checked against `git ls-tree -r 7ebe89a -- docs/backlog` and
+`docs/decisions/2026-07-28-tech-debt-migration.md:5`, "all 11 deferred tech-debt entries (4 Open + 7
+Closed)") with the Open meta line `*First recorded: … · Cycles: … · Recurrence: N*` and the Closed meta
+line `*Closed YYYY-MM-DD by cycle <name> · First recorded: … · Recurrence: N*` — Build's parser fixture.
+**Note for Build:** ADR `backlog-debt-model.md:43` says "three Open entries" — that snapshot predates the
+fourth. Trust the tracker at `7ebe89a^`, not the ADR. Also at `:110` a Closed entry carries
+`Recurrence: 2` with no `Cycles:` list, which is what forces Criterion 2's `cycles:` padding rule;
 Step 7 pass-4 cross-check → read `files:` front-matter of all 9 active `docs/backlog/` items; **zero**
 intersect this cycle's surface (the new `SKILL.md` does not exist yet), so nothing was folded in. Read
 `backlog-debt-backfill.md` in full to confirm it is a **distinct** feature (decision-log mining at
