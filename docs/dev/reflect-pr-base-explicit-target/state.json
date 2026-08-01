@@ -22,20 +22,14 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 3,
-    "loops_max": 3,
+    "loops_run": 4,
+    "loops_max": 4,
     "p1_open": [],
-    "p2_open": [
-      "Step 2's new `$WORKDIR` stop condition normalizes only one side of its comparison: `<source-repo-path>` is required to be absolute but `$WORKDIR` inherits `$PRIMARY`'s relativity, so a literal match misses and the guard stays silent on the ask route in a legacy in-place cycle (reflect/SKILL.md:202 vs :192)"
-    ],
-    "p3_open": [
-      "`cd \"$PRIMARY\" && pwd` resolves against the shell's cwd at call time, which the skill's own header (:12, :23) forbids relying on — normalize at derivation time instead (reflect/SKILL.md:192)",
-      "The restore is gated on \"once the feature branch exists\", so a failed commit restores with the skill edit still uncommitted in the working tree of the original branch (reflect/SKILL.md:225)"
-    ],
+    "p2_open": [],
+    "p3_open": [],
     "nits_open": [
       "\"several remotes and no unambiguous one\" is not reachable from `git remote get-url origin` alone — kept deliberately, mirrors step 1's phrasing",
-      "the `( cd … )` subshell sits in a skill whose header says never `cd` — kept deliberately, mirrors pr/SKILL.md Step 4's precedent",
-      "The restore instruction names no explicit `git -C …` command, unlike every other operation in the step; restoring a bare SHA re-detaches, which is correct but unstated (reflect/SKILL.md:225)"
+      "the `( cd … )` subshell sits in a skill whose header says never `cd` — kept deliberately, mirrors pr/SKILL.md Step 4's precedent"
     ]
   },
   "challenge": {
