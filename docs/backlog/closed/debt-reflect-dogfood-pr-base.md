@@ -1,12 +1,14 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 first_recorded: 2026-07-28
 cycles: [reflect-repo-discovery]
 recurrence: 1
 files:
   - plugins/dev/skills/reflect/SKILL.md
+closed: 2026-08-01
+closed_by: reflect-pr-base-explicit-target
 ---
 
 **What's wrong:** The de-hardcoded step 1 uses `origin`-slug == marketplace-slug to auto-detect the dogfood case, then step 2 opens the PR with `gh pr create`. If a user installed the marketplace from their own fork of the plugin repo, the fork's `origin` slug matches the marketplace slug, so the dogfood shortcut fires — but `gh pr create` defaults its base to the fork's parent/upstream, so the skill edit is proposed against a repo the user may not own or intend to touch. The dogfood gate verifies the current checkout, not the PR base.
