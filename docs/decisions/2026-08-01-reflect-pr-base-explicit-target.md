@@ -76,3 +76,45 @@ Shape was skipped — CLI skill-instruction editing, no visual surface.
 
 Spec, plan, and validation committed at: `59f469bd6ef8a6cfcfdc34139f637e5dae21a96a` on branch
 `feature/reflect-pr-base-explicit-target`.
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-01*
+
+**Spec:** 0 revisions against 1 challenger blocker — the author's own grounding pass leaked and the cold
+review caught it. The grounding footer asserted step 1 derived its slug "from `~/.claude/settings.json`",
+a plausible mechanism that had never actually been read, and that error propagated into Intent, Scope,
+and two success criteria before Step 12a caught it. The 88% score was honest about internal coherence;
+it had no way to see that a cited mechanism was fictional.
+
+**Shape:** Skipped correctly — skill-instruction editing, no visual surface.
+
+**Plan:** Accurate. 1 concern from the plan challenger, applied; Build read 3 files and added no
+unplanned tasks.
+
+**Validate:** 4 loops / 4 (cap raised from 3 mid-stage at the user's call). **3 of the 4 cold re-reviews
+found new P1/P2s in the previous loop's own fix** — loop 1's fix introduced a P1, loops 2 and 3 each
+introduced a P2 — so the fix-diff cold re-review (Step 4 step 8) did exactly the job it was added for.
+The common thread across those regressions is narrow: each was an **unverified factual claim about tool
+behavior** — "`$PRIMARY` is never `$WORKDIR`" (false on a legacy in-place cycle), "`gh` never resolves
+the repo from the remotes" (false without `--repo`), and loop 2's `--git-common-dir` rationale, which was
+backwards until loop 3 measured it. Fixes asserted behavior instead of running the command.
+
+**Flow:** Tier was right. The cap hit at loop 3 with an open P2 and the user chose to keep looping; loop 4
+then found a real one-sided-normalization P2, so the extra loop paid for itself.
+
+**Token efficiency:** No outliers. `files_read_in_build: 3` is low in the good way.
+
+**Suggestions:**
+1. `dev:validate`'s fix loop should require that any factual claim about command/tool behavior written
+   into a fix be *measured* before the loop exits, not asserted — three of four regressions this cycle
+   were exactly this.
+2. `dev:spec` Step 7: a grounding-inventory claim of the form "X is read from Y" should cite the file and
+   line it was actually read at, and Step 12a should check the footer's citations resolve. This cycle's
+   only blocker was a mechanism cited but never opened.
+3. *(observation, not a recommendation — one data point)* Standard tier's 3-loop cap was tight for a
+   prose-only cycle where each fix is itself reviewable text; possibly worth a higher cap when the diff
+   is docs/skill-instruction only.
+
+**User observations:** None raised at the Step 4 gate.
+
+**Deferred to tech debt:** `primary-path-relative-in-dev-headers` (buffered at Validate Step 5a).
