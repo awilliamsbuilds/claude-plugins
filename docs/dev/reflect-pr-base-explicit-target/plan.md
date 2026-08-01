@@ -59,11 +59,16 @@ maintainer following the fork scenario through the skill text (Success Criterion
    plugin repo would otherwise have their skill edit proposed against the upstream.
 4. Write the **dogfood route**: step 1's shortcut has already established that the current checkout *is*
    the source repo, and in doing so already derived the marketplace slug. Step 2 uses **that value**.
-   State plainly that §P9's *config read* — the `enabledPlugins["dev@<mp>"]` →
-   `extraKnownMarketplaces[<mp>].source.repo` lookup — is **not** performed here: it is a different
-   lookup from step 1's registry trace, and re-running it would shadow step 1's derivation, which this
-   cycle does not touch. Add no `enabledPlugins` or `extraKnownMarketplaces` reference anywhere in
-   `reflect/SKILL.md` (Success Criterion 2 is verified by their absence).
+   State that §P9's *config read* is **not** re-run here — it is a different lookup from step 1's
+   registry trace, and re-running it would shadow step 1's derivation, which this cycle does not touch.
+   One sentence carries it, e.g. *"§P9's config read is not re-run here; step 1's registry trace already
+   produced the slug."*
+
+   **Naming the excluded lookup, for Build only:** the read being excluded is §P9's
+   `enabledPlugins["dev@<mp>"]` → `extraKnownMarketplaces[<mp>].source.repo` lookup. Those two
+   identifiers appear here to tell Build *which* lookup to leave out — they are **not** text to write
+   into the skill. Neither may appear anywhere in `reflect/SKILL.md`: Success Criterion 2 is verified by
+   their absence, and they are absent from the file today.
 5. Write the **ask route**: when step 1 fell through to asking the user where the plugin source repo
    lives, no slug exists yet. Derive one by running `git remote get-url origin` **in the checkout the
    user named** (not the cwd), then normalize and validate it per the shared sentence from the
