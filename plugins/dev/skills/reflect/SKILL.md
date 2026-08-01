@@ -183,7 +183,20 @@ Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source
    - **Otherwise, defer to the ask fallback below.** If the identity can't be derived, the current checkout has no `origin` (or has several), or the remote doesn't match, there is no reliable way to locate an arbitrary plugin's local checkout — so fall through to asking the user. Never guess a path.
 
    In either case, the skill lives at `plugins/<plugin>/skills/<skill>/SKILL.md` within that repo.
-2. Create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, push, and open a PR with `gh`.
+2. Create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, and push. Then open the PR — **naming the target repo explicitly. `gh` never resolves the repo from the git remotes.** Its rule for a fork is to send the PR to the fork's *parent*, so a user working in their own fork of the plugin repo would otherwise have their skill edit proposed against an upstream they don't own.
+
+   Two values feed the invocation below: `<resolved-target-slug>`, the `owner/name` of the repo the PR opens in, and `<source-repo-path>`, the filesystem path of the source checkout step 1 resolved. Which route through step 1 you took decides how the slug is resolved.
+
+   **Shared procedure — normalize and validate.** However it was derived, the value is normalized to `owner/name` and must satisfy the allowlist in `../../references/tech-debt.md` §P9.target-resolution before it reaches `gh`. That section is the single definition of the rule; don't restate it here.
+
+   - **Dogfood route.** Step 1's shortcut already established that the current checkout *is* the source repo, and derived the marketplace slug in doing so. Use **that value**. §P9's config read is not re-run here: it is a different lookup from step 1's registry trace, and re-running it would shadow a derivation this path doesn't touch.
+   - **Ask route.** When step 1 fell through to asking where the plugin source repo lives, no slug exists yet. Derive one by running `git remote get-url origin` **in the checkout the user named** (not the cwd), then normalize and validate it per the shared procedure above. Then **echo the normalized `owner/name` back to the user and have them confirm it before the PR is created.** A fork's own `origin` is its own slug, which is the correct home — and the echo is what makes a wrong answer visible instead of silent.
+
+     **On §P9's "never guessed from `origin`."** That rule governs §P9's own subject: resolving a *cross-repo routing delivery target*, where the current repo is by definition not the destination, so `origin` is the wrong source. This path is the opposite situation — the user has just *named* the destination checkout, and its `origin` is that checkout's own identity, not a guess about a foreign repo. This route borrows §P9's normalization and allowlist only, never its no-`origin` resolution rule.
+
+   **Stop conditions.** Both end step 2 without creating a PR:
+   - **The named checkout has no `origin`, or has several remotes and no unambiguous one.** There is no slug to derive. Say so, tell the user they can open the PR by hand, and stop — never guess, and never fall back to a bare `gh pr create`. Step 1 refuses to guess a path for the same reason.
+   - **The resolved slug fails §P9's allowlist** — notably any value beginning with `-`, an argument-injection vector into `gh --repo`. Per §P9 this is a user error: say so and stop, never pass it to `gh`.
 3. Keep the deployed cache copy and the repo copy identical so the running skill matches what's under review.
 4. Tell the user the PR URL and that changes take effect after merge + `/plugin update`.
 
