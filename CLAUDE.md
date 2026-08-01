@@ -22,7 +22,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-07-30*
+*Last updated by /dev · 2026-08-01*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -35,7 +35,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:init` | plugins/dev/skills/init/SKILL.md | Sets up /dev workflow infrastructure in a repo |
 | `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan; Step 7a cold-reviews the plan via a fresh subagent (spec-coverage / sequencing / interface lenses) before the gate |
 | `dev:pr` | plugins/dev/skills/pr/SKILL.md | Stage 6 — opens a pull request with description |
-| `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle; skill-edit path discovers the plugin source repo portably (dogfood remote-match, else asks) with no hardcoded path/marketplace |
+| `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle; skill-edit path discovers the plugin source repo portably (dogfood remote-match, else asks) with no hardcoded path/marketplace, then step 2 resolves an explicit `owner/name` PR target (§P9-validated, echo-confirmed on the ask route) and passes it as `gh pr create --repo`/`--head` so a fork's PR can never land upstream |
 | `dev:shape` | plugins/dev/skills/shape/SKILL.md | Stage 2 — produces design.md with user flows |
 | `dev:spec` | plugins/dev/skills/spec/SKILL.md | Stage 1 — builds the feature specification; Step 12a cold-reviews it via a fresh subagent before the gate; seeds `validate.loops_max` tier-correctly at state init; writes product-plans to the durable `docs/dev/product-plans/<slug>.md` and sets the `backlog → product-plan` promotion back-link (Steps 2/4) |
 | `dev:start` | plugins/dev/skills/start/SKILL.md | Prints the /dev workflow reference — stages, skills, invocation commands |
