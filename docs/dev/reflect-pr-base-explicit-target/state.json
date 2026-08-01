@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "feature": "reflect-pr-base-explicit-target",
+  "branch": "feature/reflect-pr-base-explicit-target",
+  "mode": "standard",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-07-31T15:04:53Z",
+  "artifacts": {
+    "spec": "docs/dev/reflect-pr-base-explicit-target/spec.md",
+    "design": null,
+    "plan": "docs/dev/reflect-pr-base-explicit-target/plan.md",
+    "validation": "docs/dev/reflect-pr-base-explicit-target/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/59",
+    "pr_number": 59
+  },
+  "validate": {
+    "loops_run": 4,
+    "loops_max": 4,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": [
+      "\"several remotes and no unambiguous one\" is not reachable from `git remote get-url origin` alone — kept deliberately, mirrors step 1's phrasing",
+      "the `( cd … )` subshell sits in a skill whose header says never `cd` — kept deliberately, mirrors pr/SKILL.md Step 4's precedent"
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 1,
+    "concerns": 2,
+    "applied": 3,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 1,
+    "applied": 1,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 88,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/reflect-pr-base-explicit-target",
+  "metrics": {
+    "spec_questions_asked": 3,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 3,
+    "stage_timestamps": {
+      "spec_start": "2026-07-31T15:04:53Z",
+      "spec_end": "2026-07-31T22:47:04Z",
+      "plan_start": "2026-07-31T23:16:47Z",
+      "plan_end": "2026-08-01T01:46:13Z",
+      "build_start": "2026-08-01T01:51:42Z",
+      "build_end": "2026-08-01T01:54:43Z",
+      "validate_start": "2026-08-01T01:58:25Z",
+      "validate_end": "2026-08-01T03:29:38Z",
+      "pr_created": "2026-08-01T16:39:35Z"
+    }
+  }
+}
