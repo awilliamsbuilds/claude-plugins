@@ -22,14 +22,14 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 2,
+    "loops_run": 3,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
     "p3_open": [],
     "nits_open": [
-      "\"several remotes and no unambiguous one\" is not reachable from `git remote get-url origin` alone — kept deliberately, mirrors step 1's phrasing",
-      "the `( cd … )` subshell sits in a skill whose header says never `cd` — kept deliberately, mirrors pr/SKILL.md Step 4's precedent"
+      "\"several remotes and no unambiguous one\" is not reachable from `git remote get-url origin` alone \u2014 kept deliberately, mirrors step 1's phrasing",
+      "the `( cd \u2026 )` subshell sits in a skill whose header says never `cd` \u2014 kept deliberately, mirrors pr/SKILL.md Step 4's precedent"
     ]
   },
   "challenge": {
