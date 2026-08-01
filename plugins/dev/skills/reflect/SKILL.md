@@ -197,6 +197,21 @@ Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source
    **Stop conditions.** Both end step 2 without creating a PR:
    - **The named checkout has no `origin`, or has several remotes and no unambiguous one.** There is no slug to derive. Say so, tell the user they can open the PR by hand, and stop — never guess, and never fall back to a bare `gh pr create`. Step 1 refuses to guess a path for the same reason.
    - **The resolved slug fails §P9's allowlist** — notably any value beginning with `-`, an argument-injection vector into `gh --repo`. Per §P9 this is a user error: say so and stop, never pass it to `gh`.
+
+   With both values in hand, open the PR. The branch must already be **pushed** before `gh pr create` can reference it as `--head` — the commit-and-push at the top of this step is a prerequisite of this command, not an independent step, so don't reorder them.
+
+   ```bash
+   ( cd "<source-repo-path>" && gh pr create \
+       --repo "<resolved-target-slug>" \
+       --head "<branch-name>" \
+       --title "<one-line summary of the skill change>" \
+       --body "<what changed and which /dev cycle surfaced it>" )
+   ```
+   `gh` has no `-C` flag, and the resolved source checkout is not necessarily the cwd — on the ask route it's wherever the user pointed — so the invocation runs inside `<source-repo-path>` with an explicit `--head`.
+
+   `--head` takes the **bare branch name**, not the cross-fork `owner:branch` form: on both routes the resolved target is the checkout's own repo, so head repo and base repo coincide and the cross-fork syntax would be wrong here.
+
+   `--base` is **deliberately absent.** With `--repo` explicit, `gh` bases the PR on *that repo's* default branch, which is already the correct outcome — including for a fork whose default branch isn't `main`. Pinning it would mean querying the target's default branch (`gh repo view --json defaultBranchRef`) rather than assuming `main`: determinism bought with an extra API round-trip and a new failure mode. Don't read the omission as an oversight.
 3. Keep the deployed cache copy and the repo copy identical so the running skill matches what's under review.
 4. Tell the user the PR URL and that changes take effect after merge + `/plugin update`.
 
