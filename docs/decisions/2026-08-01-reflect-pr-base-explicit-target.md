@@ -117,4 +117,9 @@ then found a real one-sided-normalization P2, so the extra loop paid for itself.
 
 **User observations:** None raised at the Step 4 gate.
 
-**Deferred to tech debt:** `primary-path-relative-in-dev-headers` (buffered at Validate Step 5a).
+**Skill-update gate (Step 6):** Suggestions 1 and 2 were declined for an in-cycle skill edit and
+recorded to the backlog instead. Suggestion 3 was dropped by the carrying-cost test — a single
+data point about loop-cap tuning, with no clear "done looks like".
+
+**Deferred to tech debt:** `primary-path-relative-in-dev-headers` (buffered at Validate Step 5a),
+`validate-fix-claims-unmeasured`, `spec-grounding-citation-unverified` (both buffered here at Step 6).
