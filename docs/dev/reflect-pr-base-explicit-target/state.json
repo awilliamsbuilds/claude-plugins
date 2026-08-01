@@ -3,8 +3,10 @@
   "feature": "reflect-pr-base-explicit-target",
   "branch": "feature/reflect-pr-base-explicit-target",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
@@ -12,7 +14,7 @@
   "artifacts": {
     "spec": "docs/dev/reflect-pr-base-explicit-target/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/reflect-pr-base-explicit-target/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -73,7 +75,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-07-31T15:04:53Z",
-      "spec_end": "2026-07-31T22:47:04Z"
+      "spec_end": "2026-07-31T22:47:04Z",
+      "plan_start": "2026-07-31T23:16:47Z",
+      "plan_end": "2026-08-01T01:46:13Z"
     }
   }
 }
