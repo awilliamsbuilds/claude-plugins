@@ -384,6 +384,78 @@ Criterion 4.)
 
 The result is `CONFIRMED_ITEMS` — every `ITEM` with `scope` and `slug` final.
 
+## Step 7: Write Local Items
+
+**The local-write set is exactly three kinds, and only these:**
+
+1. **every closed item**;
+2. every open item confirmed `scope: repo`;
+3. every open item confirmed `scope: plugin` **when `ROUTING_CTX.dogfood` is true** (P9.dogfood —
+   already home).
+
+**The exclusion, and its reason, in the same breath:** a confirmed `scope: plugin` item **off** the
+plugin repo is **not** in this set and **skips local recurrence-merge entirely**. The local corpus
+belongs to a different repo and structurally cannot hold an item bound for another; **P9.intake-dedup**
+(Step 8) is its cross-repo equivalent. This is `dev:debt add` Step 7 §4's rule verbatim in effect
+(`debt/SKILL.md:234-241`) — merging locally anyway would leave a stray file in the wrong repo's store,
+contradicting P9.delivery's "nothing written locally."
+
+**1. P6 recurrence-merge** against the **active corpus (P5)** — `docs/backlog/debt-*.md` +
+`docs/backlog/backlog-*.md`, never a bare `*.md` glob. P6 owns the test; only the two outcomes are
+stated here:
+
+- **Clear match** (`files:` overlap **and** same defect — **both**, never either, and never topic or
+  keyword similarity alone) → append this item's `cycles:` entries to the matched file, increment
+  `recurrence:` in lockstep so `recurrence == len(cycles)` holds, append the incoming body detail,
+  **never replace** existing text, **create no new file** → **`BUCKET_B`**.
+- **Uncertainty** → a **new file**, whose `possibly_related_to:` is filled in at step 3 →
+  **`BUCKET_A`**.
+
+The bias is intentional: a duplicate file is visible in `ls` and cheap to merge by hand, while a
+wrong merge silently destroys an item nobody will notice is missing.
+
+Why this runs at all: **the store may already be populated.** `dev:done`'s flush creates it the first
+time any cycle defers something, so any target repo that has run a cycle since the store shipped is
+already in the mixed state. That is expected, not exotic. (Success Criterion 7.)
+
+**2. P2 collision disambiguation — decide every final name before writing anything.** This is the
+**canonical** statement of the procedure; Step 8's degrade path mirrors it.
+
+For each `BUCKET_A` item, check `debt-<slug>.md` against **both** the active corpus **and**
+`$STORE/closed/` — uniqueness spans the whole tree. Address every path through `$STORE` (Step 1),
+never as a bare relative path: under **NEVER-CD** a relative path resolves against whatever cwd the
+shell happens to hold.
+
+The destination is set by `status:` (P3) — `status: open` → `$STORE`; `status: closed` →
+`$STORE/closed/`, P2 keeping the basename identical across the move. Then:
+
+- **Free** → final name `<dest>/debt-<slug>.md`.
+- **Taken in either location** → final name `<dest>/debt-<slug>-<first-cycle>.md`, where
+  `<first-cycle>` is the item's first `cycles:` entry. Record the disambiguation for the report.
+
+`closed/` counts because two identical basenames across active and `closed/` would make a
+`possibly_related_to:` pointer ambiguous. (Success Criterion 6.) **This step decides names; it does
+not write** — the write is step 4, so step 3 can resolve pointers against a settled naming.
+
+**3. Resolve `possibly_related_to` against final names.** Step 4 rule D deferred this deliberately,
+because only now is the final basename known.
+
+Collect every local-write item's final slug from step 2 into one **`SLUG_MAP`**, keyed by the item's
+original entry title. Build it over the **whole** local-write set *before* resolving any pointer, so
+every pointer resolves against the same settled naming rather than against whichever files happened
+to exist when a given item's turn came. Then, per item carrying a `related_title`:
+
+- **Match in `SLUG_MAP`** → set `possibly_related_to: <final slug>`.
+- **No match** (the referenced entry was unparseable, routed off-repo, or merged away) → **omit the
+  field** and flag the item `related-unresolved` for the report.
+
+Never write a title into a slug field, and never point at a basename that isn't on disk.
+
+**4. Write.** Emit each `BUCKET_A` item to its step-2 final name, and apply each `BUCKET_B` merge to
+its matched file. This is the first step that touches disk.
+
+**NEVER-COMMIT** — nothing here is staged or committed.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
