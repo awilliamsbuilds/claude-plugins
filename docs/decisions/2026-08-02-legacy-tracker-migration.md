@@ -139,3 +139,53 @@ files (`references/tech-debt.md`, `init`, `debt`, `done`) end the cycle byte-ide
 
 Spec, plan, build notes, and validation committed at `514032f` on branch
 `feature/legacy-tracker-migration`.
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-02*
+
+**Spec:** 4 challenger blockers + 3 concerns, all 7 applied, 0 dismissed — against **0 spec
+revisions**. The "high blockers, low revisions" reading: the author's own Step 7 grounding pass let
+real gaps through, but the challenger caught every one, so nothing reached the gate needing rework.
+Confidence 92% held honestly — no auto-filled dimensions, no mid-build plan updates, no backtracks.
+The 5h27m spec stage with only 3 questions asked was not question-answering time but
+grounding-inventory time, including two git-history archaeology digs (`ab054df`, `7ebe89a^`) to
+recover a format no live document describes; that investment paid, since Build's parse rules
+validated 11/11 against the real fixture on the first run.
+
+**Shape:** skipped correctly — CLI skill, no visual surface (`visual_screens_shown: 0`).
+
+**Plan:** accurate — 13 tasks planned, 13 executed, no unplanned additions, no mid-build updates,
+`files_read_in_build: 9`. The plan challenger caught 1 blocker + 4 concerns, all applied, 0 dismissed.
+
+**Validate:** 5 loops / 3 max — 67% over budget, and *not* because Spec or Plan should have caught
+what Validate found. Three of the five loops were spent on regressions the previous loop introduced,
+in one consistent and narrow pattern: **a rule fixed in one step and not propagated to the step that
+depends on it** (Step 7's cycle comparison vs. Step 9's verification of it; Step 7's collision
+procedure vs. Step 8's mirror of it). Every one was caught by the fix-diff cold re-review, and none
+would have been caught by whoever wrote the fix — the strongest evidence yet for that mechanism.
+
+**Flow:** no unnecessary stages, no backtracks. Open question on tier: standard gave a 3-loop budget
+for a deliverable that grew to 940 lines implementing a 9-step procedure with five reconciliation
+buckets and cross-repo routing. Deep tier may have been the right read — recorded as one data point,
+not a pattern.
+
+**Token efficiency:** no outliers worth flagging. `files_read_in_build: 9` is low, consistent with a
+well-specified plan. Validate's 1h57m is the cost of 5 loops each carrying a cold subagent review —
+it bought three caught regressions.
+
+**Suggestions:** The plan *already declared* the mirror pairs that broke — Task 9 carries
+`Shared procedure: P2 slug-collision disambiguation — this task is the canonical implementation;
+Task 10's degrade path is a mirror of it`, and Task 11 verifies Task 9's rules. The plan knew; the
+validate fix loop didn't use it. Fix applied to `dev:validate`'s Step 4 fix loop: when a fix edits a
+step the plan names as canonical for a shared procedure — or a step another step verifies — re-check
+the counterpart in the same loop, before the re-review. Cheap, because the pairs are already recorded
+in the plan's `Interfaces:` blocks.
+
+**Not a process failure, recorded for completeness:** the two items buffered to the store (P2's
+collision rule stopping at one level; P9's three-backtick issue-body fence) were both blocked by
+Success Criterion 11 protecting `references/tech-debt.md` and `dev:debt`. That is scope discipline
+working as designed, not a gap in the process.
+
+**Deferred to tech debt:** none from this step — the single suggestion was accepted and implemented
+in `dev:validate` rather than recorded. (The two items above were buffered earlier, by Build and
+Validate.)
