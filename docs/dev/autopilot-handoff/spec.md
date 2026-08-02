@@ -32,15 +32,23 @@ handoff is therefore a `/clear` boundary — the offer's payload is a runnable c
 2. **Yes prints and stops.** Answering yes emits the `/clear` instruction plus the exact resume
    command, then ends the session. There is no in-session continuation path and no second code path
    to maintain. Answering no proceeds through the existing gate flow unchanged.
-3. **`dev:autopilot` accepts the artifact-path argument form** — `/dev:autopilot docs/dev/<feature>/design.md` —
-   deriving `<feature>` from the path and resolving `WORKDIR` from that feature's `state.json.worktreePath`.
-   This matches the resume convention every stage skill already implements (`dev:dev`'s Invocation
-   Reference: "every `dev:<stage>` skill accepts an optional artifact-path argument"). `dev:autopilot`
-   is currently the only orchestrator without it, and the printed command must work cold or the
+3. **`dev:autopilot` accepts the artifact-path argument form** — `/dev:autopilot docs/dev/<feature>/<artifact>.md`
+   (`spec.md` from the Spec gate, `design.md` from the Shape gate) — deriving `<feature>` from the
+   path, then resolving `WORKDIR` with the same working-directory block the eleven stage skills
+   already open with: compute `PRIMARY`, then take the first hit of
+   `$PRIMARY/.dev-worktrees/<feature>/docs/dev/<feature>/state.json` (worktree cycle) or
+   `$PRIMARY/docs/dev/<feature>/state.json` (legacy in-place). `worktreePath` is **not** the
+   resolver — it is written once by `dev:spec` Step 6 and read only as a set/null predicate. This
+   matches the resume convention every stage skill already implements (`dev:dev` Invocation
+   Reference, `dev/SKILL.md:173`; header block at `plan/SKILL.md:10–23`). `dev:autopilot` is
+   currently the only orchestrator with neither, and the printed command must work cold or the
    feature does not work at all.
-4. **A handoff marker in `state.json`** recording the stage the cycle handed off at `(writes: both)`.
-   `dev:reflect` Step 4 reads it: when set, the user-observation turn runs even though `mode` is
-   `"autopilot"`.
+4. **A handoff marker in `state.json`** recording the stage the cycle handed off at
+   `(writes: standard; absent in autopilot)` — written at the gate when the user answers yes. Two
+   readers: `dev:reflect` Step 4 runs the user-observation turn when the marker is set even though
+   `mode` is `"autopilot"`; `dev:done` Step 5's decision-log template gains one line when the marker
+   is set — `*Handed off to autopilot at <stage>*` under the date/branch/PR header — and is
+   byte-identical when it is absent.
 5. **Folded-in debt — `debt-primary-path-relative-in-dev-headers` (P3).** `PRIMARY` is derived by
    relative `dirname "$(git rev-parse --git-common-dir)"` across eleven skills, yielding `.` when run
    from the repo root. This cycle's core path is a command pasted into a cleared session running from
@@ -53,7 +61,10 @@ handoff is therefore a `/clear` boundary — the offer's payload is a runnable c
 
 - Extracting a shared "canonical WORKDIR block" that all skills reference. Two files cite one
   (`autopilot/SKILL.md:54`, `dev/SKILL.md:64`) and it does not exist as a defined artifact — a real
-  gap, but its own cycle. This cycle only makes autopilot's own resolution correct and explicit.
+  gap, but its own cycle. This cycle does not create that shared artifact; it inlines correct
+  resolution at each site. (Distinct from Scope item 5, which fixes the *`PRIMARY` derivation*
+  one-liner in all eleven existing stage headers, and from item 3, which gives `dev:autopilot` a
+  resolution block it currently lacks entirely.)
 - Making `dev:reflect` Step 4 unconditional for all modes. Wider blast radius than the problem.
 - Any handoff in the reverse direction (autopilot → gated mode).
 - An offer at the Validate or PR gates. Those sit past the point where a handoff saves meaningful
@@ -71,7 +82,8 @@ handoff is therefore a `/clear` boundary — the offer's payload is a runnable c
 3. A no-UI standard cycle gets the same offer at its Spec gate; a UI cycle does **not** (its next
    stage is Shape).
 4. A micro cycle gets the offer at its Spec gate, handing off to Build.
-5. Answering no leaves gate behavior byte-for-byte as it is today.
+5. Answering no takes the existing approval path with no state write, no extra prompt, and no change
+   to the next-stage command.
 6. After a handed-off cycle completes, `dev:reflect` still runs its Step 4 user-observation turn,
    and the decision log reflects that the cycle was mixed-mode rather than pure autopilot.
 7. Every `/dev` skill computing `PRIMARY` yields an absolute path when invoked from the repo root.
@@ -117,9 +129,13 @@ the cost being optimized is attention and context window, not clicks.
 
 ## Technical Constraints
 
-- **Mode-symmetry contract** (`references/tech-debt.md:463–469`): every new `state.json` key must
-  declare its writing mode using the `(writes: …)` vocabulary. The handoff marker is `(writes: both)` —
-  written in standard mode at the gate, and readable in autopilot afterward.
+- **Mode-symmetry contract** (`references/tech-debt.md:467–472`): every new `state.json` key declares
+  its writing mode at its single write site, using the vocabulary `(writes: both)` /
+  `(writes: autopilot-only)` / `(writes: standard; =default … in autopilot)`. The handoff marker is
+  written **only** on the standard-mode gate path — autopilot has no gates, so the offer never
+  renders there — and is therefore tagged `(writes: standard; absent in autopilot)`. Its reader,
+  `dev:reflect` Step 4, must treat an absent marker as today's behavior (skip the user turn in
+  autopilot), so a standard-only write introduces no autopilot-side defect.
 - **Ten skill files branch on mode.** The handoff must not require touching all ten; it works by
   letting `dev:autopilot` Step 1 set `mode` exactly as it does today, adding only the marker.
 - These are Markdown skill files with no test harness. Verification is by reading the edited
@@ -149,5 +165,9 @@ whole user-facing artifact of this feature — but there is no visual design wor
 - *"`dev:shape` reads `state.json.mode` directly" — `shape/SKILL.md:54`.*
 - *"Reflect Step 4 is standard-mode-only and autopilot skips it" — read `reflect/SKILL.md:117,132`.*
 - *"`visual_screens_shown` is declared standard-only" — `shape/SKILL.md:211`.*
+- *"`worktreePath` is not a WORKDIR resolver" — `grep -rn 'worktreePath' plugins/dev/` → written once at `spec/SKILL.md:230`, read only as a set/null predicate (`dev/SKILL.md:66–69`, `done/SKILL.md:95,106,496`). The stage skills resolve `WORKDIR` by a two-location `state.json` existence test (`plan/SKILL.md:10–23`, identical in shape/build/validate/pr/done/reflect). Corrected via cold review.*
+- *"Mode-symmetry per-key rule" — `references/tech-debt.md:467–472`; the `(writes: …)` vocabulary itself at 471–472.*
+- *"The decision-log template has no mode field" — read `done/SKILL.md:295–318`.*
+- *"The `PRIMARY=` one-liner appears in exactly eleven skills, and not in autopilot" — build:26, debt:41, dev:39, done:15, fix:87, plan:15, pr:15, reflect:15, shape:15, spec:141, validate:15; `autopilot/SKILL.md` has no `PRIMARY` line.*
 - *"`PRIMARY` derives relative" — reproduced live this stage: `dirname "$(git rev-parse --git-common-dir)"` returned `.` from the repo root; matches `debt-primary-path-relative-in-dev-headers`.*
 - *Debt cross-check: intersected the P5 corpus front-matter `files:` against the above inventory → 4 matches; 2 folded into scope (buffered in `debt-pending.md` `## To Close`), 2 declined as out of path.*
