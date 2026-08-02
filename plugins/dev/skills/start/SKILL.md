@@ -53,6 +53,7 @@ FYI — other skills (not part of the linear pathway):
 - dev:autopilot — [registry description] — alternative to the gated flow above; runs all stages without stopping for approval
 - dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
 - dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
+- dev:migrate-tracker — [registry description] — run once in a repo still on the old docs/dev/tech-debt.md tracker; a no-op everywhere else
 ```
 
 **If the Component Registry table or a specific row is missing:** fall back to these minimal descriptions rather than failing:
@@ -68,6 +69,7 @@ FYI — other skills (not part of the linear pathway):
 - `dev:autopilot` — no-gate full-cycle runner
 - `dev:reflect` — cycle retrospective
 - `dev:debt` — view and close tracked tech debt
+- `dev:migrate-tracker` — migrates a legacy tech-debt.md into docs/backlog/
 
 ## Step 5: Note Setup Status
 
