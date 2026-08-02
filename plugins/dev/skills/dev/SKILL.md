@@ -178,3 +178,4 @@ Wait for user's choice, then invoke dev:spec with the chosen feature name.
 | `/dev done` | Jump to Done (requires PR) |
 | `/dev:fix ENG-123` | Linear issue entry |
 | `/dev:<stage> docs/dev/<feature>/<artifact>.md` | Resume any stage without conversation memory — every `dev:<stage>` skill accepts an optional artifact-path argument (the prior stage's committed artifact) and derives `<feature>` from it. This is what the exit-protocol message after each stage prints as the exact resume command. |
+| `/dev:autopilot docs/dev/<feature>/<artifact>.md` | Resume a gated cycle in autopilot from the named artifact — the alternative command printed at the Spec and Shape gates. Derives `<feature>` from the path. |

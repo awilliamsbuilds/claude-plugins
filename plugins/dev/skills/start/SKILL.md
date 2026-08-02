@@ -50,7 +50,7 @@ FYI — other skills (not part of the linear pathway):
 
 - dev:init      — [registry description] — run once per repo, before the first /dev session (auto-triggered if missing)
 - dev:fix       — [registry description] — entry point when starting from a Linear issue instead of a blank spec
-- dev:autopilot — [registry description] — alternative to the gated flow above; runs all stages without stopping for approval
+- dev:autopilot — [registry description] — alternative to the gated flow above, and also its continuation: printed as an option at the Spec and Shape gates once definition is settled; runs all stages without stopping for approval
 - dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
 - dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
 - dev:migrate-tracker — [registry description] — run once in a repo still on the old docs/dev/tech-debt.md tracker; a no-op everywhere else
@@ -66,7 +66,7 @@ FYI — other skills (not part of the linear pathway):
 - `dev:done` — merges and closes out
 - `dev:init` — sets up /dev in a repo
 - `dev:fix` — Linear issue entry point
-- `dev:autopilot` — no-gate full-cycle runner
+- `dev:autopilot` — no-gate full-cycle runner; also accepts an artifact path to take over a gated cycle mid-flight
 - `dev:reflect` — cycle retrospective
 - `dev:debt` — view and close tracked tech debt
 - `dev:migrate-tracker` — migrates a legacy tech-debt.md into docs/backlog/
