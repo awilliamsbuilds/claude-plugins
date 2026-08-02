@@ -51,7 +51,16 @@ Resuming from <current-stage> in autopilot mode.
 
 If no in-progress session: begin from Spec.
 
-Set mode to `"autopilot"` in state.json.
+Set mode in state.json by these two branches. Read `stage` **before** flipping `mode` — reading it after records the stage autopilot advances to rather than the one it took over at.
+
+- **`mode` is currently `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
+- **`mode` is already `"autopilot"`, or there is no prior session** (a fresh cycle starting from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string.
+
+`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro, never `"spec"`/`"shape"`, because gate approval advances `stage` to the next stage before the user pastes the command. The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
+
+**Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:done` Step 5): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
+
+This is the key's only write site. There is no standard-mode writer — the Spec and Shape gates print text and write nothing — so no standard-side default is needed.
 
 ## Step 2: Autopilot Behavioral Rules
 
