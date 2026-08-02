@@ -272,11 +272,29 @@ set is exactly:
 
 **The orphan sweep — run it on every tracker, not just an apparently empty one.** The heading scan
 finds what looks like an entry. This sweep asks the complementary question: **is there content here
-the scan claimed nothing for?** Walk the file and mark every line accounted for by a recognized entry
-(its `### ` heading through its parsed extent), by the prose preamble, or by an `## Open` / `## Closed`
-header. Any remaining span carrying **substantive content** — a `**What's wrong:**`-style bold label, a
-`####` heading, an italic meta line — is an entry the parser could not see. Put each such span in
-**`BUCKET_E`** verbatim, flagged `heading-drift`.
+the scan claimed nothing for?** Walk the file and mark every line already accounted for:
+
+- by a recognized entry — its `### ` heading through its parsed extent;
+- by an `## Open` / `## Closed` header line itself;
+- by a span the `FILE_HEADING_COUNT` cross-check already put in `BUCKET_E` as `out-of-section`. It is
+  recorded; recording it again would double the count the user is shown and reproduce its text twice
+  in Step 9's report.
+
+**The prose preamble is not on that list, deliberately.** Excluding it wholesale would let drift hide
+above `## Open` — a hand-appended `#### note` with a `**What's wrong:**` block sitting between the
+preamble paragraph and the first section would be swept away with the file. The marker test below is
+what distinguishes prose from a drifted entry, and a real preamble carries none of those markers (the
+reference fixture's does not), so it passes the sweep on its own merits rather than by exemption.
+
+Any remaining span is **substantive** — an entry the parser could not see — if it carries a
+**line-initial L4 bold field label** or a `####` heading. Put each such span in **`BUCKET_E`**
+verbatim, flagged `heading-drift`.
+
+**An italic meta line alone does not qualify.** It is corroborating evidence, never the trigger: a
+drifted entry keeps its field labels, so the bold-label test finds it regardless. Firing on a lone
+italic line would classify an ordinary section note — `*Ordered by first recorded.*` under `## Open` —
+as an unmigratable entry, and because `BUCKET_E` is what blocks retirement, that one line would make
+the tracker survive every run forever. A guard that can never be satisfied is not a safe guard.
 
 Do **not** condition this on `FILE_HEADING_COUNT == 0`. The drift it catches — entries hand-edited
 down to `####` or to bolded titles with no heading at all — has nothing to do with how many *other*
@@ -364,6 +382,12 @@ meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as a
 >   newline, and discard the rest — otherwise `plugins/dev/skills/foo/SKILL.md, bar` trailed by a line
 >   reading `routing: pending` emits a list that closes early and injects sibling front-matter keys,
 >   which is exactly the harm the next bullet describes.
+>
+>   **Flag it when it costs something.** If the discarded remainder contained anything path-shaped —
+>   a hand-wrapped list continuing `plugins/dev/skills/done/SKILL.md` on the next line is the ordinary
+>   case — record the flag `files-truncated` with the dropped text. Every other lossy path in this
+>   skill carries a flag (`missing-files`, `date-unparseable`, `slug-fallback`); this one is lossier
+>   than most, because the tracker that held the dropped path is deleted on the way out.
 > - **Any lifted scalar** — a value containing a newline is truncated at the first one before it is
 >   written. An embedded newline in a front-matter scalar injects sibling keys (`scope:`,
 >   `routing: pending`, `promoted:`) into the item, which `dev:debt` and `dev:done` then act on as if
@@ -681,7 +705,10 @@ Then, per item carrying a `related_title`:
   may be unparseable (`BUCKET_E`) or delivered as an issue (`BUCKET_C`), in which case no local file
   ever exists — but it may also be an off-repo `plugin` item that **degrades** in Step 8 and lands in
   this same store under a name nobody knows yet. Step 8 backfills those pointers once its names are
-  settled; flag it here and let Step 8 clear the flag.
+  settled; flag it here, and Step 8 clears the flag if it can resolve the pointer. One case it
+  deliberately won't: a `BUCKET_B` target that already carries a `possibly_related_to:` keeps the one
+  it has, and the item reaches the report flagged `related-not-backfilled` instead. Two flags on one
+  item is not two problems — the second explains why the first was not cleared.
 
 Never write a title into a slug field, and never point at a basename that isn't on disk.
 
@@ -748,7 +775,7 @@ the route set has been attempted. Writing at failure time would skip the three-s
 let two degrading items share a final path — the failure the in-run set exists to prevent, reachable
 by following this paragraph literally.
 
-**P2 collision disambiguation on the degrade write — mirror of Step 7 step 2.** Restated in full
+**P2 collision disambiguation on the degrade path — mirror of Step 7 step 2.** Restated in full
 here rather than referred back to, because this path is reached only on failure and must not depend
 on the reader having Step 7 in mind:
 
@@ -862,9 +889,12 @@ get a bucket of its own — the point is that the sum no longer reconciles, so t
 
 > `BUCKET_E` is empty **AND** `|a| + |b| + |c| + |d| == ENTRY_COUNT`.
 
-(When `BUCKET_E` is empty, `ENTRY_COUNT` and `FILE_HEADING_COUNT` are necessarily equal — any
-out-of-section heading is a `BUCKET_E` entry per Step 3 — so the two conditions together cover every
-`### ` heading in the file, not just the ones under the two known sections.)
+An empty `BUCKET_E` is doing more work here than it looks. Step 3 routes three different kinds of
+unaccounted-for content into it: an entry whose fields would not parse, a `### ` heading outside the
+two known sections, and — via the orphan sweep — a span of substantive content carrying no `### `
+heading at all. So `BUCKET_E` empty means `ENTRY_COUNT == FILE_HEADING_COUNT` **and** that the sweep
+found nothing, which together say every byte of the file was either migrated or is prose. The sum
+check alone would only ever prove the parser agreed with itself.
 
 - **Pass** → `rm "$TRACKER"` and say so.
 - **Fail** → the tracker **survives, untouched**. Report the discrepancy **per bucket**, and
@@ -884,8 +914,9 @@ do not delete it.
 **The closing report** covers: items written by scope, items merged, items routed **with their issue
 numbers**, anything held as `routing: pending`, every flag raised along the way (`missing-files`,
 `missing-why-deferred`, `missing-done-looks-like`, `date-unparseable`, `recurrence-corrected`,
-`related-unresolved`, `related-not-backfilled`, `slug-fallback`, `slug-deduped-in-run`,
-`out-of-section`, `heading-drift`, and any slug disambiguations), and anything unparseable. Close
+`related-unresolved`, `related-not-backfilled`, `files-truncated`, `slug-fallback`,
+`slug-deduped-in-run`, `out-of-section`, `heading-drift`, and any slug disambiguations), and
+anything unparseable. Close
 with **NEVER-COMMIT** stated in the user's terms — naming **everything** the run left uncommitted,
 not just the store:
 
