@@ -16,14 +16,20 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 1,
+    "loops_run": 3,
     "loops_max": 3,
-    "p1_open": [], "p2_open": [],
+    "p1_open": [],
+    "p2_open": [
+      "autopilot/SKILL.md:43 — multi-hit STOP offers '/dev to start a new cycle instead', but bare /dev hits dev:dev Step 3's resume/restart/abandon menu in exactly that state; 'Restart' force-removes a worktree. Correct escape is '/dev spec' (dev/SKILL.md:174), parsed at Step 1 before the scan. Also silently drops autopilot mode and the no-ui flag."
+    ],
     "p3_open": [
-      "PRIMARY=$(cd ...) yields empty string if the cd fails; only line 1 of the canonical snippet is failure-checked (13 sites incl. migrate-tracker)"
+      "PRIMARY=$(cd ...) yields empty string if the cd fails; only line 1 of the canonical snippet is failure-checked (13 sites incl. migrate-tracker)",
+      "autopilot/SKILL.md:43 — appended rationale 'there would be no stated way to start a new cycle while others are in flight' is false; /dev spec exists",
+      "autopilot/SKILL.md:43 — '(list every hit)' is authoring guidance inside a quoted user-facing STOP string; repo convention brackets in-template directions"
     ],
     "nits_open": [
-      "<artifact> component of the shared artifact-path validation rule carries no allowlist (only <feature> is regex-constrained)"
+      "<artifact> component of the shared artifact-path validation rule carries no allowlist (only <feature> is regex-constrained)",
+      "autopilot/SKILL.md:47 — 'Check for in-progress session. If found: Resuming from <current-stage>' is unqualified for the multi-hit case (pre-existing, narrowed by loop 3)"
     ]
   },
   "challenge": {
