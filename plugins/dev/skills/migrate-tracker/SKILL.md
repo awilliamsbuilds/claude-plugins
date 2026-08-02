@@ -83,6 +83,32 @@ gone, so the skill exits here. (Success Criterion 10.)
 
 If `$TRACKER` exists, read it and continue to Step 2.
 
+## Step 2: Ensure the Store Exists
+
+**Delegate to `dev:init`.** Its Scenario D already creates `docs/backlog/` + `closed/` idempotently
+on **both** its branches (`init/SKILL.md:42` keep-branch, `:77` update-branch), and self-describes at
+`:49-52` as "the only automatic path by which a repo initialized before the store shipped ever gets
+`docs/backlog/`" — which is exactly the repo this skill runs in. Hold **no second copy** of the
+tree-creation logic here.
+
+**Announce before invoking — `dev:init` is interactive.** Check `$PRIMARY/docs/dev/config.json` and
+tell the user which of two things is about to happen:
+
+- **Present** → **Scenario D.** It opens with "Update config or keep it as-is?"
+  (`init/SKILL.md:41`). Either answer backfills `docs/backlog/`.
+- **Absent** → a **full fresh init** (Scenario A/B/C): stack detection, the setup question, a
+  `CLAUDE.md` Component Registry, `docs/decisions/`, `.gitignore`. Say plainly that the repo will
+  gain init artifacts **beyond** the store, so a migration does not silently turn into a first-time
+  setup.
+
+Invoke `dev:init` and let it run to completion.
+
+Then verify `$STORE` and `$STORE/closed/` exist. If either is still absent, **stop and say so.** Do
+not create them here — that is the second copy this step just ruled out — and do not proceed to write
+items into a store that isn't there.
+
+`dev:init` leaves its own writes unstaged, consistent with **NEVER-COMMIT**.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
