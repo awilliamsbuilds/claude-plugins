@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "feature": "legacy-tracker-migration",
+  "branch": "feature/legacy-tracker-migration",
+  "mode": "standard",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-08-01T16:59:16Z",
+  "artifacts": {
+    "spec": "docs/dev/legacy-tracker-migration/spec.md",
+    "design": null,
+    "plan": "docs/dev/legacy-tracker-migration/plan.md",
+    "validation": "docs/dev/legacy-tracker-migration/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/60",
+    "pr_number": 60
+  },
+  "validate": {
+    "loops_run": 5,
+    "loops_max": 3,
+    "loops_authorized_beyond_max": true,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [
+      "The orphan sweep exempts a span the FILE_HEADING_COUNT cross-check recorded, but the cross-check records only headings and defines no extent \u2014 a drifted entry under a hand-added section can be reported twice. Report accuracy only; no data loss. Dropped by the carrying-cost test as a local one-clause fix."
+    ],
+    "nits_open": [
+      "'Every other lossy path in this skill carries a flag' (the files-truncated rationale) is a false universal \u2014 the any-lifted-scalar newline truncation and the empty-cycle-name substitution are both unflagged. Rationale prose, not an instruction. Dropped by the carrying-cost test."
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 4,
+    "concerns": 3,
+    "applied": 7,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 1,
+    "concerns": 4,
+    "applied": 5,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 92,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/legacy-tracker-migration",
+  "metrics": {
+    "spec_questions_asked": 3,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 9,
+    "stage_timestamps": {
+      "spec_start": "2026-08-01T16:59:16Z",
+      "spec_end": "2026-08-01T22:26:27Z",
+      "plan_start": "2026-08-01T23:48:40Z",
+      "plan_end": "2026-08-01T23:56:02Z",
+      "build_start": "2026-08-02T00:13:39Z",
+      "build_end": "2026-08-02T00:22:52Z",
+      "validate_start": "2026-08-02T00:23:48Z",
+      "validate_end": "2026-08-02T02:21:00Z",
+      "pr_created": "2026-08-02T02:42:02Z"
+    }
+  }
+}
