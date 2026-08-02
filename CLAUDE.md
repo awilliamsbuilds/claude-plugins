@@ -22,7 +22,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-08-01*
+*Last updated by /dev · 2026-08-02*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
@@ -33,6 +33,7 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 | `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles README/CLAUDE.md prose (Step 4a) and the primary checkout post-merge; deletes the product-plan on project completion (all `[x]`) and closes the promoted source backlog item; Step 6a's flush re-attempts `routing: pending` items before writing new ones and carries the forward-defensive buffered plugin-scope routing branch |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |
 | `dev:init` | plugins/dev/skills/init/SKILL.md | Sets up /dev workflow infrastructure in a repo |
+| `dev:migrate-tracker` | plugins/dev/skills/migrate-tracker/SKILL.md | One-shot per-repo migration of the retired aggregate `docs/dev/tech-debt.md` into the per-item `docs/backlog/` store — carries the retired source format as §The Legacy Format (L1–L8), delegates store setup to `dev:init`, takes one confirmation on a slug+scope table, routes `scope: plugin` items per §P9, and retires the tracker only on a clean five-bucket reconciliation; a one-line no-op where no tracker exists |
 | `dev:plan` | plugins/dev/skills/plan/SKILL.md | Stage 3 — transforms spec + design into a build plan; Step 7a cold-reviews the plan via a fresh subagent (spec-coverage / sequencing / interface lenses) before the gate |
 | `dev:pr` | plugins/dev/skills/pr/SKILL.md | Stage 6 — opens a pull request with description |
 | `dev:reflect` | plugins/dev/skills/reflect/SKILL.md | Retrospective — reviews the completed /dev cycle; skill-edit path discovers the plugin source repo portably (dogfood remote-match, else asks) with no hardcoded path/marketplace, then step 2 resolves an explicit `owner/name` PR target (§P9-validated, echo-confirmed on the ask route) and passes it as `gh pr create --repo`/`--head` so a fork's PR can never land upstream |
