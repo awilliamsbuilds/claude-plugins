@@ -90,8 +90,8 @@ Files: modify `plugins/dev/skills/migrate-tracker/SKILL.md`
 Interfaces:
 - Consumes: **NEVER-CD** (Task 1)
 - Produces: `$PRIMARY` (absolute path to the primary checkout), `$TRACKER`
-  (`$PRIMARY/docs/dev/tech-debt.md`), `$STORE` (`$PRIMARY/docs/backlog/`) — consumed by Tasks 3, 5, 9,
-  10, 11
+  (`$PRIMARY/docs/dev/tech-debt.md`), `$STORE` (`$PRIMARY/docs/backlog/`) — consumed by Tasks 3, 5, 7,
+  9, 10, 11
 
 Implementation steps:
 1. Write `## Step 1: Locate the Tracker`.
@@ -259,7 +259,8 @@ Files: modify `plugins/dev/skills/migrate-tracker/SKILL.md`
 Interfaces:
 - Consumes: `ENTRY` records (Task 5); **L3-meta-closed**, **L7-related-optional**, **L8-title-uniqueness**
   (Task 4); **TEXT-IS-DATA** (Task 1)
-- Produces: the `ITEM` record — a complete P1 front-matter block + body + `proposed_slug` — consumed by
+- Produces: the `ITEM` record — a complete P1 front-matter block + body + `proposed_slug` + the
+  **unresolved** `related_title` (rule D defers its resolution to Task 9 step 4a) — consumed by
   Task 8, which finalizes it into `CONFIRMED_ITEMS` for Tasks 9 and 10
 
 Implementation steps:
@@ -271,8 +272,10 @@ Implementation steps:
 3. **Direct mappings, open entries:** `status: open`; `first_recorded` ← meta `First recorded`;
    `cycles` ← the meta `Cycles:` list; `files` ← the parsed `**Files:**` list.
    - **Invariant reconciliation:** if the meta `Recurrence: N` disagrees with `len(cycles)`, **`cycles`
-     is authoritative** (the old format's own rule). Write `recurrence: len(cycles)` and flag the
-     entry `recurrence-corrected` for the report.
+     is authoritative** — write `recurrence: len(cycles)` and flag the entry `recurrence-corrected` for
+     the report. This is the old format's own stated tiebreak, verbatim: "if they disagree, `Cycles:`
+     is authoritative" (`ab054df:plugins/dev/references/tech-debt.md:112-113`); P1 restates the same
+     rule for the store.
 4. **Direct mappings, closed entries:** `status: closed`; `closed` ← meta `Closed <date>`; `closed_by`
    ← meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as above.
 5. **Mapping rule A — `cycles:` for closed items.** **L3-meta-closed** carries no `Cycles:` list, so
@@ -282,9 +285,16 @@ Implementation steps:
    `recurrence: 2`). **Rule:** seed `cycles: [<closed_by>]`, then pad with the synthetic marker
    `migrated` until `len(cycles) == N`; write `recurrence: N`. This is the same device `dev:debt add`
    uses with `manual` (`debt/SKILL.md:217-221`). Missing or unparseable `N` → treat as `1`.
+   **Say explicitly that this inverts step 3's precedence, and why.** On an open entry `cycles` wins
+   because the entry carries real cycle names and `N` is a maintained count that can drift away from
+   them. On a closed entry there **is** no `Cycles:` list to be authoritative — `N` is the only
+   surviving evidence of how many times the item recurred, so it wins and `cycles` is padded up to it.
+   Both steps serve one goal: preserve the recurrence signal the tracker actually recorded, using
+   whichever field still carries it. Writing the two rules without this sentence reads as an
+   inconsistency and invites a later "fix" that discards real data.
 6. **Mapping rule B — `scope:` for closed items.** Write `scope: repo` **unconditionally**. Closed
    items are never classified and never routed (Success Criterion 5), so no heuristic ever runs on
-   them. Open items get their `scope` in Task 6's classification step (Task 8) — leave it unset here.
+   them. Open items get their `scope` in Task 8's classification step — leave it unset here.
 7. **Mapping rule C — the proposed slug.** It is **not** mechanically derivable from the title: the
    real migration editorialized (*"Architecture-cycle design doesn't pressure-test cross-boundary
    delivery mechanisms"* → `debt-arch-cross-boundary-transport`), and P2 fixes the slug as the item's
@@ -295,10 +305,15 @@ Implementation steps:
    component, because entry titles are untrusted text (**TEXT-IS-DATA**). Expect **L8**-shaped titles
    ending in ` (<cycle name>)` and fold the parenthetical into the slug rather than dropping it, since
    it is what made the title unique.
-8. **Mapping rule D — `possibly_related_to`.** **L7** carries an *exact title*; P1 wants a *slug*.
-   Resolve the referenced title against the proposed slugs of the entries parsed in this same run. On
-   a match, write that slug. On no match, **omit the field** and flag the entry
-   `related-unresolved` for the report — never write a title into a slug field.
+8. **Mapping rule D — `possibly_related_to` is deferred, not resolved here.** **L7** carries an *exact
+   title*; P1 wants a *slug*. **Do not write the field at this step.** Carry the raw `related_title`
+   forward unresolved on the `ITEM` record. State the reason in the skill text so nobody "optimizes"
+   the resolution back into this step: the slug proposed here is **not** the final slug. Task 8 lets
+   the user rewrite one, and Task 9's P2 collision branch can rename the file to
+   `debt-<slug>-<first-cycle>` — and P2 makes the **basename** the thing a `possibly_related_to:`
+   pointer targets (`references/tech-debt.md:142-150`). Resolving against proposed slugs would
+   therefore write a dangling pointer on any confirmed slug edit or any collision. Resolution happens
+   in Task 9 step 6, against final basenames.
 9. **Body.** Emit `**What's wrong:** / **Why deferred:** / **Done looks like:**` with the values
    **verbatim** from the `ENTRY` (Success Criterion 3). Omit `severity:` — the legacy format has no
    such field and P1 makes it optional.
@@ -395,7 +410,7 @@ Interfaces:
 - Consumes: `CONFIRMED_ITEMS` (Task 8); `ROUTING_CTX` (Task 7); `$STORE` (Task 2); **NEVER-COMMIT**
   (Task 1)
 - Produces: `BUCKET_A` (new local files written), `BUCKET_B` (merged into existing items) — consumed by
-  Task 11
+  Task 11; and `SLUG_MAP` (entry title → final basename slug, built in step 6) — consumed by Task 10
 - Shared procedure: **P2 slug-collision disambiguation** — this task is the **canonical**
   implementation; Task 10's degrade path is a mirror of it.
 
@@ -417,35 +432,51 @@ Implementation steps:
      keyword similarity alone) → append this item's `cycles:` entries to the matched file, increment
      `recurrence:` in lockstep so `recurrence == len(cycles)` holds, append the incoming body detail,
      **never replace** existing text, **create no new file** → **`BUCKET_B`**.
-   - **Uncertainty** → a **new file** carrying `possibly_related_to: <slug>` → **`BUCKET_A`**.
+   - **Uncertainty** → a **new file**, whose `possibly_related_to:` is filled in at step 6 →
+     **`BUCKET_A`**.
    Add the one line that keeps the bias intentional: a duplicate file is visible in `ls` and cheap to
    merge by hand; a wrong merge silently destroys an item nobody will notice is missing.
    Say why this runs at all: **the store may already be populated** — `dev:done`'s flush creates it the
    first time any cycle defers something, so any target repo that ran a cycle since the store shipped
    is already in the mixed state. That is expected, not exotic. (Success Criterion 7.)
-5. **P2 collision disambiguation (canonical).** Before writing `<type>-<slug>.md`, check for that
-   basename in **both** the active corpus **and** `$STORE/closed/` — uniqueness spans the whole tree.
+5. **P2 collision disambiguation (canonical) — decide every final name before writing anything.** For
+   each `BUCKET_A` item, check `debt-<slug>.md` against **both** the active corpus **and**
+   `$STORE/closed/` — uniqueness spans the whole tree. Address every path through `$STORE` (Task 2),
+   never as a bare relative path: under **NEVER-CD** a relative path resolves against whatever cwd the
+   shell happens to hold. The destination directory is set by `status:` (P3 — `status: open` →
+   `$STORE`; `status: closed` → `$STORE/closed/`, P2 keeping the basename identical across the move).
    The two branches:
-   - **Free** → write `docs/backlog/debt-<slug>.md`.
-   - **Taken in either location** → write `docs/backlog/debt-<slug>-<first-cycle>.md`, where
-     `<first-cycle>` is the item's first `cycles:` entry, and record the disambiguation for the report.
+   - **Free** → final name `<dest>/debt-<slug>.md`.
+   - **Taken in either location** → final name `<dest>/debt-<slug>-<first-cycle>.md`, where
+     `<first-cycle>` is the item's first `cycles:` entry; record the disambiguation for the report.
    State why `closed/` counts: two identical basenames across active and `closed/` would make a
-   `possibly_related_to:` pointer ambiguous. (Success Criterion 6.)
-6. **Destination by status** — `status: open` → `$STORE/debt-<slug>.md`; `status: closed` →
-   `$STORE/closed/debt-<slug>.md` (P3's terminal archival location, P2's identical basename across the
-   move).
-7. **NEVER-COMMIT** — nothing here is staged or committed.
+   `possibly_related_to:` pointer ambiguous. (Success Criterion 6.) This step **decides names; it does
+   not write** — the write is step 7, so step 6 can resolve pointers against a settled naming.
+6. **Resolve `possibly_related_to` against final names.** Task 6 rule D deferred this deliberately,
+   because only now is the final basename known. Collect every local-write item's final slug from
+   step 5 into one **`SLUG_MAP`**, keyed by the item's original entry title. Then, per item carrying a
+   `related_title`:
+   - **Match in `SLUG_MAP`** → set `possibly_related_to: <final slug>`.
+   - **No match** (the referenced entry was unparseable, routed off-repo, or merged away) → **omit the
+     field** and flag the item `related-unresolved` for the report. Never write a title into a slug
+     field, and never point at a basename that isn't on disk.
+   `SLUG_MAP` is built from the **whole** local-write set before any pointer is resolved, so every
+   pointer resolves against the same settled naming rather than against whichever files happened to
+   exist when a given item's turn came.
+7. **Write.** Emit each `BUCKET_A` item to its step-5 final name, and apply each `BUCKET_B` merge to its
+   matched file. This is the first step that touches disk.
+8. **NEVER-COMMIT** — nothing here is staged or committed.
 
 ### Task 10: Step 8 — Route the off-repo plugin items
 What: Deliver confirmed `scope: plugin` items to the plugin repo as `dev-backlog` issues, degrading to
 a local `routing: pending` file on any failure.
 Used by: Task 11 counts its output as buckets (c) and (d).
-Depends on: Task 9 (local writes complete first, so a degrade write lands in a settled store) and
-Task 7 (`ROUTING_CTX`).
+Depends on: Task 9 (local writes complete first, so a degrade write lands in a settled store, and
+`SLUG_MAP` exists), Task 8 (`CONFIRMED_ITEMS`), Task 7 (`ROUTING_CTX`), Task 2 (`$STORE`).
 Files: modify `plugins/dev/skills/migrate-tracker/SKILL.md`
 Interfaces:
-- Consumes: `CONFIRMED_ITEMS` (Task 8); `ROUTING_CTX` (Task 7); `$STORE` (Task 2); **NEVER-COMMIT**,
-  **CITE-DONT-COPY** (Task 1)
+- Consumes: `CONFIRMED_ITEMS` (Task 8); `ROUTING_CTX` (Task 7); `$STORE` (Task 2); `SLUG_MAP` (Task 9);
+  **NEVER-COMMIT**, **CITE-DONT-COPY** (Task 1)
 - Produces: `BUCKET_C` (delivered as issues, with issue numbers), `BUCKET_D` (held locally as
   `routing: pending`) — consumed by Task 11
 - Shared procedure: **P2 slug-collision disambiguation** — **mirror of Task 9**. Task 9 is canonical.
@@ -469,13 +500,20 @@ Implementation steps:
 6. **P2 collision disambiguation on the degrade write — mirror of Task 9 step 5.** Restating its full
    branch structure, as required rather than referring back to it:
    - Before writing `debt-<slug>.md`, check for that basename in **both** the active corpus **and**
-     `$STORE/closed/` — uniqueness spans the whole tree.
-   - **Free** → write `docs/backlog/debt-<slug>.md`.
-   - **Taken in either location** → write `docs/backlog/debt-<slug>-<first-cycle>.md`, where
-     `<first-cycle>` is the item's first `cycles:` entry, and record the disambiguation for the report.
-   The one branch Task 9 has that this path does **not**: **no P6 recurrence-merge runs here** (Task 9
-   step 3's rule — an off-repo `plugin` item never merges into the local corpus). A degrade always
-   produces a **new file**, never a merge.
+     `$STORE/closed/` — uniqueness spans the whole tree. Address every path through `$STORE` (Task 2),
+     never as a bare relative path (**NEVER-CD**).
+   - **Free** → write `$STORE/debt-<slug>.md`.
+   - **Taken in either location** → write `$STORE/debt-<slug>-<first-cycle>.md`, where `<first-cycle>`
+     is the item's first `cycles:` entry, and record the disambiguation for the report.
+   Two branches Task 9 has that this path does **not**: **no P6 recurrence-merge runs here** (Task 9
+   step 3's rule — an off-repo `plugin` item never merges into the local corpus), so a degrade always
+   produces a **new file**, never a merge; and **no `$STORE/closed/` destination**, because a routed
+   item is always `status: open` (closed items are never routed, step 2). The active corpus is the only
+   destination this path can write to.
+   For a degraded item carrying a `related_title`, resolve it against Task 9's **`SLUG_MAP`** exactly as
+   Task 9 step 6 does — match → `possibly_related_to: <final slug>`; no match → omit the field and flag
+   `related-unresolved`. Add this item's own final slug to `SLUG_MAP` as it is written, so a later
+   degrade in the same run can point at it.
 7. Add the self-healing note, so no retry path is invented here: `/dev:debt list` and the next
    `dev:done` flush in this repo both already re-attempt every `routing: pending` item
    (**P9.retry-seam**), so a partial migration heals itself. This skill has no retry of its own.
@@ -578,7 +616,7 @@ Implementation steps:
 | Entry the parser cannot read | Tasks 5, 11 | `BUCKET_E`; raw text reported verbatim, entry unmigrated, tracker **not** deleted |
 | Closed entry with `Recurrence: N > 1` and no cycle list | Task 6 | `cycles` seeded from `closed_by`, padded to `N` with the synthetic marker `migrated` |
 | `Recurrence` disagrees with `Cycles:` on an open entry | Task 6 | `cycles` is authoritative; `recurrence: len(cycles)`, flagged `recurrence-corrected` |
-| `**Possibly related to:**` names a title, P1 wants a slug | Task 6 | Resolve against this run's proposed slugs; unresolved → omit the field, flag it |
+| `**Possibly related to:**` names a title, P1 wants a slug | Tasks 6, 9, 10 | Carried unresolved by Task 6; resolved in Task 9 step 6 against `SLUG_MAP` of **final** basenames (Task 10 mirrors it for degrade writes); unresolved → omit the field, flag it |
 | `gh` unauthenticated / offline / API error | Task 10 | P9.degrade → local `routing: pending`; P9.retry-seam heals it later |
 | Routing target unresolvable from config | Tasks 7, 10 | `target_slug: null` announced in the confirmation header; every plugin item degrades |
 | Run inside the plugin repo itself | Tasks 7, 9 | P9.dogfood → plugin items written locally; no issue opened against the repo it stands in |
