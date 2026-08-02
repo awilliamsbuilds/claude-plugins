@@ -456,6 +456,59 @@ its matched file. This is the first step that touches disk.
 
 **NEVER-COMMIT** — nothing here is staged or committed.
 
+## Step 8: Route Plugin Items
+
+**The route set** is exactly: open items confirmed `scope: plugin` **when `ROUTING_CTX.dogfood` is
+false**. Two exclusions, stated explicitly:
+
+- **No closed item is ever routed, whatever its scope** (Success Criterion 5).
+- Under dogfood the set is **empty** — Step 7 already wrote those items locally.
+
+If the set is empty, skip to Step 9 silently.
+
+**Confirmation already happened.** Step 6's header carried P9.delivery's echo of `<owner/name>` and
+the public-tracker warning. Do not re-prompt per item.
+
+**Per item: P9.intake-dedup first, then P9.delivery** — both cited, neither restated. Record the
+outcome:
+
+- Clear match against an existing open `dev-backlog` issue → `gh issue comment`, no new issue.
+- Otherwise → `gh issue create`, capturing the issue number. Nothing is written locally on success.
+
+Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
+
+**P9.degrade — on any failure** (no network, no auth, API error, or `target_slug: null` from Step 5):
+write the item into the **current** repo's `docs/backlog/` with `scope: plugin` **and**
+`routing: pending`, then count it in **`BUCKET_D`**. It is surfaced and re-attempted, never dropped.
+
+**P2 collision disambiguation on the degrade write — mirror of Step 7 step 2.** Restated in full
+here rather than referred back to, because this path is reached only on failure and must not depend
+on the reader having Step 7 in mind:
+
+- Before writing `debt-<slug>.md`, check that basename in **both** the active corpus **and**
+  `$STORE/closed/` — uniqueness spans the whole tree. Address every path through `$STORE` (Step 1),
+  never as a bare relative path (**NEVER-CD**).
+- **Free** → write `$STORE/debt-<slug>.md`.
+- **Taken in either location** → write `$STORE/debt-<slug>-<first-cycle>.md`, where `<first-cycle>`
+  is the item's first `cycles:` entry. Record the disambiguation for the report.
+
+**Two branches Step 7 has that this path does not.** First, **no P6 recurrence-merge runs here** —
+Step 7's exclusion rule says an off-repo `plugin` item never merges into the local corpus — so a
+degrade always produces a **new file**, never a merge. Second, **no `$STORE/closed/` destination**,
+because a routed item is always `status: open` (closed items are never routed). The active corpus is
+the only destination this path can write to.
+
+For a degraded item carrying a `related_title`, resolve it against Step 7's **`SLUG_MAP`** exactly as
+Step 7 step 3 does — match → `possibly_related_to: <final slug>`; no match → omit the field and flag
+`related-unresolved`. Add this item's own final slug to `SLUG_MAP` as it is written, so a later
+degrade in the same run can point at it.
+
+**No retry path is invented here.** `/dev:debt list` and the next `dev:done` flush in this repo both
+already re-attempt every `routing: pending` item (**P9.retry-seam**), so a partial migration heals
+itself. This skill has no retry of its own.
+
+**NEVER-COMMIT** — the degrade write is not staged or committed.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
