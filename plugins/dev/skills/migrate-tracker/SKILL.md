@@ -44,6 +44,45 @@ commit silently carries them. Do not "fix" this by adding a commit.
 `delivery`, `degrade`, `retry-seam` — and P2, P5, P6, P7 are referenced by name and never restated.
 The contract is the single source of truth; a second copy here would drift from it.
 
+## Step 1: Locate the Tracker
+
+Derive `PRIMARY` **absolute**, at this single computation site:
+
+```bash
+PRIMARY=$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)
+```
+
+The `cd` is required. `git rev-parse --git-common-dir` returns a path *relative to the primary
+checkout* — `.` at its root, `../../` deeper in — and this skill runs standalone from the primary
+checkout, which is precisely the failing case. This is the form the open debt item
+`debt-primary-path-relative-in-dev-headers.md` names under *Done looks like*, so a new file adopts
+the fix rather than inheriting the bug. The `cd` sits **inside a command-substitution subshell** and
+never moves the skill's own working directory, so **NEVER-CD** holds.
+
+Then:
+
+```bash
+TRACKER="$PRIMARY/docs/dev/tech-debt.md"
+STORE="$PRIMARY/docs/backlog"
+```
+
+**The no-op guard.** If `$TRACKER` does not exist, print exactly this line and stop — writing
+nothing, creating nothing, and **not** invoking `dev:init`:
+
+```
+No legacy tracker in this repo — nothing to migrate.
+```
+
+Do not "fix" this into silence later. It follows `dev:debt` Step 1's documented **exception** to P7
+silent-degrade (`debt/SKILL.md:53-55`), not P7 itself: the user typed an invocation and deserves an
+answer, and literal silence is indistinguishable from a skill that failed to load. (Success
+Criterion 1.)
+
+This same guard is what makes a **re-run in an already-migrated repo** a clean no-op — the tracker is
+gone, so the skill exits here. (Success Criterion 10.)
+
+If `$TRACKER` exists, read it and continue to Step 2.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
