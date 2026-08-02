@@ -323,6 +323,67 @@ afterwards.
 home and will be written to the local `docs/backlog/` as ordinary files: no issue, no routing,
 nothing leaves the repo. The skill must never open an issue against the repo it is standing in.
 
+## Step 6: Classify, Show, Confirm
+
+**Classify `scope` for open items only.** Two signals, in order:
+
+- **Strong:** the entry's `files:` paths do not resolve in the current repo — especially anything
+  under `plugins/dev/skills/` or `plugins/dev/references/`. Debt about files this repo does not have
+  is debt about the plugin.
+- **Weak:** body text naming `dev:*` skills, `/dev` stages, or the `/dev` workflow by name, with no
+  supporting `files:` signal.
+
+Default to `repo` when neither fires.
+
+**The heuristic does not need to be perfect, only legible.** The per-item "why" column is what makes
+a wrong guess cheap to catch, and the confirmation is what makes it correctable. Do not mistake the
+heuristic for the safeguard — the confirmation is the safeguard.
+
+**Header lines above the table**, from `ROUTING_CTX` (Step 5):
+
+- `dogfood: true` → "This **is** the plugin repo — `plugin`-scope items stay local. Nothing will be
+  routed."
+- `target_slug` resolved, not dogfood → "`plugin`-scope items will be delivered to
+  **`<owner/name>`** as `dev-backlog` issues. **Each routed item's full body is posted there, and
+  that tracker may be public.**" This is P9.delivery's required echo-and-confirm, folded into this
+  same confirmation.
+- `target_slug: null` → "Routing target unresolved — `plugin`-scope items will be held locally as
+  `routing: pending` and re-attempted later."
+- `BUCKET_E` non-empty → "N entr(ies) could not be parsed; the tracker will **not** be deleted."
+  Surfacing it here means the user confirms knowing the run is already partial.
+
+**The table** — one row per open item:
+
+```
+ #  slug                              scope   why
+ 1  debt-arch-cross-boundary-transport  plugin  files under plugins/dev/skills/ don't resolve here
+ 2  debt-nested-plan-lifetime           repo    files resolve locally; no /dev surface named
+```
+
+Both the slug and the scope are reviewed at this single point (Success Criteria 2 and 4).
+
+**Closed items never appear in the table.** They are already `scope: repo` (Step 4 rule B) and are
+never routed (Success Criterion 5). Say so in one line beneath the table, so their absence reads as
+deliberate rather than as an omission.
+
+**The confirmation** — one prompt, accepting:
+
+- confirm as shown;
+- flip items by number — `flip 2 5`;
+- correct a slug by number — `slug 3 <new-slug>`, re-validated against the P2 allowlist;
+- decline.
+
+After any edit, **re-print the table and re-ask.** The user always confirms the final state, never an
+amended memory of it.
+
+**Decline** → write nothing, route nothing, leave the tracker in place, and say so. The migration is
+abandoned cleanly rather than half-applied. End the run here.
+
+**No `gh issue create` and no store write happens before this confirmation returns.** (Success
+Criterion 4.)
+
+The result is `CONFIRMED_ITEMS` — every `ITEM` with `scope` and `slug` final.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
