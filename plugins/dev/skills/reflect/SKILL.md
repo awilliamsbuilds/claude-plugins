@@ -47,6 +47,7 @@ Extract key metrics from state.json:
 - `stage_timestamps` — compute duration per stage. Note: `spec_end` is re-stamped on every spec revision, so `spec_end − spec_start` covers the full authoring-plus-revision span, not just the first draft.
 - `confidence.final_score` and `confidence.auto_filled[]`
 - `tier`
+- `handoff_at` — the stage at which a gated cycle was handed off to autopilot, or absent if the cycle ran in one mode throughout. **An absent key means no handoff** (including every cycle predating this feature) — read it as "no handoff," not as an error, the same way a missing `challenge` block is read above.
 - Any stage backtracks (stages in completed[] out of typical order)
 
 ## Step 2: Review Each Dimension
@@ -115,7 +116,9 @@ Format:
 **Deferred to tech debt:** [item slug(s) recorded in Step 6, or "none"]
 ```
 
-## Step 4: Invite User Observations (standard mode)
+## Step 4: Invite User Observations (standard mode, or any handed-off cycle)
+
+Run this step when `mode` is `"standard"` **or** when `handoff_at` is set.
 
 Retrospective is never a silent, model-only exercise, and **a clean automated review is not a reason to skip the user — it is the most important time to include them.** The metrics only see what they measure; the human sees where the friction actually was (e.g. "most of the spec stage was me raising edge cases the skill had missed" — invisible to every counter). Do not conclude the cycle on the strength of a tidy metric sheet.
 
@@ -130,7 +133,7 @@ Wait for a real response. Do **not** append the retrospective or hand back to `d
 
 Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change then flows into Step 6's skill-update gate exactly like an automated suggestion — so a "nothing found" review can still produce a real improvement once the human weighs in.
 
-**Autopilot mode:** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue.
+**Autopilot mode (no handoff):** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue. A handed-off cycle is the exception: it had a human at its definition stages, so the friction this step exists to capture is available and worth asking for. Only a cycle that was autopilot from the start skips it.
 
 ## Step 5: Append to Decision Log
 
