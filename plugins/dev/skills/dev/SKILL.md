@@ -36,7 +36,14 @@ If present: continue to Step 3.
 
 ## Step 3: Check for In-Progress Session
 
-Compute `PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")`, then scan for state.json in
+Compute the primary checkout:
+
+```bash
+GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+```
+
+Then scan for state.json in
 both locations: `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and
 `$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles). Deduplicate by feature name.
 

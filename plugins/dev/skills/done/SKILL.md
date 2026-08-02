@@ -12,7 +12,8 @@ description: "Stage 7 of the /dev workflow. Merges the PR, generates a decision 
 This stage never relies on the shell's current directory or current branch. Compute the
 primary checkout, then locate this cycle's directory:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
 
 Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
 1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle

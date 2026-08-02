@@ -138,7 +138,8 @@ Create the branch before asking any questions. All artifacts commit to this bran
 concurrent sessions in this repo never contend for the shared working tree. Compute the
 primary checkout and create the worktree there:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
     git -C "$PRIMARY" fetch origin
     git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch> origin/main
 

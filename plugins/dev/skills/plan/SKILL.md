@@ -12,7 +12,12 @@ description: "Stage 3 of the /dev workflow. Transforms spec + design into an ord
 This stage never relies on the shell's current directory or current branch. Compute the
 primary checkout, then locate this cycle's directory:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+
+From a primary checkout `git rev-parse --git-common-dir` returns a relative path (`.git` at the repo
+root), which `dirname` reduces to `.`; the `cd` in a command-substitution subshell absolutizes it
+without changing the caller's directory.
 
 Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
 1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle

@@ -84,7 +84,8 @@ Example: issue "ENG-123: Fix broken logout button on mobile" → `fix/ENG-123-fi
 **Note — bare-slug argument matchers stay lowercase-only.** `dev:done` and `dev:plan` accept a bare positional feature slug only when it matches `^[a-z0-9][a-z0-9-]*$`, and those matchers are intentionally left unchanged this cycle. Resolving an uppercase `dev:fix` slug (e.g. `ENG-123-fix-logout-button`) as a *bare* argument to those skills is a pre-existing lowercase-only limitation, out of scope here — the slug still resolves fine via its PR-URL and artifact-path forms.
 
 ```bash
-PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
 git -C "$PRIMARY" fetch origin
 git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/ENG-123-<short-title>" -b fix/ENG-123-<short-title> origin/main
 # WORKDIR="$PRIMARY/.dev-worktrees/ENG-123-<short-title>" for the rest of the cycle
