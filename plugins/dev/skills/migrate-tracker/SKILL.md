@@ -109,6 +109,72 @@ items into a store that isn't there.
 
 `dev:init` leaves its own writes unstaged, consistent with **NEVER-COMMIT**.
 
+## The Legacy Format
+
+These rules are **recovered, not invented** — from `git show
+ab054df:plugins/dev/references/tech-debt.md` (the retired *§ Where a field ends* and its rules list)
+and from the real example at `git show 7ebe89a^:docs/dev/tech-debt.md`. The live contract retains
+only a one-line retirement note (`references/tech-debt.md:417`). This section is **CITE-DONT-COPY**'s
+one stated exception: there is no live document left to cite.
+
+**L1-structure.** The file has a prose preamble, then `## Open`, then `## Closed`. Each entry is a
+line-initial `### <title>`, followed immediately by a single italic meta line, then bold-label field
+prose. An entry ends at the next line-initial `### ` or `## `, or at EOF. Either section may be
+absent or empty.
+
+**L2-meta-open.** Under `## Open`:
+
+```
+*First recorded: YYYY-MM-DD · Cycles: <a>, <b> · Recurrence: N*
+```
+
+The separator is a middle dot (`·`), `Cycles:` is a comma-separated list of cycle names, `N` is an
+integer.
+
+**L3-meta-closed.** Under `## Closed`:
+
+```
+*Closed YYYY-MM-DD by cycle <name> · First recorded: YYYY-MM-DD · Recurrence: N*
+```
+
+A **different shape**. It carries exactly one cycle name and **no `Cycles:` list** — the single most
+consequential difference between the two sections, and the reason Step 4's mapping rule A exists.
+
+**L4-field-labels.** The five line-initial labels are exactly `**What's wrong:**`,
+`**Why deferred:**`, `**Done looks like:**`, `**Files:**`, `**Possibly related to:**`.
+
+**L5-field-end.** A field's value runs from its label to the **next line-initial field label** from
+L4, or the next line-initial `###` / `##` — whichever comes first. Three traps, each of which
+silently truncates preserved context if got wrong:
+
+- **Blank lines are not boundaries.** Entries embed multi-paragraph reasoning. Never terminate a
+  field at a blank line.
+- **Mid-line bold-colon spans are not boundaries.** Real entries write things like
+  `**Behavior is safe:**` as prose *inside* `**What's wrong:**`. Only a **line-initial** label from
+  L4 ends a field.
+- **Tables, lists, and code fences inside a value are part of that value.** The fixture's
+  `Sweep for gate-path state writes that are dead in autopilot` entry carries a full Markdown table
+  inside `**What's wrong:**` (`7ebe89a^:docs/dev/tech-debt.md:109`+). Use it as the test case.
+
+Companion rule: a legacy entry body was required to indent or fence any `#` heading it quoted, so a
+**line-initial** `##`/`###` inside a body is not expected. If one is nevertheless encountered, the
+entry boundary wins and the entry parses short — which Step 3 must **surface**, not absorb.
+
+**L6-files-required.** `**Files:**` is a comma-separated list of repo-relative paths, required on
+every entry by the old format. It is the field `dev:spec`'s Step 7 cross-check keys its matching on.
+
+**L7-related-optional.** `**Possibly related to:** <exact title>` is optional and points at another
+entry's **exact title**. P1's `possibly_related_to:` points at a **slug**, so this field needs
+translation — handled in Step 4 rule D and resolved in Step 7.
+
+**L8-title-uniqueness.** Titles were unique within the file; a collision was disambiguated **on the
+way in** by appending ` (<first cycle name>)` to the title. Step 4's slug proposal must expect titles
+of that shape.
+
+**The fixture's shape, as a worked reference:** 11 entries — 4 Open, 7 Closed — with one Closed entry
+carrying `Recurrence: 2` and no cycle list. **Note:** the ADR `backlog-debt-model.md:43` says "three
+Open entries"; that snapshot predates the fourth. Trust the tracker at `7ebe89a^`, not the ADR.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
