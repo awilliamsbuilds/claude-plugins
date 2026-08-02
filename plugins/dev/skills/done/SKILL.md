@@ -319,7 +319,7 @@ Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEG
 Spec, design, and plan committed at: <pre-merge-sha> on branch feature/<name>
 ```
 
-`<Stage>` is the `handoff_at` value capitalized, e.g. Plan or Build. It names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape."
+`<Stage>` is the `handoff_at` value capitalized, e.g. Plan or Build. It names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape." A log that *does* read "at Shape" or "at Spec" is not corrupt — it records a user who pasted the command before approving the gate, which both gates document as harmless. Render the value as it stands; never correct it.
 
 **When `handoff_at` is absent, the template is byte-identical to today** — no blank line, no placeholder, no "n/a". That is what keeps existing decision logs comparable.
 

@@ -131,7 +131,7 @@ Anything that felt off, slow, or repetitive, or that you found yourself having t
 
 Wait for a real response. Do **not** append the retrospective or hand back to `dev:done` before giving the user this turn — skipping the user and moving straight to the next stage is the exact failure this step exists to prevent.
 
-Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change then flows into Step 6's skill-update gate exactly like an automated suggestion — so a "nothing found" review can still produce a real improvement once the human weighs in.
+Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change is then handled exactly like an automated suggestion: offered at Step 6's skill-update gate in standard mode, or — on a handed-off cycle, where that gate is standard-mode-only and so does not run — captured by Step 6's unconditional carrying-cost write. Either way a "nothing found" review can still produce a real improvement once the human weighs in.
 
 **Autopilot mode (no handoff):** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue. A handed-off cycle is the exception: it had a human at its definition stages, so the friction this step exists to capture is available and worth asking for. Only a cycle that was autopilot from the start skips it.
 
@@ -150,8 +150,6 @@ git -C "$WORKDIR" push
 ```
 
 ## Step 6: Skill Update Gate
-
-Run the gate below when `mode` is `"standard"` **or** when `handoff_at` is set — the same condition as Step 4 (see **Mode rule** at the end of this step). The carrying-cost write further down is unconditional and runs in every mode.
 
 For each actionable suggestion (e.g., "add auth checklist to dev:shape"):
 
@@ -176,7 +174,7 @@ If "yes": read the current SKILL.md, make the minimal targeted change, show the 
 
 Do **not** commit on this path. The primary checkout is usually sitting on `main`, and the standing convention is never to commit directly to `main`. Tell the user instead: "Recorded '<title>' in docs/backlog/ (modified, not committed)." This mirrors `dev:debt`'s Step 6 for the same reason.
 
-**Mode rule:** Step 6's gate runs on **the same condition as Step 4** — `mode` is `"standard"` **or** `handoff_at` is set. A handed-off cycle has a human in the loop at Step 4, so an observation they raise there reaches this gate exactly as Step 4 promises; leaving the gate standard-only would skip it on precisely the cycles that just asked the user for input. The carrying-cost write is **not** conditional on the gate or on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot **with no handoff** skips Step 4's user turn and this gate, but still reaches Step 6's suggestions and records them the same way — this write must never sit behind the gate.
+**Mode rule:** Step 6's gate is standard-mode-only — **including on a handed-off cycle**, whose `mode` reads `"autopilot"`. `handoff_at` has exactly two readers, Step 4 above and `dev:done` Step 5, and this gate is deliberately not a third: a handed-off cycle pauses once, for the user's observations, and does not acquire a second prompt here. What the user raises at Step 4 is still captured — by the carrying-cost write below, which is **not** conditional on the gate or on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot reaches Step 6's suggestions and records them the same way whether or not it ran Step 4's user turn — this write must never sit behind the gate.
 
 **Never update a skill file without two explicit confirmations: one to proceed with the update, one after seeing the diff.**
 
