@@ -26,8 +26,8 @@
     "loops_run": 0, "loops_max": 3
   },
   "challenge_plan": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "run": true, "blockers": 0, "concerns": 3,
+    "applied": 3, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "confidence": {

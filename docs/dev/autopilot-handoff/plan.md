@@ -58,13 +58,14 @@ Interfaces:
 - Shared procedure: `PRIMARY` derivation / `WORKDIR` resolution — **mirror of Task 1**. Task 1's canonical branch structure, restated in full: derive `GIT_COMMON` with the `||` failure branch that exits on "Not a git repository"; derive `PRIMARY` by `cd "$(dirname "$GIT_COMMON")" && pwd` inside a command-substitution subshell; then a two-branch first-hit-wins search for `docs/dev/<feature>/state.json` — branch 1 `$PRIMARY/.dev-worktrees/<feature>/` (active worktree cycle), branch 2 `$PRIMARY/` (legacy in-place cycle, `worktreePath` null) — setting `WORKDIR` to whichever matched. Neither branch is guarded by `worktreePath`; that field is a set/null predicate only, never the resolver.
 
 Implementation steps:
-1. Insert a new `## Resolve the working directory (do this first)` section between the `## Purpose` section (ends line 12) and `## Step 1: Initialize` (line 16), matching the wording and structure of the block in `plan/SKILL.md:10–23` — including the closing "run every git command as `git -C "$WORKDIR" …`" and "Never `cd`, never assume the current branch" sentences.
+1. Insert a new `## Resolve the working directory (do this first)` section **after the `**When autopilot stops:**` paragraph (line 14) and immediately before `## Step 1: Initialize` (line 16)** — that paragraph belongs to `## Purpose` and must stay under it, not be orphaned beneath the new heading. Match the wording and structure of the block in `plan/SKILL.md:10–23` — including the closing "run every git command as `git -C "$WORKDIR" …`" and "Never `cd`, never assume the current branch" sentences.
 2. In that section, use the Task 1 canonical snippet for `PRIMARY`, then the two-location first-hit-wins test described in the `Shared procedure:` line above.
 3. Add argument parsing to Step 1, ahead of the existing "Check for in-progress session" text: *May be invoked with an artifact-path argument (`spec.md` or `design.md` path). If given, derive `<feature>` from the path instead of scanning. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to the scan.* Use the wording already in `plan/SKILL.md` Step 1 so the eleven stage skills and the orchestrator state one rule.
 4. Keep the existing no-argument behavior intact: no argument → scan for an in-progress session → if none, begin from Spec. The artifact-path form is additive.
-5. Leave the existing announcement and `Set mode to "autopilot" in state.json` line where they are — the mode flip stays autopilot's job, per spec §Technical Constraints.
-6. Fix the dangling citation at line 54: `any git it runs uses git -C "$WORKDIR" per the canonical WORKDIR resolution` currently points at nothing. Repoint it to the section added in step 1 above ("per the working-directory resolution at the top of this skill"). Do **not** create a shared canonical block — that is spec §Out of Scope.
-7. Add `/dev:autopilot docs/dev/<feature>/<artifact>.md` as a fourth bullet in the `## Invocation` list (currently lines 115–119), described as "resume a gated cycle in autopilot from the named artifact, deriving the feature from the path."
+5. **Source `tier` and `stage` from the resolved `state.json`, not from the request.** Step 3's tier-detection line currently reads "The autopilot detects tier from the initial request" (`autopilot/SKILL.md:79`) — on a pasted resume command there *is* no initial request, so a micro cycle would otherwise have no way to select its `Spec → Build → Validate → PR → Done` sequence. Add to Step 1: on the artifact-path form (and on any resumed session), read `tier` and `stage` from the resolved `state.json` and use them to pick the remaining-stage list; amend the Step 3 line to "detects tier from the initial request, or reads `tier` from `state.json` when resuming." This is what makes Success Criterion 4 hold.
+6. Leave the existing announcement and `Set mode to "autopilot" in state.json` line where they are — the mode flip stays autopilot's job, per spec §Technical Constraints.
+7. Fix the dangling citation at line 54: `any git it runs uses git -C "$WORKDIR" per the canonical WORKDIR resolution` currently points at nothing. Repoint it to the section added in step 1 above ("per the working-directory resolution at the top of this skill"). Do **not** create a shared canonical block — that is spec §Out of Scope.
+8. Add `/dev:autopilot docs/dev/<feature>/<artifact>.md` as a fourth bullet in the `## Invocation` list (currently lines 115–119), described as "resume a gated cycle in autopilot from the named artifact, deriving the feature from the path."
 
 ### Task 3: Handoff offer at `dev:spec` Step 13 (canonical)
 What: Render an autopilot handoff offer at the Spec gate when the next stage is an execution stage, and on `yes` write the handoff marker, print the resume instructions, and end the session.
@@ -122,11 +123,14 @@ Implementation steps:
 1. **Restate Task 3's branch structure in full, as it applies here** — do not write "same as Task 3":
    - **Branch A — next stage is Shape.** *Unreachable from this gate.* Shape's next stage is always Plan, so the no-offer branch never fires here. Say so in one line rather than omitting it, so a reader comparing the two sites sees the branch was considered, not lost.
    - **Branch B — next stage is Plan.** Always taken. The offer renders on every Shape approval.
-2. Append the offer to the Step 11 gate block, below the existing `Safe to /clear now` / `Worktree:` lines and **after** the Design Status confirmation, so a locked-vs-directional design is settled before the session can end:
-   ```
-   The stages from here are execution — Plan, Build, Validate, PR, Done.
-   Want to run them unattended in autopilot? (yes / no)
-   ```
+2. **Placement and acceptance are two different things here — keep them separate.** In the real file the gate block is `shape/SKILL.md:221–228` and the Design Status confirmation is line 230, *after* it. So:
+   - **Print** the offer inside the Step 11 gate block, below the existing `Safe to /clear now` / `Worktree:` lines:
+     ```
+     The stages from here are execution — Plan, Build, Validate, PR, Done.
+     Want to run them unattended in autopilot? (yes / no)
+     ```
+   - **Do not accept** the `yes` path until Design Status has been confirmed and recorded in design.md. If the user answers `yes` before that confirmation has happened, ask the Design Status question first, record the answer, and only then run step 3.
+   This is the one place the mirror diverges from Task 3's canonical: Spec's gate has no analogous post-gate confirmation, so Task 3 needs no such ordering rule. State that divergence in one line at this site so a reader comparing the two gates sees it is deliberate. A `yes` that ended the session before Design Status was settled would hand Plan a design with no locked/directional marker — the exact thing Step 11's existing confirmation exists to prevent.
 3. `yes` path, ordered:
    a. Normal approval state update — add `"shape"` to `completed[]`, set `stage` to `"plan"`, and ensure the confirmed Design Status is already recorded in design.md.
    b. Additionally set `handoff_at` to `"shape"`.
