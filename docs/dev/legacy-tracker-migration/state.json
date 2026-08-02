@@ -3,8 +3,12 @@
   "feature": "legacy-tracker-migration",
   "branch": "feature/legacy-tracker-migration",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": [
+    "spec",
+    "plan",
+    "build"
+  ],
   "skipped": [
     "shape"
   ],
@@ -75,7 +79,9 @@
       "spec_start": "2026-08-01T16:59:16Z",
       "spec_end": "2026-08-01T22:26:27Z",
       "plan_start": "2026-08-01T23:48:40Z",
-      "plan_end": "2026-08-01T23:56:02Z"
+      "plan_end": "2026-08-01T23:56:02Z",
+      "build_start": "2026-08-02T00:13:39Z",
+      "build_end": "2026-08-02T00:22:52Z"
     }
   }
 }
