@@ -79,6 +79,8 @@ These rules apply throughout all stages. They override the standard-mode behavio
 - Record each auto-filled dimension in `confidence.auto_filled[]` with the inferred value
 - If confidence is still below High (65%) after auto-fill → STOP: "Confidence too low to proceed without human input. Current score: XX%. Please clarify: [top 2 unscored dimensions]."
 
+Auto-fill does not satisfy `dev:spec` Step 7's grounding gate — per Step 8, confidence cannot cross the proceed threshold while a load-bearing as-is claim is unverified, regardless of the weighted score. An unverified claim surfaces here through the existing "confidence too low even after auto-fill" STOP.
+
 **Shape alternatives: auto-select.** Present 2-3 alternatives internally, select the recommended one, note the selection and reasoning in design.md under "Design decision."
 
 **Worktrees are automatic.** Every cycle is isolated in its own worktree by `dev:spec` Step 6 —
