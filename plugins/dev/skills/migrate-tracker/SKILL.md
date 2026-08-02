@@ -297,6 +297,32 @@ field and P1 makes it optional.
 the clock. P1's clock rule governs a stage *stamping* a date; a migration preserves the provenance it
 found, and re-stamping would destroy the ordering the store exists to keep.
 
+## Step 5: Resolve the Routing Context
+
+This runs **before** the table, not after it. The skill takes exactly **one** confirmation, and
+P9.delivery requires the producer to echo and confirm the routing target before anything routes — so
+the target must be known while the table is being built, not discovered once the user has already
+answered.
+
+Produce `ROUTING_CTX = { dogfood: bool, target_slug: <owner/name>|null }`:
+
+1. **`target_slug`** per **P9.target-resolution** (cited, not restated): the `dev@<mp>` key in
+   `~/.claude/settings.json` `enabledPlugins`, then `extraKnownMarketplaces[<mp>].source.repo`.
+   Never guessed from `origin`. This skill takes **no `--repo` flag**, so the config is the only
+   source.
+2. **`dogfood`** per **P9.dogfood**: compare `git -C "$PRIMARY" remote get-url origin`'s slug against
+   `target_slug`, equality only. As P9 states, this comparison answers **only** "am I home?" — it is
+   never used to resolve a delivery target.
+
+**Unresolvable target** (`target_slug` null) — do **not** stop. Set `dogfood: false`,
+`target_slug: null`, and record that every `scope: plugin` item will take **P9.degrade** in Step 8.
+Say so in the table header, so the user confirms with that knowledge rather than learning it
+afterwards.
+
+**Dogfood** (`dogfood: true`) — say plainly in the table header that `plugin`-scope items are already
+home and will be written to the local `docs/backlog/` as ordinary files: no issue, no routing,
+nothing leaves the repo. The skill must never open an issue against the repo it is standing in.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
