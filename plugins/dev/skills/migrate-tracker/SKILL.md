@@ -224,6 +224,79 @@ empty aggregate carries no information the store needs.
 **The whole step's disposition, in one line:** every `###` heading produces exactly one record —
 either a parsed `ENTRY` or a `BUCKET_E` entry. Nothing is ever dropped between heading and record.
 
+## Step 4: Map Entries to Store Items
+
+Convert each `ENTRY` into an `ITEM` — a complete P1 front-matter block plus body. The schema is
+`../../references/tech-debt.md` **P1**; no field definitions are restated here.
+
+**`type: debt` for every item. No classification pass.** The legacy tracker held only debt by
+construction — it *was* a debt tracker. Backlog intentions in the old model were misfiled into
+`product-plan.md`, which this skill does not touch. Do not add a heuristic here later.
+
+**Direct mappings, open entries.** `status: open`; `first_recorded` ← meta `First recorded`;
+`cycles` ← the meta `Cycles:` list; `files` ← the parsed `**Files:**` list.
+
+> **Invariant reconciliation.** If the meta `Recurrence: N` disagrees with `len(cycles)`, **`cycles`
+> is authoritative** — write `recurrence: len(cycles)` and flag the entry `recurrence-corrected` for
+> the report. This is the old format's own stated tiebreak, verbatim: "if they disagree, `Cycles:` is
+> authoritative" (`ab054df:plugins/dev/references/tech-debt.md:112-113`). P1 restates the same rule
+> for the store.
+
+**Direct mappings, closed entries.** `status: closed`; `closed` ← meta `Closed <date>`; `closed_by` ←
+meta `by cycle <name>`; `first_recorded` ← meta `First recorded`; `files` as above.
+
+**Rule A — `cycles:` for closed items.** **L3-meta-closed** carries no `Cycles:` list, so P1's
+`recurrence == len(cycles)` invariant is underivable wherever `N > 1`. That case provably exists in
+the fixture (`7ebe89a^:docs/dev/tech-debt.md:110`, `Recurrence: 2`), and the earlier hand migration
+got it wrong — `closed/debt-gate-path-state-writes.md` carries one cycle name against
+`recurrence: 2`. **Rule:** seed `cycles: [<closed_by>]`, then pad with the synthetic marker
+`migrated` until `len(cycles) == N`, and write `recurrence: N`. This is the same device
+`dev:debt add` uses with `manual` (`debt/SKILL.md:217-221`). A missing or unparseable `N` → treat
+as `1`.
+
+**This inverts the precedence stated for open entries, deliberately.** On an open entry `cycles`
+wins, because the entry carries real cycle names and `N` is a maintained count that can drift away
+from them. On a closed entry there **is** no `Cycles:` list to be authoritative — `N` is the only
+surviving evidence of how many times the item recurred, so `N` wins and `cycles` is padded up to it.
+Both rules serve one goal: preserve the recurrence signal the tracker actually recorded, using
+whichever field still carries it. Written without this paragraph the two rules read as an
+inconsistency, and invite a later "fix" that discards real data.
+
+**Rule B — `scope:` for closed items.** Write `scope: repo` **unconditionally**. Closed items are
+never classified and never routed (Success Criterion 5), so no heuristic ever runs on them. Open
+items get their `scope` in Step 6 — leave it unset here.
+
+**Rule C — the proposed slug.** It is **not** mechanically derivable from the title. The real
+migration editorialized (*"Architecture-cycle design doesn't pressure-test cross-boundary delivery
+mechanisms"* → `debt-arch-cross-boundary-transport`), and P2 fixes the slug as the item's
+**permanent** identity, so two runs must not diverge irreversibly. **Rule:** propose one slug per
+entry — kebab-case matching `^[a-z0-9][a-z0-9-]*$`, ≤5 words, shortened for readability — and show it
+in Step 6's table, so a human fixes it once, at the only moment it is cheap.
+
+Apply the **P2 allowlist at derivation**: strip every character outside `[a-z0-9-]` *before* the slug
+is ever a path component. Entry titles are untrusted text (**TEXT-IS-DATA**). Expect **L8**-shaped
+titles ending in ` (<cycle name>)` and fold the parenthetical into the slug rather than dropping it —
+it is what made the title unique.
+
+**Rule D — `possibly_related_to` is deferred, not resolved here.** **L7** carries an *exact title*;
+P1 wants a *slug*. **Do not write the field at this step.** Carry the raw `related_title` forward
+unresolved on the `ITEM`.
+
+The reason, stated so nobody "optimizes" the resolution back into this step: the slug proposed here
+is **not** the final slug. Step 6 lets the user rewrite one, and Step 7's P2 collision branch can
+rename the file to `debt-<slug>-<first-cycle>` — and P2 makes the **basename** the thing a
+`possibly_related_to:` pointer targets (`references/tech-debt.md:142-150`). Resolving against
+proposed slugs would therefore write a dangling pointer on any confirmed slug edit or any collision.
+Resolution happens in Step 7, against final basenames.
+
+**Body.** Emit `**What's wrong:** / **Why deferred:** / **Done looks like:**` with the values
+**verbatim** from the `ENTRY` (Success Criterion 3). Omit `severity:` — the legacy format has no such
+field and P1 makes it optional.
+
+**Dates are lifted, not re-stamped.** `first_recorded` and `closed` come from the tracker, never from
+the clock. P1's clock rule governs a stage *stamping* a date; a migration preserves the provenance it
+found, and re-stamping would destroy the ordering the store exists to keep.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
