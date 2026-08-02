@@ -3,12 +3,13 @@
   "feature": "legacy-tracker-migration",
   "branch": "feature/legacy-tracker-migration",
   "mode": "standard",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/legacy-tracker-migration/plan.md",
     "validation": "docs/dev/legacy-tracker-migration/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/60",
+    "pr_number": 60
   },
   "validate": {
     "loops_run": 5,
@@ -29,10 +30,10 @@
     "p1_open": [],
     "p2_open": [],
     "p3_open": [
-      "The orphan sweep exempts a span the FILE_HEADING_COUNT cross-check recorded, but the cross-check records only headings and defines no extent — a drifted entry under a hand-added section can be reported twice. Report accuracy only; no data loss. Dropped by the carrying-cost test as a local one-clause fix."
+      "The orphan sweep exempts a span the FILE_HEADING_COUNT cross-check recorded, but the cross-check records only headings and defines no extent \u2014 a drifted entry under a hand-added section can be reported twice. Report accuracy only; no data loss. Dropped by the carrying-cost test as a local one-clause fix."
     ],
     "nits_open": [
-      "'Every other lossy path in this skill carries a flag' (the files-truncated rationale) is a false universal — the any-lifted-scalar newline truncation and the empty-cycle-name substitution are both unflagged. Rationale prose, not an instruction. Dropped by the carrying-cost test."
+      "'Every other lossy path in this skill carries a flag' (the files-truncated rationale) is a false universal \u2014 the any-lifted-scalar newline truncation and the empty-cycle-name substitution are both unflagged. Rationale prose, not an instruction. Dropped by the carrying-cost test."
     ]
   },
   "challenge": {
@@ -89,7 +90,8 @@
       "build_start": "2026-08-02T00:13:39Z",
       "build_end": "2026-08-02T00:22:52Z",
       "validate_start": "2026-08-02T00:23:48Z",
-      "validate_end": "2026-08-02T02:21:00Z"
+      "validate_end": "2026-08-02T02:21:00Z",
+      "pr_created": "2026-08-02T02:42:02Z"
     }
   }
 }
