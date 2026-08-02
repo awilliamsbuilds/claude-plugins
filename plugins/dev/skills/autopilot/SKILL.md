@@ -13,9 +13,32 @@ Chain all applicable stages end-to-end without stopping for user approval. Trade
 
 **When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, plan-challenger blockers remaining after `challenge_plan.loops_max` revisions, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through.
 
+## Resolve the working directory (do this first)
+
+This orchestrator never relies on the shell's current directory or current branch. Compute the
+primary checkout, then locate this cycle's directory:
+
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+
+Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
+1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
+2. `$PRIMARY/`                            → legacy in-place cycle (worktreePath null)
+
+Set `WORKDIR` to whichever matched. Neither branch is guarded by `worktreePath` — that field is a
+set/null predicate only, never the resolver. For the rest of this run: run every git command as
+`git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
+Never `cd`, never assume the current branch.
+
 ## Step 1: Initialize
 
 Check for `docs/dev/config.json`. If missing, run dev:init in autopilot mode (no questions — infer everything from codebase scan).
+
+May be invoked with an artifact-path argument (`spec.md` or `design.md` path). If given, derive `<feature>` from the path instead of scanning. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to the scan.
+
+With no argument, behavior is unchanged: scan for an in-progress session, and if none is found, begin from Spec. The artifact-path form is additive.
+
+**Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
 
 Check for in-progress session. If found:
 
@@ -51,7 +74,7 @@ These rules apply throughout all stages. They override the standard-mode behavio
 
 **Worktrees are automatic.** Every cycle is isolated in its own worktree by `dev:spec` Step 6 —
 there is no offer to accept. Autopilot inherits this with no special handling; any git it runs uses
-`git -C "$WORKDIR"` per the canonical WORKDIR resolution.
+`git -C "$WORKDIR"` per the working-directory resolution at the top of this skill.
 
 **Backtrack is silent.** When a later stage discovers an earlier artifact gap:
 1. Fix the earlier artifact
@@ -76,7 +99,7 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 
 Execute stages in sequence for the applicable tier:
 
-**Tier detection:** same as dev:spec (see stage skill). The autopilot detects tier from the initial request.
+**Tier detection:** same as dev:spec (see stage skill). The autopilot detects tier from the initial request, or reads `tier` from `state.json` when resuming.
 
 **Micro tier:** Spec → Build → Validate → PR → Done
 **Standard/Deep + no-ui:** Spec → Plan → Build → Validate → PR → Done
@@ -116,4 +139,5 @@ If stopped on a blocker, show the blocker and what's needed to continue.
 
 - `/dev:autopilot` — start or resume in autopilot mode
 - `/dev:autopilot no-ui` — autopilot, skip Shape
+- `/dev:autopilot docs/dev/<feature>/<artifact>.md` — resume a gated cycle in autopilot from the named artifact, deriving the feature from the path
 - The main `/dev` skill redirects `/dev auto` to this skill
