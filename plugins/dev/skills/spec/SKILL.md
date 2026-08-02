@@ -574,8 +574,11 @@ Spec written and committed to docs/dev/<feature-name>/spec.md.
 Please review it and let me know if you'd like any changes before we continue.
 
 Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
-[If Branch B: Or hand the rest of the cycle to autopilot — <Plan → Build → Validate → PR → Done, or
-Build → Validate → PR → Done for micro> run unattended: approve above, then /clear and run
+[If Branch B and the next stage is Plan: Or hand the rest of the cycle to autopilot — Plan → Build
+→ Validate → PR → Done run unattended: approve above, then /clear and run
+  /dev:autopilot docs/dev/<feature-name>/spec.md]
+[If Branch B and the next stage is Build (Micro tier): Or hand the rest of the cycle to autopilot —
+Build → Validate → PR → Done run unattended: approve above, then /clear and run
   /dev:autopilot docs/dev/<feature-name>/spec.md]
 [If worktreePath is set: Worktree: <worktreePath>]
 ```

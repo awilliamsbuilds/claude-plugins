@@ -16,9 +16,15 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "p1_open": [], "p2_open": [],
+    "p3_open": [
+      "PRIMARY=$(cd ...) yields empty string if the cd fails; only line 1 of the canonical snippet is failure-checked (13 sites incl. migrate-tracker)"
+    ],
+    "nits_open": [
+      "<artifact> component of the shared artifact-path validation rule carries no allowlist (only <feature> is regex-constrained)"
+    ]
   },
   "challenge": {
     "run": true, "blockers": 4, "concerns": 2,

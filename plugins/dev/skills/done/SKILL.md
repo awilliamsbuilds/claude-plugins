@@ -298,7 +298,7 @@ Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEG
 ```markdown
 # [Feature Name] — Decision Log
 *YYYY-MM-DD · Branch: feature/<name> · PR #N*
-[If handoff_at is set: *Handed off to autopilot at <stage>* — where <stage> is the capitalized marker value, e.g. Plan or Build.]
+[If handoff_at is set: *Handed off to autopilot at <Stage>*]
 
 ## What was built
 [One sentence from spec Intent.]
@@ -319,7 +319,7 @@ Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEG
 Spec, design, and plan committed at: <pre-merge-sha> on branch feature/<name>
 ```
 
-`handoff_at` names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape."
+`<Stage>` is the `handoff_at` value capitalized, e.g. Plan or Build. It names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape."
 
 **When `handoff_at` is absent, the template is byte-identical to today** — no blank line, no placeholder, no "n/a". That is what keeps existing decision logs comparable.
 

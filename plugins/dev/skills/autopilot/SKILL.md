@@ -11,7 +11,7 @@ description: "No-gate orchestrator for the /dev workflow. Chains all stages end-
 
 Chain all applicable stages end-to-end without stopping for user approval. Trade interactivity for speed. Use when you trust the spec enough to let the AI run the full cycle.
 
-**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, plan-challenger blockers remaining after `challenge_plan.loops_max` revisions, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through.
+**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, plan-challenger blockers remaining after `challenge_plan.loops_max` revisions, or 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"). Everything else runs through. (A handed-off cycle also *pauses* once, at `dev:reflect` Step 4, to ask the user for observations — a pause, not a stop; see Step 2.)
 
 ## Resolve the working directory (do this first)
 
@@ -36,7 +36,9 @@ Check for `docs/dev/config.json`. If missing, run dev:init in autopilot mode (no
 
 May be invoked with an artifact-path argument (`spec.md` or `design.md` path). If given, derive `<feature>` from the path instead of scanning. **Validate before using:** the path must match `docs/dev/<feature>/<artifact>.md` with `<feature>` matching `^[a-z0-9][a-z0-9-]*$` and containing no `..` segments. If it doesn't match, treat the argument as invalid and fall back to the scan.
 
-With no argument, behavior is unchanged: scan for an in-progress session, and if none is found, begin from Spec. The artifact-path form is additive.
+**On the artifact-path form, a validated feature with no cycle is a stop — never a fresh start.** If `<feature>` passes validation but neither location above holds `docs/dev/<feature>/state.json`, STOP: "No /dev cycle found for `<feature>`. Checked `$PRIMARY/.dev-worktrees/<feature>/` and `$PRIMARY/`." Do **not** fall through to "begin from Spec" — the argument form exists to resume a *named* cycle, so a mistyped slug that silently launched a new unattended cycle instead would be the worst available reading of it. This mirrors the artifact gate every stage skill opens with.
+
+With no argument, behavior is unchanged: scan for an in-progress session, and if none is found, begin from Spec. The artifact-path form is additive. The scan covers the same two locations as the resolution block, one glob each — `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and `$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles) — deduplicated by feature name, matching `dev:dev` Step 3. Once a session is picked `<feature>` is known, and the resolution block above applies to it.
 
 **Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
 
@@ -51,12 +53,12 @@ Resuming from <current-stage> in autopilot mode.
 
 If no in-progress session: begin from Spec.
 
-Set mode in state.json by these two branches. Read `stage` **before** flipping `mode` — reading it after records the stage autopilot advances to rather than the one it took over at.
+Set mode in state.json by these two branches. **Decide which branch applies from the `state.json` that existed when this invocation began** — the one the resolution block found, read before any stage of this run has executed. A `state.json` that this same invocation caused to be created is never a handoff, whatever `mode` it is born with: `dev:spec` Step 6 writes `"mode": "standard"` into every new state file, so re-reading `mode` after Spec has run would see `"standard"` on a cold start and misclassify a pure-autopilot cycle as a handed-off one. Read `stage` **before** flipping `mode` — reading it after records the stage autopilot advances to rather than the one it took over at.
 
-- **`mode` is currently `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
-- **`mode` is already `"autopilot"`, or there is no prior session** (a fresh cycle starting from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string.
+- **A prior session existed and its `mode` read `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
+- **A prior session existed and its `mode` already read `"autopilot"`, or there was no prior session** (a fresh cycle this invocation starts from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string.
 
-`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro, never `"spec"`/`"shape"`, because gate approval advances `stage` to the next stage before the user pastes the command. The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
+`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the **approved** path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro, and not `"spec"`/`"shape"`, because gate approval advances `stage` to the next stage before the user pastes the command. A user who pastes the command *before* approving — a path both gates document as harmless — legitimately produces `"spec"` or `"shape"` here; that is a correct marker for what actually happened, not corruption. The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
 
 **Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:done` Step 5): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
 
@@ -67,6 +69,8 @@ This is the key's only write site. There is no standard-mode writer — the Spec
 These rules apply throughout all stages. They override the standard-mode behaviors described in each stage skill:
 
 **No approval gates.** After each stage completes: read that the artifact exists and is non-empty (sanity check), then move immediately to the next stage. Do not ask "Continue?"
+
+**One carve-out, and only one: `dev:reflect` Step 4 on a handed-off cycle.** When `handoff_at` is set, that step's user-observation turn runs and waits for a real answer even though `mode` reads `"autopilot"` — it is not an approval gate, and the rule above does not override it. A cycle that was autopilot from the start has no `handoff_at`, so the step stays skipped there, as does `dev:reflect` Step 6's skill-update gate, which runs on the same condition. This is the one place a `/dev` run in autopilot mode pauses for a human without stopping.
 
 **No browser, no visual companion.** At every point where standard mode would open the visual companion browser, substitute a self-review instead:
 - Re-read the accumulated inputs for that decision point
