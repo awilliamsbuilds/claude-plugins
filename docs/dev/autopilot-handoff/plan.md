@@ -22,6 +22,13 @@
 `plugins/dev/skills/migrate-tracker/SKILL.md` is **not** in scope for T1 — it already derives
 `PRIMARY` absolute (Step 1) and is the source of the canonical snippet.
 
+**Every line number in this plan is pre-edit — the quoted anchor text is authoritative.** The numbers
+were read off the files as they stand before Task 1 runs, and earlier tasks shift them for later ones:
+Task 2's new section moves Task 3's and Task 9's `autopilot/SKILL.md` anchors down; Task 1's
+one-line→two-line replacements move Task 5's `shape/SKILL.md` anchor by one, and its prose→fenced-block
+rewrite at `dev/SKILL.md:39` moves Task 8's table anchor by more. Locate every edit by the quoted
+surrounding text, not by seeking to a line number.
+
 **No task touches `dev:dev`'s Step 5 sequencing.** The offer is static text in a gate that otherwise
 behaves exactly as today, so the orchestrator needs no handoff awareness. That is the design property
 spec §Scope 2 is protecting; if a task ever needs to teach `dev:dev` about handoffs, the offer has
@@ -80,7 +87,7 @@ Depends on: Task 2 (supplies the resolved `state.json` read point and the `stage
 Files: modify `plugins/dev/skills/autopilot/SKILL.md`
 Interfaces:
 - Consumes: the resolved `state.json` read point from Task 2 (`mode`, `stage`)
-- Produces: **`state.json.handoff_at`** — top-level string key holding the stage name the cycle was resumed at (`"spec"`, `"shape"`, or any later stage on a manual handoff). **Absent** when no `"standard"` → `"autopilot"` flip occurred. Read by Tasks 6 and 7.
+- Produces: **`state.json.handoff_at`** — top-level string key holding the stage autopilot is **resuming at**, i.e. the first stage that runs unattended: `"plan"` on the Shape-gate and no-UI Spec-gate routes, `"build"` on the micro route, or any later stage on a manual handoff. It is **never** `"spec"`/`"shape"` on the offered path, because gate approval advances `stage` to the next stage (`spec/SKILL.md:595`, `shape/SKILL.md:234`) before the user pastes the command. **Absent** when no `"standard"` → `"autopilot"` flip occurred. Read by Tasks 6 and 7.
 - State keys: `handoff_at` `(writes: autopilot-only)` — the only write site is this task. There is no standard-mode writer: the gates in Tasks 4 and 5 print text and write nothing, so no standard-side default is needed and none of the autopilot-correct values depend on a gate write.
 
 Implementation steps:
@@ -88,7 +95,7 @@ Implementation steps:
    - **`mode` is currently `"standard"`** — this is a handoff. Set `handoff_at` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same `state.json` update.
    - **`mode` is already `"autopilot"`, or there is no prior session** (a fresh cycle starting from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string. This is what makes Success Criterion 8 hold.
 2. Order matters and must be stated: read `stage` **before** flipping `mode`, or the marker records the stage autopilot advances to rather than the one it took over at.
-3. Note that the marker is deliberately not restricted to `"spec"`/`"shape"`. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and recording that stage accurately is correct for criterion 6.
+3. Note that the marker's value domain is deliberately open — any stage name, not an enum. On the offered path it will read `"plan"` or `"build"`; no offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and recording that stage accurately is correct for criterion 6.
 4. State the read contract for downstream consumers in one line here, since this is the key's definition site: an absent `handoff_at` means "no handoff," including on every cycle that predates this feature — never an error.
 5. Do not touch the announcement block (lines 22–27) or `Resuming from <current-stage> in autopilot mode` — the existing text already reports the resume; the marker records it durably.
 
@@ -119,8 +126,9 @@ Implementation steps:
    Keep the `Worktree:` line last so it applies to both commands.
 4. Add one line stating that the command resolves the worktree itself — it runs from anywhere in the repo, no `cd` required. This is Success Criterion 2's user-facing promise.
 5. **State what this task deliberately does not do**, since it is the property the whole design rests on: the offer is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. The approval flow below it — "Wait for explicit user approval," Path A, Path B, and the `When approved` state write — is untouched. A user who wants the gated flow simply ignores the extra line (Success Criterion 5).
-6. Because the offer holds no state, the gate re-displays after a Path A or Path B revision are idempotent — the same text re-renders. Say so in one line.
-7. Add one sentence to the existing `**Autopilot mode:** No gate.` paragraph: the gate does not render in autopilot, so the offer never prints there.
+6. **Say that the command is only meaningful after approval.** The offer prints above "Wait for explicit user approval," so a user can clear and paste it while `stage` is still `"spec"`. Nothing breaks: autopilot resumes *at Spec*, and `spec/SKILL.md`'s resume-mid-approval check re-enters Step 12a — the cycle simply finishes its spec stage unattended instead of handing off at the execution boundary. Add one line to the gate telling the user to approve first, so the intended behavior is the easy one. Do not add a guard — a guard would require the offer to know about approval state, which is exactly the coupling this design avoids.
+7. Because the offer holds no state, the gate re-displays after a Path A or Path B revision are idempotent — the same text re-renders. Say so in one line.
+8. Add one sentence to the existing `**Autopilot mode:** No gate.` paragraph: the gate does not render in autopilot, so the offer never prints there.
 
 ### Task 5: Printed autopilot offer at `dev:shape` Step 11 (mirror of Task 4)
 What: Add the same second resume command to the Shape gate's exit block.
@@ -147,8 +155,9 @@ Implementation steps:
    ```
 3. Add the same "resolves the worktree itself, no `cd` needed" line as Task 4 step 4.
 4. **Restate the does-not-do clause in full:** static text, no prompt, no consumed answer, no state write, no session end. The Design Status confirmation at line 230 and the `Wait for explicit user approval` / `When approved` flow below it are untouched and still run in their existing order. Note explicitly why this matters here and not at Spec: Shape's gate is followed by a Design Status confirmation, and because the offer cannot be "accepted," there is no path by which it can pre-empt that confirmation.
-5. Add the idempotency line: re-displays after requested changes re-render the same text.
-6. Add one sentence to `**Autopilot mode:** No gate.`: the gate does not render in autopilot, so the offer never prints there.
+5. **Restate the after-approval line** (Task 4 step 6's branch, as it applies here): the offer prints above `Wait for explicit user approval`, so pasting early resumes autopilot *at Shape* with `stage` still `"shape"` — harmless, but it finishes the shape stage unattended rather than handing off at the execution boundary, and it does so without the Design Status confirmation having been made. Tell the user to approve first. No guard, for the same reason as the canonical.
+6. Add the idempotency line: re-displays after requested changes re-render the same text.
+7. Add one sentence to `**Autopilot mode:** No gate.`: the gate does not render in autopilot, so the offer never prints there.
 
 ### Task 6: `dev:reflect` — run the user-observation turn on a handed-off cycle
 What: Make Step 4's user-observation turn fire when the cycle was handed off, even though `mode` reads `"autopilot"` by then.
@@ -177,7 +186,7 @@ Interfaces:
 - State keys: none introduced
 
 Implementation steps:
-1. In the Step 5 template, directly below the `*YYYY-MM-DD · Branch: feature/<name> · PR #N*` header line, add: `[If handoff_at is set: *Handed off to autopilot at <stage>* — where <stage> is the capitalized marker value, e.g. Spec or Shape.]`
+1. In the Step 5 template, directly below the `*YYYY-MM-DD · Branch: feature/<name> · PR #N*` header line, add: `[If handoff_at is set: *Handed off to autopilot at <stage>* — where <stage> is the capitalized marker value, e.g. Plan or Build.]` The marker names the first stage that ran unattended (Task 3 `Produces:`), so "Handed off to autopilot at Plan" is the expected rendering on the Shape-gate route — not "at Shape".
 2. State the absence rule explicitly beside the template: when `handoff_at` is absent the template is **byte-identical to today** — no blank line, no placeholder, no "n/a". This is spec §Scope 4 and Success Criterion 8, and it is what keeps existing decision logs comparable.
 3. Leave the rest of Step 5 unchanged — the `git add` / `commit` / `push_integration` sequence and every other template section.
 
@@ -222,6 +231,7 @@ Implementation steps:
 | Offer pre-empting Shape's Design Status confirmation | Task 5 step 4 | Impossible by construction — the offer can't be "accepted", so the confirmation and approval flow below it still run in order |
 | User never runs the offered command | Tasks 4 step 5, 5 step 4 | Nothing was recorded; the cycle continues down the gated path with no residue and no stale marker |
 | User pastes the command without clearing first | Task 2 | Works identically; only the context benefit is lost. No guard |
+| User pastes the command *before approving* | Tasks 4 step 6, 5 step 5 | `stage` is still `"spec"`/`"shape"`, so autopilot resumes at that stage and finishes it unattended rather than handing off at the execution boundary. Harmless; the gate copy tells the user to approve first. No guard — a guard would couple the offer to approval state |
 | Cycle already in autopilot mode | Tasks 3 step 1, 4 step 7, 5 step 6 | Gate never renders, so the offer never prints; no `"standard"` → `"autopilot"` flip occurs, so no marker is written |
 | Autopilot cycle from a cold start (no prior session) | Task 3 step 1 | Second branch — `mode` set as today, `handoff_at` never written. Success Criterion 8 |
 | Handoff at a stage past Shape (manual `/dev:autopilot` at Validate/PR) | Task 3 step 3 | No offer printed there, but the flip is real, so the marker records that stage accurately |

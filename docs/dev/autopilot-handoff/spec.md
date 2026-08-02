@@ -49,8 +49,10 @@ handoff is therefore a `/clear` boundary — the offer's payload is a runnable c
    `state.json` rather than inferring them from an initial request — a pasted command carries no
    request to infer from, and without `tier` a micro cycle cannot select its stage sequence
    (`autopilot/SKILL.md:79` currently says tier is detected "from the initial request").
-4. **A handoff marker in `state.json`** recording the stage the cycle handed off at
-   `(writes: autopilot-only)` — written by `dev:autopilot` Step 1 at the moment it flips a cycle
+4. **A handoff marker in `state.json`** recording the stage autopilot **resumed at** — the first
+   stage that ran unattended, which on the offered path is Plan (or Build on micro), *not* the gate
+   stage, because gate approval advances `stage` before the user pastes the command —
+   `(writes: autopilot-only)`, written by `dev:autopilot` Step 1 at the moment it flips a cycle
    whose `mode` is `"standard"` over to `"autopilot"`. That flip *is* the handoff, so the marker
    records an observed event rather than a stated intention; nothing is written at the gate. A cycle
    that was autopilot from the start never flips from `"standard"`, so the marker stays absent there.
