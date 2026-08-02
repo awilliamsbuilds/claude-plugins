@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/autopilot-handoff/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/autopilot-handoff/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -54,7 +54,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-02T03:18:44Z",
-      "spec_end": "2026-08-02T03:54:46Z"
+      "spec_end": "2026-08-02T03:54:46Z",
+      "plan_start": "2026-08-02T03:55:54Z",
+      "plan_end": "2026-08-02T05:28:47Z"
     }
   }
 }
