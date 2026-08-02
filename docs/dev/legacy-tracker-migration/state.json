@@ -22,12 +22,23 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 1,
+    "loops_run": 3,
     "loops_max": 3,
     "p1_open": [],
-    "p2_open": [],
-    "p3_open": [],
-    "nits_open": []
+    "p2_open": [
+      "Step 9's BUCKET_B containment check compares cycle names literally while Step 4 lowercases them and Step 7 now compares case-insensitively — a correct no-op merge fails verification, shorts the sum, and preserves the tracker identically on every re-run",
+      "The P9.degrade paragraph still orders a write at failure time, ahead of Step 8's own decide-names-then-write split — an agent following it skips the three-set collision check and two degrading items can share a final path",
+      "The heading-drift guard fires only when FILE_HEADING_COUNT == 0, so a tracker mixing well-formed '### ' entries with drifted '####' ones still reconciles clean and is deleted with the drifted entries lost",
+      "The files[] bullet's 'kept as written, never rewritten / no sanitization' wording reads as exempting files[] from the newline-truncation rule two bullets below, and L5 makes a **Files:** value multi-line by construction — an embedded newline injects sibling front-matter keys"
+    ],
+    "p3_open": [
+      "The Step 8 backfill writes possibly_related_to into a pre-existing BUCKET_B merge target that may already carry one — it is a single scalar, not a list, so appending duplicates the key; the sentence also cites P6's never-replace rule, which governs body text rather than front matter",
+      "The heading-drift case is filed under the out-of-section flag, which misdescribes it (drifted content is inside the sections) and makes Step 9 echo the whole file body under a misleading name"
+    ],
+    "nits_open": [
+      "The second empty-table sub-case repeats 'the tracker will not be deleted', which the BUCKET_E header line already printed",
+      "A ragged line break survives the loop 3 rewrap in the closed-items-in-table paragraph"
+    ]
   },
   "challenge": {
     "run": true,
