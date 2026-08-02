@@ -175,6 +175,55 @@ of that shape.
 carrying `Recurrence: 2` and no cycle list. **Note:** the ADR `backlog-debt-model.md:43` says "three
 Open entries"; that snapshot predates the fourth. Trust the tracker at `7ebe89a^`, not the ADR.
 
+## Step 3: Parse the Tracker
+
+The ordering principle for this step and every step after it: **parse defensively, fail loudly,
+never delete on doubt.**
+
+**Define `ENTRY_COUNT` first, and narrowly:** the number of line-initial `### ` headings appearing
+under `## Open` plus under `## Closed`. Heading detection is the one thing that must always work, so
+the count is anchored to it and **not** to successful field parsing. Step 9's reconciliation is
+against this number.
+
+Split the file into entries per **L1-structure** and assign each its section. Then, per entry:
+
+1. **Parse the meta line by section** — **L2-meta-open** under `## Open`, **L3-meta-closed** under
+   `## Closed`. A meta line matching **neither** shape for its section is not guessed at: set
+   `parse_ok: false`.
+2. **Extract the five fields** per **L4-field-labels** + **L5-field-end**. Capture each value
+   **verbatim** — whitespace and internal Markdown intact. The migration lifts text; it never
+   rewrites it. (Success Criterion 3.)
+
+Each entry becomes an `ENTRY` record:
+
+```
+{ section: open|closed, title, first_recorded, cycles[], closed, closed_by, recurrence,
+  whats_wrong, why_deferred, done_looks_like, files[], related_title, parse_ok, flags[] }
+```
+
+**Missing `**Files:**`.** The old format required it (**L6**), but a hand-edited tracker may lack it.
+Set `files: []`, add the flag `missing-files`, keep `parse_ok: true`, and **count the entry as
+migrated**. The asymmetry that decides this: an item lost in migration is unrecoverable once the
+tracker is deleted, while an item with an empty `files:` is merely invisible to `dev:spec`'s
+cross-check until someone fills it in.
+
+**`parse_ok: false` handling.** The entry goes to **`BUCKET_E`**. Do **not** guess, do **not** skip
+silently, do **not** partially migrate it. Its raw text is reproduced verbatim in Step 9's report, it
+is left unmigrated, and its presence alone is what stops the tracker from being deleted. The trigger
+set is exactly:
+
+- a meta line matching neither **L2-meta-open** nor **L3-meta-closed** for its section;
+- no `**What's wrong:**` field found;
+- an entry that parses short because a line-initial `##`/`###` appeared inside its body (**L5**'s
+  companion rule).
+
+**Empty tracker** (headers only, zero `###`) — `ENTRY_COUNT` is 0 and every bucket is empty. This is
+**not** an error and **not** a `BUCKET_E` case. It flows to Step 9, which deletes the tracker: an
+empty aggregate carries no information the store needs.
+
+**The whole step's disposition, in one line:** every `###` heading produces exactly one record —
+either a parsed `ENTRY` or a `BUCKET_E` entry. Nothing is ever dropped between heading and record.
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
