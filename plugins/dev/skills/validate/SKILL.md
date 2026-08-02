@@ -117,6 +117,7 @@ Run up to `loops_max` iterations.
 1. Review (both reviews in parallel for feature cycles)
 2. Classify all issues found
 3. Fix all P1 and P2 issues
+3a. **Propagate each fix to its declared counterparts.** Before moving on, check the fix against `plan.md`'s `Interfaces:` blocks: a task marked `Shared procedure: … canonical` has mirror tasks that restate its procedure, and a verification task checks another task's rule. When a fix edits either side of such a pair, re-check and update the counterpart **in this same loop**, before step 7's commit. The plan already records these pairs — a rule fixed in one step and left unpropagated to the step that mirrors or verifies it is the regression class the fix-diff re-review most often catches, and catching it here costs one read instead of a whole loop.
 4. Attempt P3 fixes (commit if successful; skip if risky)
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
 6. Update state.json `validate` fields:
@@ -130,7 +131,7 @@ Run up to `loops_max` iterations.
 9. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
 10. If `loops_run == loops_max` and P1/P2 still open: go to Step 4a.
 
-**Fix-diff re-review checklist:** Did any fix introduce a correctness or security regression (P1)? Did any fix break a sibling skill's documented behavior or healthy path (P1/P2)? Does every shell snippet the fix added or changed obey the healthy-path exit-code rule below?
+**Fix-diff re-review checklist:** Did any fix introduce a correctness or security regression (P1)? Did any fix break a sibling skill's documented behavior or healthy path (P1/P2)? Did any fix change one side of a plan-declared canonical/mirror or verified-by pair without updating the other? Does every shell snippet the fix added or changed obey the healthy-path exit-code rule below?
 
 **Healthy-path shell exit-code rule:** any shell snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard blocks don't read as failure to a harness that checks exit codes. Prefer `if [ … ]; then …; fi` over `[ … ] && …` for guards. (This is the same rationale already inline at `validate/SKILL.md:231` and `done/SKILL.md:322/369/467`; stated here once as the general rule a fix author reads.)
 
