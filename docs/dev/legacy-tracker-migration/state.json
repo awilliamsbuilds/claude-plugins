@@ -3,11 +3,12 @@
   "feature": "legacy-tracker-migration",
   "branch": "feature/legacy-tracker-migration",
   "mode": "standard",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,27 +18,21 @@
     "spec": "docs/dev/legacy-tracker-migration/spec.md",
     "design": null,
     "plan": "docs/dev/legacy-tracker-migration/plan.md",
-    "validation": null,
+    "validation": "docs/dev/legacy-tracker-migration/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 3,
+    "loops_run": 5,
     "loops_max": 3,
+    "loops_authorized_beyond_max": true,
     "p1_open": [],
-    "p2_open": [
-      "Step 9's BUCKET_B containment check compares cycle names literally while Step 4 lowercases them and Step 7 now compares case-insensitively — a correct no-op merge fails verification, shorts the sum, and preserves the tracker identically on every re-run",
-      "The P9.degrade paragraph still orders a write at failure time, ahead of Step 8's own decide-names-then-write split — an agent following it skips the three-set collision check and two degrading items can share a final path",
-      "The heading-drift guard fires only when FILE_HEADING_COUNT == 0, so a tracker mixing well-formed '### ' entries with drifted '####' ones still reconciles clean and is deleted with the drifted entries lost",
-      "The files[] bullet's 'kept as written, never rewritten / no sanitization' wording reads as exempting files[] from the newline-truncation rule two bullets below, and L5 makes a **Files:** value multi-line by construction — an embedded newline injects sibling front-matter keys"
-    ],
+    "p2_open": [],
     "p3_open": [
-      "The Step 8 backfill writes possibly_related_to into a pre-existing BUCKET_B merge target that may already carry one — it is a single scalar, not a list, so appending duplicates the key; the sentence also cites P6's never-replace rule, which governs body text rather than front matter",
-      "The heading-drift case is filed under the out-of-section flag, which misdescribes it (drifted content is inside the sections) and makes Step 9 echo the whole file body under a misleading name"
+      "The orphan sweep exempts a span the FILE_HEADING_COUNT cross-check recorded, but the cross-check records only headings and defines no extent — a drifted entry under a hand-added section can be reported twice. Report accuracy only; no data loss. Dropped by the carrying-cost test as a local one-clause fix."
     ],
     "nits_open": [
-      "The second empty-table sub-case repeats 'the tracker will not be deleted', which the BUCKET_E header line already printed",
-      "A ragged line break survives the loop 3 rewrap in the closed-items-in-table paragraph"
+      "'Every other lossy path in this skill carries a flag' (the files-truncated rationale) is a false universal — the any-lifted-scalar newline truncation and the empty-cycle-name substitution are both unflagged. Rationale prose, not an instruction. Dropped by the carrying-cost test."
     ]
   },
   "challenge": {
@@ -92,7 +87,9 @@
       "plan_start": "2026-08-01T23:48:40Z",
       "plan_end": "2026-08-01T23:56:02Z",
       "build_start": "2026-08-02T00:13:39Z",
-      "build_end": "2026-08-02T00:22:52Z"
+      "build_end": "2026-08-02T00:22:52Z",
+      "validate_start": "2026-08-02T00:23:48Z",
+      "validate_end": "2026-08-02T02:21:00Z"
     }
   }
 }
