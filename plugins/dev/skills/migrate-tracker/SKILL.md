@@ -509,6 +509,53 @@ itself. This skill has no retry of its own.
 
 **NEVER-COMMIT** — the degrade write is not staged or committed.
 
+## Step 9: Reconcile, Retire, Report
+
+**Every parsed entry lands in exactly one of five disjoint buckets:**
+
+| | Bucket | Meaning |
+|---|---|---|
+| (a) | `BUCKET_A` | a new local file written |
+| (b) | `BUCKET_B` | merged into an existing store item per P6 |
+| (c) | `BUCKET_C` | delivered as a `dev-backlog` issue per P9.delivery |
+| (d) | `BUCKET_D` | held locally as `routing: pending` per P9.degrade |
+| (e) | `BUCKET_E` | unparseable and unmigrated |
+
+**Disjointness is the point, so do not simplify the test later.** A merged item (b) creates **no new
+file**, and a degraded item (d) is **both** written locally **and** route-attempted — so a naive
+`parsed == written + routed` check fails every mixed-state repo, which this design calls expected
+rather than exotic.
+
+**The retirement test — both conditions, no exceptions:**
+
+> `BUCKET_E` is empty **AND** `|a| + |b| + |c| + |d| == ENTRY_COUNT`.
+
+- **Pass** → `rm "$TRACKER"` and say so.
+- **Fail** → the tracker **survives, untouched**. Report the discrepancy **per bucket**, and
+  reproduce every `BUCKET_E` entry's raw text verbatim so the user can hand-fix and re-run.
+
+State the principle once: **never delete on doubt.** An item lost in migration is unrecoverable; a
+surviving tracker costs only a re-run. (Success Criterion 8.)
+
+The empty-tracker case flows through unchanged: `ENTRY_COUNT == 0`, all buckets empty, `0 == 0` → the
+tracker is deleted.
+
+**Report `docs/dev/product-plan.md` if present, and leave it untouched.** Check
+`$PRIMARY/docs/dev/product-plan.md`; if it exists, name it in the report and say plainly that
+migrating one is out of scope for this skill and is its own cycle. Do not read it, do not migrate it,
+do not delete it.
+
+**The closing report** covers: items written by scope, items merged, items routed **with their issue
+numbers**, anything held as `routing: pending`, every flag raised along the way (`missing-files`,
+`recurrence-corrected`, `related-unresolved`, and any slug disambiguations), and anything
+unparseable. Close with **NEVER-COMMIT** stated in the user's terms:
+
+```
+docs/backlog/ is modified but uncommitted — review, commit, and push when ready.
+```
+
+(Success Criterion 9.)
+
 ## Invocation
 
 `/dev:migrate-tracker` — no arguments, no flags. It takes none: report a stray argument rather than
