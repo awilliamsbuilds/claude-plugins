@@ -136,7 +136,7 @@ Execute stages in sequence for the applicable tier:
 
 **Tier detection:** same as dev:spec (see stage skill). The autopilot detects tier from the initial request, or reads `tier` from `state.json` when resuming.
 
-**UI vs no-ui detection:** read `skipped[]` from `state.json` — `"shape" ∈ skipped[]` selects the `+ no-ui` row, otherwise the `+ UI` row. `dev:spec` Step 12 reconciles that field from the spec's own `## UI Needed`, which is authoritative over the launch flag (`spec/SKILL.md:478`), so a `no-ui` argument is an input to Spec rather than a second switch read here. Same reason as `tier` above: a pasted resume command carries no initial request to infer from.
+**UI vs no-ui detection:** applies only once `tier` has selected Standard/Deep — a Micro cycle takes the Micro row and never consults this rule (it carries `skipped: ["shape", "plan"]`, so `"shape" ∈ skipped[]` would otherwise mis-route it into `+ no-ui` and run a Plan stage it has no `plan.md` for). Between the last two rows, read `skipped[]` from `state.json`: `"shape" ∈ skipped[]` selects `+ no-ui`, otherwise `+ UI`. `dev:spec` Step 12 reconciles that field from the spec's own `## UI Needed`, which is authoritative over the launch flag (`spec/SKILL.md:478`), so a `no-ui` argument is an input to Spec rather than a second switch read here — which also means the field is only readable **after** Spec has run. On a cold start there is no `state.json` yet; Spec is the first stage of every row, so run it first and select between these two rows on the `skipped[]` it writes. Same reason as `tier` above: a pasted resume command carries no initial request to infer from.
 
 **Micro tier:** Spec → Build → Validate → PR → Done
 **Standard/Deep + no-ui:** Spec → Plan → Build → Validate → PR → Done
