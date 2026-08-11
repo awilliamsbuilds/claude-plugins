@@ -40,7 +40,22 @@ May be invoked with an artifact-path argument (`spec.md` or `design.md` path). I
 
 With no argument: scan for an in-progress session; on exactly one hit resume it, and on none begin from Spec — both unchanged. (More than one hit is new; see the paragraph below.) The artifact-path form is additive. The scan covers the same two locations as the resolution block, one glob each — `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and `$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles) — deduplicated by feature name, matching `dev:dev` Step 3's globs. Once a session is picked `<feature>` is known, and the resolution block above applies to it.
 
-**Borrow `dev:dev` Step 3's globs, not its multi-hit rule.** Where that skill lists several sessions and *asks* which to continue, autopilot may not — Step 2 forbids asking. So on more than one hit, STOP: "Found N in-progress cycles: `<feature>`, `<feature>`, … (list every hit). Re-run naming the one you want: `/dev:autopilot docs/dev/<feature>/spec.md` — or `/dev` to start a new cycle instead." Picking one unattended would run Build, PR and merge on a cycle the user never named; and without the second clause there would be no stated way to start a *new* cycle while others are in flight, since a free-text argument fails the artifact-path validation above and falls back to this same scan.
+**Borrow `dev:dev` Step 3's globs, not its multi-hit rule.** Where that skill lists several sessions and *asks* which to continue, autopilot may not — Step 2 forbids asking. So on more than one hit, STOP:
+
+```
+Found N in-progress cycles: <feature>, <feature>
+[list every hit, one per line or comma-separated]
+
+Re-run naming the one you want:
+  /dev:autopilot docs/dev/<feature>/spec.md
+To start a new cycle instead: /dev spec (gated — see below).
+```
+
+Picking one unattended would run Build, PR and merge on a cycle the user never named.
+
+Two notes on that message. **`/dev spec`, not `/dev`** — bare `/dev` lands on `dev:dev` Step 3's own resume/restart/abandon menu in exactly this state, whose *Restart* option force-removes a worktree; `/dev spec` is the documented new-session jump (`dev/SKILL.md:174`) and is parsed at that skill's Step 1, before the scan. And it is **gated**: autopilot has no start-a-new-cycle-while-others-are-in-flight form, so the honest instruction sends the user to standard mode rather than implying one exists.
+
+**`no-ui` is exempt from this STOP.** `/dev:autopilot no-ui` is a documented invocation whose argument fails the artifact-path validation above and so falls back to this scan. It signals a *new* cycle — the flag only affects Spec/Shape sequencing and is meaningless when resuming a cycle already past them — so on `no-ui`, skip the scan's resume/STOP handling entirely and begin from Spec with Shape skipped, as that form has always done.
 
 **Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
 
