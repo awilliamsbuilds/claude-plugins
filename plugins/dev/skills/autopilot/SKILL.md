@@ -44,21 +44,21 @@ With no argument: scan for an in-progress session; on exactly one hit resume it,
 
 ```
 Found N in-progress cycles:
-  <feature>
-  [one line per hit — list them all]
+[One line per hit, every hit: <hit-feature> — <stage-status-line>]
 
 Re-run naming the one you want:
-  /dev:autopilot docs/dev/<feature>/spec.md
-To start a new cycle instead, in standard mode: /dev spec[ no-ui]
+  /dev:autopilot docs/dev/<the-feature-you-pick>/spec.md
+[If this invocation carried no-ui: To start a new cycle instead, in standard mode: /dev spec no-ui]
+[Otherwise: To start a new cycle instead, in standard mode: /dev spec]
 ```
 
 Picking one unattended would run Build, PR and merge on a cycle the user never named.
 
 **Why `/dev spec` and not `/dev`.** Bare `/dev` lands on `dev:dev` Step 3's own resume/restart/abandon menu in exactly this state, whose *Restart* option force-removes a worktree. `/dev spec` is the documented new-session jump (`dev/SKILL.md:174`), parsed at that skill's Step 1 before its scan runs. It is standard mode, and the message says so: autopilot has no start-a-new-cycle-while-others-are-in-flight form, so pointing at the gated one is honest rather than implying an autopilot form exists.
 
-**Carry the flag through.** `dev:dev` takes arguments in any combination (`dev/SKILL.md:20`), so append ` no-ui` to the printed `/dev spec` when *this* invocation carried `no-ui` — and omit it otherwise. That form is the likeliest one to reach this STOP, since it is the documented invocation that falls through the artifact-path validation above; printing a bare `/dev spec` to a user who asked for no-UI silently drops what they asked for.
+**Carry the flag through.** `dev:dev` takes arguments in any combination (`dev/SKILL.md:20`), so the two bracketed lines above print `/dev spec no-ui` when *this* invocation carried `no-ui` and plain `/dev spec` otherwise — exactly one of them renders. `/dev:autopilot no-ui` reaches this STOP on the same path as a bare invocation, and printing a bare `/dev spec` to a user who asked for no-UI would silently drop what they asked for.
 
-**This STOP is the only thing the multi-hit case changes.** The zero-hit and single-hit paths are untouched for every invocation form, including `/dev:autopilot no-ui` — that argument fails the artifact-path validation above and falls back to this scan exactly as before, beginning from Spec when nothing is in flight and resuming the one hit when something is. Whether Shape is then skipped is settled by `dev:spec` Step 12 from the spec's own `## UI Needed`, which is authoritative over the launch flag (`spec/SKILL.md:478`). The flag is an *input* to that determination, not a second switch: pass it into Spec as the stated intent, and let Step 12 record `skipped[]`. Step 3's `+ no-ui` branch below selects on that recorded value, never on the raw flag.
+**This STOP is the only thing the multi-hit case changes.** The zero-hit and single-hit paths are untouched for every invocation form, including `/dev:autopilot no-ui` — that argument fails the artifact-path validation above and falls back to this scan exactly as before, beginning from Spec when nothing is in flight and resuming the one hit when something is. Whether Shape is then skipped is settled by `dev:spec` Step 12, per Step 3's **UI vs no-ui detection** rule below.
 
 **Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
 
@@ -136,6 +136,8 @@ Execute stages in sequence for the applicable tier:
 
 **Tier detection:** same as dev:spec (see stage skill). The autopilot detects tier from the initial request, or reads `tier` from `state.json` when resuming.
 
+**UI vs no-ui detection:** read `skipped[]` from `state.json` — `"shape" ∈ skipped[]` selects the `+ no-ui` row, otherwise the `+ UI` row. `dev:spec` Step 12 reconciles that field from the spec's own `## UI Needed`, which is authoritative over the launch flag (`spec/SKILL.md:478`), so a `no-ui` argument is an input to Spec rather than a second switch read here. Same reason as `tier` above: a pasted resume command carries no initial request to infer from.
+
 **Micro tier:** Spec → Build → Validate → PR → Done
 **Standard/Deep + no-ui:** Spec → Plan → Build → Validate → PR → Done
 **Standard/Deep + UI:** Spec → Shape → Plan → Build → Validate → PR → Done
@@ -173,6 +175,6 @@ If stopped on a blocker, show the blocker and what's needed to continue.
 ## Invocation
 
 - `/dev:autopilot` — start or resume in autopilot mode
-- `/dev:autopilot no-ui` — autopilot, skip Shape
+- `/dev:autopilot no-ui` — autopilot, requesting Shape be skipped (the spec's `## UI Needed` decides; see Step 3's UI vs no-ui detection)
 - `/dev:autopilot docs/dev/<feature>/<artifact>.md` — resume a gated cycle in autopilot from the named artifact, deriving the feature from the path
 - The main `/dev` skill redirects `/dev auto` to this skill
