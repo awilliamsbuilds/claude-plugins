@@ -11,7 +11,7 @@ description: "No-gate orchestrator for the /dev workflow. Chains all stages end-
 
 Chain all applicable stages end-to-end without stopping for user approval. Trade interactivity for speed. Use when you trust the spec enough to let the AI run the full cycle.
 
-**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, plan-challenger blockers remaining after `challenge_plan.loops_max` revisions, 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"), or Step 1 cannot resolve a single cycle to run (the artifact-path form names a feature with no `state.json`, or the no-argument scan finds more than one in-progress session). Everything else runs through. (A handed-off cycle also *pauses* once, at `dev:reflect` Step 4, to ask the user for observations — a pause, not a stop; see Step 2.)
+**When autopilot stops:** Only on genuine blockers — PR can't be merged, P1/P2 issues remain after loop limit, confidence is too low even after auto-fill, a spec-challenger scope blocker, challenger blockers remaining after `challenge.loops_max` revisions, plan-challenger blockers remaining after `challenge_plan.loops_max` revisions, 3 root-cause hypotheses fail for an unexpected test failure during Build (see `dev:build`'s "When a Test Fails Unexpectedly"), or Step 1 cannot resolve a single cycle to run (the artifact-path form names a feature with no `state.json`, or the session scan finds more than one in-progress cycle). Everything else runs through. (A handed-off cycle also *pauses* once, at `dev:reflect` Step 4, to ask the user for observations — a pause, not a stop; see Step 2.)
 
 ## Resolve the working directory (do this first)
 
@@ -43,19 +43,18 @@ With no argument: scan for an in-progress session; on exactly one hit resume it,
 **Borrow `dev:dev` Step 3's globs, not its multi-hit rule.** Where that skill lists several sessions and *asks* which to continue, autopilot may not — Step 2 forbids asking. So on more than one hit, STOP:
 
 ```
-Found N in-progress cycles: <feature>, <feature>
-[list every hit, one per line or comma-separated]
+Found N in-progress cycles: <one line per hit — list them all>
 
 Re-run naming the one you want:
   /dev:autopilot docs/dev/<feature>/spec.md
-To start a new cycle instead: /dev spec (gated — see below).
+To start a new cycle instead, in standard mode: /dev spec
 ```
 
 Picking one unattended would run Build, PR and merge on a cycle the user never named.
 
-Two notes on that message. **`/dev spec`, not `/dev`** — bare `/dev` lands on `dev:dev` Step 3's own resume/restart/abandon menu in exactly this state, whose *Restart* option force-removes a worktree; `/dev spec` is the documented new-session jump (`dev/SKILL.md:174`) and is parsed at that skill's Step 1, before the scan. And it is **gated**: autopilot has no start-a-new-cycle-while-others-are-in-flight form, so the honest instruction sends the user to standard mode rather than implying one exists.
+**Why `/dev spec` and not `/dev`.** Bare `/dev` lands on `dev:dev` Step 3's own resume/restart/abandon menu in exactly this state, whose *Restart* option force-removes a worktree. `/dev spec` is the documented new-session jump (`dev/SKILL.md:174`), parsed at that skill's Step 1 before its scan runs, and it combines with other flags — `/dev spec no-ui` for a no-UI cycle. It is standard mode, and the message says so: autopilot has no start-a-new-cycle-while-others-are-in-flight form, so pointing at the gated one is honest rather than implying an autopilot form exists.
 
-**`no-ui` is exempt from this STOP.** `/dev:autopilot no-ui` is a documented invocation whose argument fails the artifact-path validation above and so falls back to this scan. It signals a *new* cycle — the flag only affects Spec/Shape sequencing and is meaningless when resuming a cycle already past them — so on `no-ui`, skip the scan's resume/STOP handling entirely and begin from Spec with Shape skipped, as that form has always done.
+**This STOP is the only thing the multi-hit case changes.** The zero-hit and single-hit paths are untouched for every invocation form, including `/dev:autopilot no-ui` — that argument fails the artifact-path validation above and falls back to this scan exactly as before, beginning from Spec when nothing is in flight and resuming the one hit when something is. Whether Shape is then skipped is settled by `dev:spec` Step 12 from the spec's own `## UI Needed`, which is authoritative over the launch flag (`spec/SKILL.md:478`) — this skill records nothing about it.
 
 **Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
 
