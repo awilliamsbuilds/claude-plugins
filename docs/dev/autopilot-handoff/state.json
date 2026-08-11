@@ -3,33 +3,33 @@
   "feature": "autopilot-handoff",
   "branch": "feature/autopilot-handoff",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "plan", "build", "validate"],
   "skipped": ["shape"],
   "startedAt": "2026-08-02T03:18:44Z",
   "artifacts": {
     "spec": "docs/dev/autopilot-handoff/spec.md",
     "design": null,
     "plan": "docs/dev/autopilot-handoff/plan.md",
-    "validation": null,
+    "validation": "docs/dev/autopilot-handoff/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 3,
+    "loops_run": 9,
     "loops_max": 3,
+    "loops_extended_by_user": true,
     "p1_open": [],
-    "p2_open": [
-      "autopilot/SKILL.md:43 — multi-hit STOP offers '/dev to start a new cycle instead', but bare /dev hits dev:dev Step 3's resume/restart/abandon menu in exactly that state; 'Restart' force-removes a worktree. Correct escape is '/dev spec' (dev/SKILL.md:174), parsed at Step 1 before the scan. Also silently drops autopilot mode and the no-ui flag."
-    ],
+    "p2_open": [],
     "p3_open": [
-      "PRIMARY=$(cd ...) yields empty string if the cd fails; only line 1 of the canonical snippet is failure-checked (13 sites incl. migrate-tracker)",
-      "autopilot/SKILL.md:43 — appended rationale 'there would be no stated way to start a new cycle while others are in flight' is false; /dev spec exists",
-      "autopilot/SKILL.md:43 — '(list every hit)' is authoring guidance inside a quoted user-facing STOP string; repo convention brackets in-template directions"
+      "PRIMARY=$(cd ...) yields empty string if the cd fails; only line 1 of the canonical snippet is failure-checked (13 sites) — buffered as debt-primary-cd-failure-unchecked",
+      "dev:dev Step 5a has no new-session path for the 'spec' stage jump, which dev:autopilot's multi-hit STOP now points users at — buffered as debt-dev-stage-jump-has-no-new-session-path",
+      "dev/SKILL.md:23, dev/SKILL.md Invocation Reference and start/SKILL.md:41 still state the no-ui flag skips Shape, contradicting spec/SKILL.md:478 — buffered as debt-no-ui-flag-stated-as-authoritative"
     ],
     "nits_open": [
-      "<artifact> component of the shared artifact-path validation rule carries no allowlist (only <feature> is regex-constrained)",
-      "autopilot/SKILL.md:47 — 'Check for in-progress session. If found: Resuming from <current-stage>' is unqualified for the multi-hit case (pre-existing, narrowed by loop 3)"
+      "<artifact> component of the shared artifact-path validation rule carries no allowlist (only <feature> is regex-constrained) — buffered as debt-artifact-path-rule-artifact-component-unconstrained",
+      "autopilot/SKILL.md — 'Check for in-progress session. If found: Resuming from <current-stage>' is unqualified for the multi-hit case; reading order saves it (dropped, local)",
+      "autopilot/SKILL.md — '[Otherwise: ...]' bracket form is used nowhere else in plugins/dev/ (dropped, cosmetic)"
     ]
   },
   "challenge": {
@@ -70,7 +70,9 @@
       "plan_start": "2026-08-02T03:55:54Z",
       "plan_end": "2026-08-02T05:47:07Z",
       "build_start": "2026-08-02T05:53:47Z",
-      "build_end": "2026-08-02T05:59:20Z"
+      "build_end": "2026-08-02T05:59:20Z",
+      "validate_start": "2026-08-02T19:06:40Z",
+      "validate_end": "2026-08-11T01:59:42Z"
     }
   }
 }
