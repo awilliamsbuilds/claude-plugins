@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-11
+closed_by: autopilot-handoff
 first_recorded: 2026-07-21
 cycles: [spec-grounding-and-clock]
 recurrence: 1

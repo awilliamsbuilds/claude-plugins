@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-11
+closed_by: autopilot-handoff
 severity: P3
 first_recorded: 2026-08-01
 cycles: [reflect-pr-base-explicit-target]
