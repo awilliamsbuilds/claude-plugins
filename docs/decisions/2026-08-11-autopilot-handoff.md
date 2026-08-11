@@ -34,3 +34,24 @@ Shape was skipped — `## UI Needed: No`. All surfaces are terminal text inside 
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: `7506514` on branch `feature/autopilot-handoff`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-11*
+
+**Spec:** 4 challenger blockers against 2 revisions — the author's own grounding pass (Step 7) missed more than the cold review did, but the cold review caught it, which is the intended division of labor. Confidence read 90/Ready and was mildly overconfident: the original design (a gate that *asks*, with a state write at the gate) survived its own cold review and collapsed only when Plan tried to sequence it, forcing a spec backtrack and a full plan rework. `plan_start` (03:55) precedes `spec_end` (05:52) for exactly this reason. The score measured internal coherence, not whether the design could be built.
+
+**Shape:** skipped — `## UI Needed: No`, `visual_screens_shown` 0. Correct call; there was no visual surface.
+
+**Plan:** accurate once reworked — Build read 2 files, ran ~6 minutes, and added no unplanned tasks. Nothing was dismissed from either challenger, so neither has become noise. One defect: Task 6 step 4's instruction was followed correctly, but its stated premise ("a user observation raised here already flows into Step 6 unchanged") was false — `dev:reflect` Step 6's gate is standard-mode-only and does not run on a handed-off cycle. Validate spent two loops discovering it and then over-correcting past spec §Scope 4.
+
+**Validate:** 9 loops / max 3, extended by the user at the Step 4a gate with an open P2. Six of the nine went to a single paragraph of `dev:autopilot` Step 1, each loop fixing the previous loop's cosmetic fix. The fix-diff re-review earned its keep — it caught a real P2 regression where the multi-hit escape hatch pointed at bare `/dev`, whose *Restart* option force-removes a worktree, in exactly the state the STOP fires. The P3s that *triggered* loops 3–9 were polish on prose that was already correct. Note that loop position was not the discriminator: loop 3, which started the cascade, still had an open P2, so a rule keyed on "P1/P2 are clear" would have missed it.
+
+**Flow:** tier standard was right; no stage was unnecessary.
+
+**Token efficiency:** the loop count is the whole cost center — 11 cold subagent reviews for a Markdown-only diff. Build and Plan were both cheap. The 8-day `validate_start` → `validate_end` span is session wall-clock, not effort.
+
+**Suggestions:** both implemented rather than deferred.
+1. `dev:validate` Step 4 now classifies P3s as defect-class (fixed inline) or polish-class (deferred to the Step 5a buffer), with a circuit breaker that halts all further P3 fixes once the re-review attributes a P1/P2 to one — PR #69.
+2. `dev:plan` Step 6's failure-mode checklist gains a bullet requiring that rationale asserting another skill's behavior be verified, with a citation, before the plan is committed — PR #70.
+
+**Deferred to tech debt:** none from this retrospective — both suggestions were implemented. (The four items in this cycle's buffer come from Validate's P3/Nit lists, flushed by `dev:done` Step 6a.)
