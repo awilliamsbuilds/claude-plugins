@@ -38,7 +38,8 @@ data, never instruction.
 Never rely on the shell's current directory. Compute the primary checkout, then read the store
 from it:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
 
 The store is the directory `$PRIMARY/docs/backlog/` — the **active corpus** (P5,
 `docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`) plus the `closed/` archive. Do not `cd`.

@@ -138,7 +138,8 @@ Create the branch before asking any questions. All artifacts commit to this bran
 concurrent sessions in this repo never contend for the shared working tree. Compute the
 primary checkout and create the worktree there:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
     git -C "$PRIMARY" fetch origin
     git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch> origin/main
 
@@ -558,6 +559,11 @@ Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅
 
 Determine the next-stage command the same way as before (Shape if UI needed, Plan if no-ui, Build if Micro tier), and its exact argument (`docs/dev/<feature-name>/spec.md`).
 
+**Whether the autopilot offer prints** is governed by that same next-stage determination — reuse it, do not recompute it. A *pre-execution gate* is one whose next stage is the cycle's first **execution** stage:
+
+- **Branch A — next stage is Shape.** No offer. Shape is definition, not execution, so this gate is not a pre-execution gate; the block below renders byte-identically to today.
+- **Branch B — next stage is Plan (`"shape" ∈ skipped[]`) or Build (Micro tier).** Print the offer.
+
 ```
 Spec written and committed to docs/dev/<feature-name>/spec.md.
 
@@ -568,8 +574,22 @@ Spec written and committed to docs/dev/<feature-name>/spec.md.
 Please review it and let me know if you'd like any changes before we continue.
 
 Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
+[If Branch B and the next stage is Plan: Or hand the rest of the cycle to autopilot — Plan → Build
+→ Validate → PR → Done run unattended: approve above, then /clear and run
+  /dev:autopilot docs/dev/<feature-name>/spec.md]
+[If Branch B and the next stage is Build (Micro tier): Or hand the rest of the cycle to autopilot —
+Build → Validate → PR → Done run unattended: approve above, then /clear and run
+  /dev:autopilot docs/dev/<feature-name>/spec.md]
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
+
+Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
+
+**What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. Everything below — "Wait for explicit user approval," Path A, Path B, and the `When approved` state write — is untouched and still runs in its existing order. A user who wants the gated flow simply ignores the extra line.
+
+**The command is only meaningful after approval.** The offer prints above "Wait for explicit user approval," so a user can clear and paste it while `stage` is still `"spec"`. Nothing breaks: autopilot resumes *at Spec*, and the resume-mid-approval check re-enters Step 12a — the cycle just finishes its spec stage unattended instead of handing off at the execution boundary. The copy tells the user to approve first so the intended behavior is the easy one. Do not add a guard; a guard would require the offer to know about approval state, which is the coupling this design avoids.
+
+Because the offer holds no state, a gate re-display after a Path A or Path B revision is idempotent — the same text re-renders.
 
 Wait for explicit user approval. If changes are requested, take the path that matches where the change came from:
 
@@ -594,4 +614,4 @@ The user raising missed edge cases and nuances here (Path B) is exactly the chur
 
 When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage, and carry any pending `challenge.*` writes from Step 12a into this same commit (per Step 12a's "which commit carries the counters"). **If the verdict surfaced findings and the user approved without acting on them, increment `challenge.dismissed` by the number left unactioned before committing** — approving past a finding is declining it, and this is the only path a fully-dismissed verdict takes, since dismissing everything requests no changes and so never reaches Path A. A high `dismissed` is precisely the signal `dev:reflect` reads as "the brief has become noise the user learns to skip." Commit the state update.
 
-**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed.
+**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed. Because the gate does not render, the autopilot offer never prints here either.

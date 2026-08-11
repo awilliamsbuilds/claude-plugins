@@ -12,7 +12,8 @@ description: "Retrospective sub-skill. Reviews the completed /dev cycle, surface
 This stage never relies on the shell's current directory or current branch. Compute the
 primary checkout, then locate this cycle's directory:
 
-    PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")
+    GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+    PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
 
 Find the cycle directory — first hit wins — by testing for `docs/dev/<feature>/state.json` under:
 1. `$PRIMARY/.dev-worktrees/<feature>/`   → active worktree cycle
@@ -46,6 +47,7 @@ Extract key metrics from state.json:
 - `stage_timestamps` — compute duration per stage. Note: `spec_end` is re-stamped on every spec revision, so `spec_end − spec_start` covers the full authoring-plus-revision span, not just the first draft.
 - `confidence.final_score` and `confidence.auto_filled[]`
 - `tier`
+- `handoff_at` — the stage at which a gated cycle was handed off to autopilot, or absent if the cycle ran in one mode throughout. **An absent key means no handoff** (including every cycle predating this feature) — read it as "no handoff," not as an error, the same way a missing `challenge` block is read above.
 - Any stage backtracks (stages in completed[] out of typical order)
 
 ## Step 2: Review Each Dimension
@@ -114,7 +116,9 @@ Format:
 **Deferred to tech debt:** [item slug(s) recorded in Step 6, or "none"]
 ```
 
-## Step 4: Invite User Observations (standard mode)
+## Step 4: Invite User Observations (standard mode, or any handed-off cycle)
+
+Run this step when `mode` is `"standard"` **or** when `handoff_at` is set.
 
 Retrospective is never a silent, model-only exercise, and **a clean automated review is not a reason to skip the user — it is the most important time to include them.** The metrics only see what they measure; the human sees where the friction actually was (e.g. "most of the spec stage was me raising edge cases the skill had missed" — invisible to every counter). Do not conclude the cycle on the strength of a tidy metric sheet.
 
@@ -127,9 +131,9 @@ Anything that felt off, slow, or repetitive, or that you found yourself having t
 
 Wait for a real response. Do **not** append the retrospective or hand back to `dev:done` before giving the user this turn — skipping the user and moving straight to the next stage is the exact failure this step exists to prevent.
 
-Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change then flows into Step 6's skill-update gate exactly like an automated suggestion — so a "nothing found" review can still produce a real improvement once the human weighs in.
+Fold whatever the user raises into the retrospective: add it to the relevant dimension, and any actionable process fix to **Suggestions**. A user observation that implies a skill change is then handled exactly like an automated suggestion: offered at Step 6's skill-update gate in standard mode, or — on a handed-off cycle, where that gate is standard-mode-only and so does not run — captured by Step 6's unconditional carrying-cost write. Either way a "nothing found" review can still produce a real improvement once the human weighs in.
 
-**Autopilot mode:** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue.
+**Autopilot mode (no handoff):** skipped — autopilot is no-gate by definition. Record `Suggestions` as generated and continue. A handed-off cycle is the exception: it had a human at its definition stages, so the friction this step exists to capture is available and worth asking for. Only a cycle that was autopilot from the start skips it.
 
 ## Step 5: Append to Decision Log
 
@@ -170,7 +174,7 @@ If "yes": read the current SKILL.md, make the minimal targeted change, show the 
 
 Do **not** commit on this path. The primary checkout is usually sitting on `main`, and the standing convention is never to commit directly to `main`. Tell the user instead: "Recorded '<title>' in docs/backlog/ (modified, not committed)." This mirrors `dev:debt`'s Step 6 for the same reason.
 
-**Mode rule:** Step 6's gate is standard-mode-only, but the carrying-cost write is **not** conditional on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot skips Step 4's user turn but still reaches Step 6's suggestions and records them the same way — this write must never sit behind the gate.
+**Mode rule:** Step 6's gate is standard-mode-only — **including on a handed-off cycle**, whose `mode` reads `"autopilot"`. `handoff_at` changes behavior in exactly two places — Step 4 above and `dev:done` Step 5 (Step 1 merely reads it into the metrics list to feed Step 4) — and this gate is deliberately not a third: a handed-off cycle pauses once, for the user's observations, and does not acquire a second prompt here. What the user raises at Step 4 is still captured — by the carrying-cost write below, which is **not** conditional on the gate or on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot reaches Step 6's suggestions and records them the same way whether or not it ran Step 4's user turn — this write must never sit behind the gate.
 
 **Never update a skill file without two explicit confirmations: one to proceed with the update, one after seeing the diff.**
 
@@ -189,7 +193,7 @@ Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source
 
    **Shared procedure — normalize and validate.** However it was derived, the slug is normalized to `owner/name` and must satisfy the allowlist in `../../references/tech-debt.md` §P9.target-resolution before it reaches `gh`. That section is the single definition of the rule; don't restate it here. Both routes below run their slug through it — a value that arrives already-derived is not thereby already-trusted.
 
-   - **Dogfood route.** Step 1's shortcut already established that the current checkout *is* the source repo, and derived the marketplace slug in doing so. Use **that value**, put through the shared procedure above. `<source-repo-path>` is **`$PRIMARY`**, normalized to an absolute path. The header derives it as `dirname` of the git common dir, and that is absolute only *sometimes* — `git rev-parse --git-common-dir` returns an absolute path from inside a linked worktree, but a relative one from the primary checkout (`.git` at its root, `../../../.git` further down, depth-dependent). Normalize it with `cd "$PRIMARY" && pwd` **in a shell whose cwd is still the one `$PRIMARY` was derived against**; that normalized absolute path is `<source-repo-path>`. A relative `$PRIMARY` re-resolved in some other shell points at wherever *that* shell happens to be — the dependence this skill's header rules out. Normalize `$WORKDIR` the same way before the comparison in the stop conditions below, since it is derived from `$PRIMARY` and inherits the same relativity.
+   - **Dogfood route.** Step 1's shortcut already established that the current checkout *is* the source repo, and derived the marketplace slug in doing so. Use **that value**, put through the shared procedure above. `<source-repo-path>` is **`$PRIMARY`**, which this skill's header already derives as an absolute path — the `cd "$(dirname "$GIT_COMMON")" && pwd` form absolutizes it at the point of derivation, so no per-site normalization is needed here. (`git rev-parse --git-common-dir` on its own returns a relative path from the primary checkout and an absolute one from inside a linked worktree; the header's `cd … && pwd` is what removes that difference.) `$WORKDIR` resolves from `$PRIMARY` and is absolute for the same reason, so both sides of the comparison in the stop conditions below are already absolute.
 
      §P9's config read is not re-run here: it is a different lookup from step 1's registry trace, and re-running it would shadow a derivation this path doesn't touch.
    - **Ask route.** When step 1 fell through to asking where the plugin source repo lives, no slug exists yet. `<source-repo-path>` is the path the user named — reject an answer under `~/.claude/plugins/cache/` and ask again, for the reason step 1 gives: that's the managed deployed clone `/plugin update` overwrites. Derive the slug with `git -C "<source-repo-path>" remote get-url origin` — in the named checkout, never the cwd — then normalize and validate it per the shared procedure above. Then **echo the normalized `owner/name` back to the user and have them confirm it before anything is pushed.** A fork's own `origin` is its own slug, which is the correct home — and the echo is what makes a wrong answer visible instead of silent. If they say it's wrong, don't proceed on a guess: take the `owner/name` from them directly, run it through the same shared procedure, and echo it back again. If they can't name one, stop as below.
@@ -199,7 +203,7 @@ Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source
    **Stop conditions.** Each ends step 2 with nothing pushed and no PR:
    - **The named checkout has no `origin`, or has several remotes and no unambiguous one.** There is no slug to derive. Say so, tell the user they can open the PR by hand, and stop — never guess, and never fall back to a bare `gh pr create`. Step 1 refuses to guess a path for the same reason.
    - **The resolved slug fails §P9's allowlist** — notably any value beginning with `-`, an argument-injection vector into `gh --repo`. Per §P9 this is a user error: say so and stop, never pass it to `gh`.
-   - **The resolved `<source-repo-path>` is `$WORKDIR`** — whichever route produced it; this is a property of the directory, not of the route. **Compare the two as normalized absolute paths**, both sides: `$WORKDIR` is derived from `$PRIMARY` and inherits the same relativity, so matching an absolute `<source-repo-path>` against a bare `.` would miss precisely the case this catches. `dev:done`'s flush pushes `HEAD:$INTEGRATION` from `$WORKDIR`, and that refspec is HEAD-agnostic, so *any* commit reachable from that checkout's HEAD rides onto the integration branch: a skill edit committed there would land on `$INTEGRATION` — `main` for a top-level cycle, the parent's branch for a nested one — unreviewed, bypassing the very PR this step exists to open. Under a worktree cycle `$PRIMARY` and `$WORKDIR` are different directories and `$PRIMARY` is safe. On a **legacy in-place cycle they are the same directory** (the header's second resolution case), and the ask route can land on it too — a user asked where the source repo lives may well name the checkout they are standing in. Say so and stop: tell the user to port the edit and open the PR by hand, and that until they do the improvement exists only as the deployed cache copy, which the next `/plugin update` overwrites.
+   - **The resolved `<source-repo-path>` is `$WORKDIR`** — whichever route produced it; this is a property of the directory, not of the route. **Compare the two as absolute paths** — both already are, since each derives from the header's absolutized `$PRIMARY`. A bare `.` on either side would mean the header was bypassed, and the comparison would then miss precisely the case this catches. `dev:done`'s flush pushes `HEAD:$INTEGRATION` from `$WORKDIR`, and that refspec is HEAD-agnostic, so *any* commit reachable from that checkout's HEAD rides onto the integration branch: a skill edit committed there would land on `$INTEGRATION` — `main` for a top-level cycle, the parent's branch for a nested one — unreviewed, bypassing the very PR this step exists to open. Under a worktree cycle `$PRIMARY` and `$WORKDIR` are different directories and `$PRIMARY` is safe. On a **legacy in-place cycle they are the same directory** (the header's second resolution case), and the ask route can land on it too — a user asked where the source repo lives may well name the checkout they are standing in. Say so and stop: tell the user to port the edit and open the PR by hand, and that until they do the improvement exists only as the deployed cache copy, which the next `/plugin update` overwrites.
 
    With the target confirmed, do the work — all of it inside `<source-repo-path>`, which is not necessarily the cwd. **Record where the checkout was pointing first**, before anything moves it — `git -C "<source-repo-path>" symbolic-ref --quiet --short HEAD || git -C "<source-repo-path>" rev-parse HEAD` yields the branch name, or the commit SHA if it was on a detached HEAD, and exits 0 either way. That recorded ref is what the restore below returns to; after `checkout -b` it is recoverable only from the reflog. Then create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, and push, running each git command as `git -C "<source-repo-path>" …` per this skill's standing rule against relying on the shell's directory.
 

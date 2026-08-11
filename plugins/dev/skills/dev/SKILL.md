@@ -36,7 +36,14 @@ If present: continue to Step 3.
 
 ## Step 3: Check for In-Progress Session
 
-Compute `PRIMARY=$(dirname "$(git rev-parse --git-common-dir)")`, then scan for state.json in
+Compute the primary checkout:
+
+```bash
+GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
+PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+```
+
+Then scan for state.json in
 both locations: `$PRIMARY/.dev-worktrees/*/docs/dev/*/state.json` (active worktree cycles) and
 `$PRIMARY/docs/dev/*/state.json` (legacy in-place cycles). Deduplicate by feature name.
 
@@ -61,8 +68,8 @@ If multiple sessions: list them all, ask which one to continue with.
 
 **User choices:**
 - **Resume:** proceed to the current stage (read from state.json `stage`). Resume resolves
-  `WORKDIR` via the canonical block (worktree first, else primary) before proceeding to the
-  stage — the user is never asked to `cd`.
+  `WORKDIR` via the two-location scan above (worktree first, else primary) before proceeding to
+  the stage — the user is never asked to `cd`.
 - **Restart:** delete the cycle's state.json and `docs/dev/<feature>/` from the resolved WORKDIR (the worktree if `worktreePath` is set, else the primary tree). If `worktreePath` is set, run `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — which also removes the worktree's copy of `docs/dev/<feature>/`. Start over from spec.
 - **Abandon:** remove this cycle entirely, then exit.
   - If `worktreePath` is set: `git -C "$PRIMARY" worktree remove --force "$PRIMARY/<worktreePath>"` then `git -C "$PRIMARY" worktree prune` — this deletes the worktree (including its `docs/dev/<feature>/` and state.json) and frees the feature branch, which was checked out only there; then delete it with `git -C "$PRIMARY" branch -D <branch>`.
@@ -171,3 +178,4 @@ Wait for user's choice, then invoke dev:spec with the chosen feature name.
 | `/dev done` | Jump to Done (requires PR) |
 | `/dev:fix ENG-123` | Linear issue entry |
 | `/dev:<stage> docs/dev/<feature>/<artifact>.md` | Resume any stage without conversation memory — every `dev:<stage>` skill accepts an optional artifact-path argument (the prior stage's committed artifact) and derives `<feature>` from it. This is what the exit-protocol message after each stage prints as the exact resume command. |
+| `/dev:autopilot docs/dev/<feature>/<artifact>.md` | Resume a gated cycle in autopilot from the named artifact — the alternative command printed at the Spec and Shape gates. Derives `<feature>` from the path. |
