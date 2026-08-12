@@ -119,7 +119,8 @@ Run up to `loops_max` iterations.
 2. Classify all issues found
 3. Fix all P1 and P2 issues
 3a. **Propagate each fix to its declared counterparts.** Before moving on, check the fix against `plan.md`'s `Interfaces:` blocks: a task marked `Shared procedure: … canonical` has mirror tasks that restate its procedure, and a verification task checks another task's rule. When a fix edits either side of such a pair, re-check and update the counterpart **in this same loop**, before step 7's commit. The plan already records these pairs — a rule fixed in one step and left unpropagated to the step that mirrors or verifies it is the regression class the fix-diff re-review most often catches, and catching it here costs one read instead of a whole loop.
-4. Attempt P3 fixes (commit if successful; skip if risky)
+4. Attempt P3 fixes — **defect-class only.** Classify each open P3 before touching it: does it name a concrete defect (a statement that is wrong, self-contradictory, or ambiguous; a dangling reference; a rule that contradicts a sibling file), or does it propose better phrasing for prose that is already correct (wording, convention alignment, consistency of tone with a sibling)? Fix the first kind inline as before (commit if successful; skip if risky). **Leave the second kind to Step 5a's carrying-cost test — do not rewrite correct prose during the fix loop.** A polish edit carries the same regression risk as any other edit and none of the upside; step 8's re-review is good enough to catch what it breaks, which reopens the loop and invites the next polish edit. That compounding is what this rule exists to stop, and loop position is not the discriminator — a polish P3 is deferred whether or not the same loop is also fixing a P1/P2.
+   **Circuit breaker:** if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes for the remainder of this cycle — buffer every one that remains. One such attribution is evidence that this diff's prose is more fragile than its open P3s are valuable.
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
 6. Update state.json `validate` fields:
    - Increment `loops_run` `(writes: both)`
@@ -228,8 +229,11 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
 **Mode rule:** this step is unconditional and self-applied. It runs identically in standard and
 autopilot mode, is never gated on user confirmation, and writes no `state.json` counter.
 
-Steps 3 and 4 are unaffected — the fix loop must keep fixing P3s and Nits inline. The buffer
-receives only what genuinely survives it.
+Step 3 is unaffected — the fix loop must keep fixing P1s and P2s inline, and Step 4 still fixes
+defect-class P3s. But Step 4 is now this buffer's main upstream rather than a filter ahead of it:
+every polish-class P3 the fix loop declines to touch arrives here, alongside whatever genuinely
+survives a defect-class fix attempt. A larger buffer is the intended trade — the alternative is
+paying for each polish edit with a regression the re-review reopens the loop for.
 
 ## Step 6: Update State + Commit
 
