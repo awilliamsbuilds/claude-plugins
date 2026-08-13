@@ -237,10 +237,17 @@ filters, sort, search, and relationship traversal. Facet counts above are the li
   whole point is that a promoted-but-unfinished plan should be something you trip over, and a
   default filter is a hidden state the operator has to remember. Success Criterion 1 is also
   satisfied literally rather than after a click.
-- **`severity` ranks only 9 of 30 items, and the viewer must not fix that.** It is written solely
-  by `dev:validate` when it defers a finding (`references/tech-debt.md:104`, `validate/SKILL.md:215`),
-  so items captured by `dev:debt add`, by reflect, or by the tracker migration carry none. The
-  viewer is a pure function of the store and does not infer or compute severity. Consequence:
+- **`severity` is a filter, not the triage axis, and the viewer must not promote it into one.**
+  It is written solely by `dev:validate` when it defers a finding (`references/tech-debt.md:104`,
+  `validate/SKILL.md:215`), so it ranks only 9 of 30 items — anything captured by `dev:debt add`,
+  by reflect, or by the tracker migration carries none. The contract is explicit that this is not
+  a ranking field: it is *"**Informational** … not a routing/lifecycle field"* and *"drives no
+  procedure"* (`tech-debt.md:104–106`), and the capture rule states flatly that **"severity is the
+  wrong axis"**, to classify by what an item costs the *next* cycle rather than by the fix loop's
+  label (`tech-debt.md:47–52`). Consequences for this design: the viewer neither infers nor
+  computes severity, does not sort by it, and does not collapse `Nit` into `P3` — `Nit` is a
+  review-time non-blocking label that `dev:validate` persists into the store, and reconciling that
+  is a change to the contract, not to a viewer that must stay a pure function of the store.
   `first_recorded` (age) is the ranking axis that actually works across the whole corpus.
 - **`recurrence` barely discriminates today** — 27 of 30 items are `1`, one is `2`, two are `0`. It
   stays as a sort dimension because the spec names it and because it will separate items as the
@@ -254,7 +261,7 @@ filters, sort, search, and relationship traversal. Facet counts above are the li
   | Field | Order | Source |
   |---|---|---|
   | `status` | `open` → `in-progress` → `promoted` → `closed` | the lifecycle diagram, `references/tech-debt.md:161–167` |
-  | `severity` | `P1` → `P2` → `P3` → `Nit` → `none` | the severity ladder, `validate/SKILL.md:108–111`; worst first, because that is what triage reaches for |
+  | `severity` | `P1` → `P2` → `P3` → `Nit` → `none` | the severity ladder, `validate/SKILL.md:108–111`. Worst-first is the right order *for a severity list*, but severity is explicitly **not** the triage axis — see below |
   | `type`, `scope` | alphabetical | neither has an inherent sequence; alphabetical is at least predictable |
 
   **The rank list orders values; it never decides membership.** This is the one place the design
