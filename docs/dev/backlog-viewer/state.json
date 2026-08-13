@@ -10,7 +10,7 @@
   "artifacts": {
     "spec": "docs/dev/backlog-viewer/spec.md",
     "design": "docs/dev/backlog-viewer/design.md",
-    "plan": null,
+    "plan": "docs/dev/backlog-viewer/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -73,7 +73,9 @@
       "spec_start": "2026-08-13T01:06:13Z",
       "spec_end": "2026-08-13T03:50:01Z",
       "shape_start": "2026-08-13T03:51:14Z",
-      "shape_end": "2026-08-13T04:17:04Z"
+      "shape_end": "2026-08-13T04:17:04Z",
+      "plan_start": "2026-08-13T04:39:03Z",
+      "plan_end": "2026-08-13T04:53:55Z"
     }
   }
 }
