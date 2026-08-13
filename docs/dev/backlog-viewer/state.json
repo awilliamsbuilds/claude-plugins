@@ -33,10 +33,10 @@
     "loops_max": 3
   },
   "challenge_plan": {
-    "run": false,
-    "blockers": 0,
-    "concerns": 0,
-    "applied": 0,
+    "run": true,
+    "blockers": 1,
+    "concerns": 3,
+    "applied": 4,
     "dismissed": 0,
     "loops_run": 0,
     "loops_max": 3
