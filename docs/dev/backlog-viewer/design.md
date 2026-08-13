@@ -121,7 +121,7 @@ or Python, so every component below is new by necessity rather than by preferenc
 | Front-matter parser | New | **The risk centre**, per spec. Must handle inline lists (`cycles: [a, b]`, `files: []`), block lists (`files:` then `  - path`), optional keys, and empty values. All 30 real files are its test corpus. `docs/backlog/README.md` is not an item and must be excluded |
 | HTTP server + route allowlist | New | `BaseHTTPRequestHandler`, loopback bind only, `GET /` and nothing else. Emits the identity header |
 | Page shell (rail / list / detail) | New | The layout Milestone 3 reuses. Keep the three regions independent of what fills them |
-| Facet rail | New | Options derived from values found on disk, never a hardcoded enum — this is why `P2` is filterable despite being outside the contract's `P3 \| Nit` |
+| Facet rail | New | Options derived from values found on disk, never a hardcoded enum — this is why `P2` is filterable despite being outside the contract's `P3 \| Nit`. Ordered by the per-field display rank under UX Decisions, which affects sequence only |
 | Item row | New | Slug, then a chip line (type · status · severity) with `first_recorded` right-aligned |
 | Detail pane | New | Header + chips, meta line, front-matter field table, prose body, resolved relationship link |
 | Chips | New | One visual vocabulary shared by rows and detail. Colour carries meaning: type, status, severity |
@@ -179,7 +179,7 @@ Free one of them, or stop whatever is holding them, and try again.
 | Header | `dev backlog` · `<repo-name>` (muted) |
 | Count | `<n> of <total>` — always both, so an active filter is never invisible |
 | Search placeholder | `Search body, fields, file paths…` |
-| Filter group headings | `type` · `status` · `scope` · `severity` (lowercase — they are field names, not labels) |
+| Filter group headings | `type` · `status` · `scope` · `severity` (lowercase — they are field names, not labels), in that order |
 | Facet: no value present | `none` — never `—`, which reads as a dash rather than a state |
 | Sort control | `sort: recurrence` · `sort: first_recorded` |
 | Clear filters | `Clear all` |
@@ -207,22 +207,22 @@ names so the page and the file agree, and every empty state naming its own cause
 │ Filters  Clear │ debt-gate-path-state-…    │ debt-p9-issue-body-fence-width          │
 │                │ [DEBT][CLOSED]  2026-07-21│ [DEBT] [OPEN] [P2]                      │
 │ TYPE           ├───────────────────────────┤ recorded 2026-08-02 · seen 1× · legacy… │
-│ ☐ debt      22 │ backlog-backlog-viewer-app│ ┌─────────────────────────────────────┐ │
-│ ☐ backlog    8 │ [BACKLOG][PROMOTED] 08-12 │ │ type          debt                  │ │
+│ ☐ backlog    8 │ backlog-backlog-viewer-app│ ┌─────────────────────────────────────┐ │
+│ ☐ debt      22 │ [BACKLOG][PROMOTED] 08-12 │ │ type          debt                  │ │
 │                ├───────────────────────────┤ │ status        open                  │ │
 │ STATUS         │ …                         │ │ scope         repo                  │ │
 │ ☐ open      16 │                           │ │ severity      P2                    │ │
-│ ☐ closed    12 │ ← selected row keeps its  │ │ first_recorded 2026-08-02           │ │
-│ ☐ promoted   2 │   place while you read →  │ │ files         plugins/dev/refere…   │ │
+│ ☐ promoted   2 │ ← selected row keeps its  │ │ first_recorded 2026-08-02           │ │
+│ ☐ closed    12 │   place while you read →  │ │ files         plugins/dev/refere…   │ │
 │                │                           │ └─────────────────────────────────────┘ │
 │ SCOPE          │                           │                                         │
 │ ☐ repo      30 │                           │ **What's wrong:** P9's issue-body …     │
 │                │                           │                                         │
 │ SEVERITY       │                           │ **Why deferred:** Success Criterion …   │
-│ ☐ none      21 │                           │                                         │
+│ ☐ P2         1 │                           │                                         │
 │ ☐ P3         7 │                           │ possibly related to debt-primary-pa…    │
 │ ☐ Nit        1 │                           │                        (closed)         │
-│ ☐ P2         1 │                           │                                         │
+│ ☐ none      21 │                           │                                         │
 └────────────────┴───────────────────────────┴─────────────────────────────────────────┘
    226px             396px                       flexible (~818px)
 ```
@@ -248,6 +248,20 @@ filters, sort, search, and relationship traversal. Facet counts above are the li
 - **Sort stays at the spec's two dimensions.** The prototype also offered `severity` and `slug`;
   both were dropped rather than carried into the design, because neither is in the spec's Scope
   table and `severity` is absent from 21 of 30 items anyway.
+- **Facets are ordered by meaning, not by count.** Count-descending order made the rail reshuffle
+  as the store changed and put `none` above `P2`. Each field declares a display rank:
+
+  | Field | Order | Source |
+  |---|---|---|
+  | `status` | `open` → `in-progress` → `promoted` → `closed` | the lifecycle diagram, `references/tech-debt.md:161–167` |
+  | `severity` | `P1` → `P2` → `P3` → `Nit` → `none` | the severity ladder, `validate/SKILL.md:108–111`; worst first, because that is what triage reaches for |
+  | `type`, `scope` | alphabetical | neither has an inherent sequence; alphabetical is at least predictable |
+
+  **The rank list orders values; it never decides membership.** This is the one place the design
+  admits a hardcoded list, and the distinction is load-bearing: the set of facets still comes
+  entirely from disk, and a value missing from its rank list sorts to the end rather than
+  vanishing. Build must not reuse these lists as a filter or a validity check. Ranked values with
+  no live item render no checkbox at all — `P1` and `in-progress` appear the moment one exists.
 - **Values with no live sample simply produce no facet.** Because options are derived from disk,
   `scope: plugin` and `status: in-progress` render no checkbox today and appear the moment one
   item carries them. Selecting a derived value can never hide an item that has it — the same
