@@ -1,7 +1,8 @@
 ---
 type: backlog
 scope: repo
-status: open
+status: promoted
+promoted_to: docs/dev/product-plans/dev-observability.md
 first_recorded: 2026-08-12
 cycles: [manual]
 recurrence: 1

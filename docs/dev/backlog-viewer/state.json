@@ -43,7 +43,7 @@
   },
   "cycle_type": "feature",
   "tier": "standard",
-  "product_plan": null,
+  "product_plan": "docs/dev/product-plans/dev-observability.md",
   "linear_issue": null,
   "parentFeature": null,
   "worktreePath": ".dev-worktrees/backlog-viewer",
