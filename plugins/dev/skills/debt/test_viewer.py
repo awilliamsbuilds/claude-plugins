@@ -10,15 +10,20 @@ untracked files whose payloads embed absolute source paths, which the portabilit
 would then find.
 """
 
+import io
 import json
 import os
+import re
 import shutil
+import signal
+import socket
 import sys
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -562,6 +567,192 @@ class TestHttpServer(unittest.TestCase):
             viewer.TEMPLATE_PATH = original
         status, _, _ = self.server.request("/")
         self.assertEqual(status, 200)
+
+
+def a_closed_port():
+    """An ephemeral port that nothing is listening on."""
+    sock = socket.socket()
+    try:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+    finally:
+        sock.close()
+
+
+class PlainHandler(BaseHTTPRequestHandler):
+    """A server that answers but is not ours — no identity header."""
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    do_GET = do_HEAD
+
+    def log_message(self, fmt, *args):
+        pass
+
+
+class TestProbe(unittest.TestCase):
+    def setUp(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-probed.md", item_text())
+        self.server = ServerFixture(self.fixture.root)
+
+    def tearDown(self):
+        self.server.stop()
+        self.fixture.cleanup()
+
+    def test_a_live_viewer_identifies_itself(self):
+        kind, info = viewer.probe(self.server.port)
+        self.assertEqual(kind, "viewer")
+        self.assertEqual(info["primary"], self.fixture.root)
+        self.assertEqual(info["pid"], os.getpid())
+        self.assertEqual(info["port"], self.server.port)
+
+    def test_a_closed_port_is_free(self):
+        self.assertEqual(viewer.probe(a_closed_port()), ("free", None))
+
+    def test_a_server_that_is_not_ours_is_other(self):
+        other = HTTPServer(("127.0.0.1", 0), PlainHandler)
+        thread = threading.Thread(target=other.serve_forever)
+        thread.daemon = True
+        thread.start()
+        try:
+            self.assertEqual(viewer.probe(other.server_address[1]), ("other", None))
+        finally:
+            other.shutdown()
+            other.server_close()
+            thread.join(timeout=5)
+
+    def test_find_running_matches_on_the_primary(self):
+        original = viewer.PORT_RANGE
+        viewer.PORT_RANGE = [self.server.port]
+        try:
+            self.assertIsNone(viewer.find_running(os.path.join(self.fixture.root, "elsewhere")))
+            found = viewer.find_running(self.fixture.root)
+            self.assertIsNotNone(found)
+            self.assertEqual(found["port"], self.server.port)
+            # A viewer for another checkout still occupies its port.
+            self.assertEqual(viewer.free_ports(), [])
+        finally:
+            viewer.PORT_RANGE = original
+
+
+class TestCliRoundTrip(unittest.TestCase):
+    """start -> start again -> stop, against the real repo and the real port range."""
+
+    def setUp(self):
+        self.primary = viewer.resolve_primary(repo_root())
+        if viewer.find_running(self.primary):
+            self.skipTest("a backlog viewer is already running for this repo")
+
+    def tearDown(self):
+        running = viewer.find_running(self.primary)
+        if running and running.get("pid"):
+            try:
+                os.kill(running["pid"], signal.SIGTERM)
+            except (OSError, ProcessLookupError):
+                pass
+
+    def capture(self, call):
+        buffer = io.StringIO()
+        stdout = sys.stdout
+        sys.stdout = buffer
+        try:
+            code = call()
+        finally:
+            sys.stdout = stdout
+        return code, buffer.getvalue()
+
+    def test_start_is_idempotent_and_stop_shuts_it_down(self):
+        code, first_output = self.capture(lambda: viewer.cmd_start(self.primary))
+        self.assertEqual(code, 0, first_output)
+        self.assertIn("Backlog viewer running at", first_output)
+
+        running = viewer.find_running(self.primary)
+        self.assertIsNotNone(running)
+        url = "http://127.0.0.1:%d" % running["port"]
+        self.assertIn(url, first_output)
+        self.assertIn(self.primary, first_output)
+
+        code, second_output = self.capture(lambda: viewer.cmd_start(self.primary))
+        self.assertEqual(code, 0, second_output)
+        self.assertIn("Backlog viewer is already running at", second_output)
+        self.assertIn(url, second_output)
+        # Nothing new was spawned: the same process is still answering.
+        self.assertEqual(viewer.find_running(self.primary)["pid"], running["pid"])
+
+        code, stop_output = self.capture(lambda: viewer.cmd_stop(self.primary))
+        self.assertEqual(code, 0, stop_output)
+        self.assertEqual(stop_output.strip(), "Backlog viewer stopped.")
+        self.assertIsNone(viewer.find_running(self.primary))
+
+        code, again = self.capture(lambda: viewer.cmd_stop(self.primary))
+        self.assertEqual(code, 0)
+        self.assertEqual(again.strip(), "No backlog viewer is running for this repo.")
+
+    def test_the_detached_server_serves_the_repo_store(self):
+        self.capture(lambda: viewer.cmd_start(self.primary))
+        running = viewer.find_running(self.primary)
+        self.assertIsNotNone(running)
+        with urllib.request.urlopen("http://127.0.0.1:%d/" % running["port"], timeout=5) as response:
+            page = response.read().decode("utf-8")
+        self.assertIn("dev backlog", page)
+        self.capture(lambda: viewer.cmd_stop(self.primary))
+
+
+class TestCliArguments(unittest.TestCase):
+    def capture(self, argv):
+        buffer = io.StringIO()
+        stdout = sys.stdout
+        sys.stdout = buffer
+        try:
+            code = viewer.main(argv)
+        finally:
+            sys.stdout = stdout
+        return code, buffer.getvalue()
+
+    def test_serve_requires_a_port(self):
+        code, output = self.capture(["serve"])
+        self.assertEqual(code, 1)
+        self.assertIn("--port", output)
+
+    def test_unknown_command_is_reported(self):
+        code, output = self.capture(["frobnicate"])
+        self.assertEqual(code, 1)
+        self.assertIn("frobnicate", output)
+
+    def test_primary_failure_prints_the_designed_copy(self):
+        tmp = tempfile.mkdtemp()
+        cwd = os.getcwd()
+        os.chdir(tmp)
+        try:
+            code, output = self.capture(["stop"])
+        finally:
+            os.chdir(cwd)
+            shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual(code, 1)
+        self.assertIn("Can't resolve the repository root, so there's no store to serve.", output)
+        self.assertIn("Run this from inside the repository.", output)
+
+
+class TestNoWritePath(unittest.TestCase):
+    """The mechanical half of "the server never writes to disk"."""
+
+    WRITE_CALLS = (
+        re.compile(r"""open\([^)]*['"][waxr]\+?[bt]?['"]"""),
+        re.compile(r"os\.(remove|unlink|rmdir|rename|replace|makedirs|mkdir)\b"),
+        re.compile(r"shutil\.\w+"),
+        re.compile(r"\.write_text\("),
+    )
+
+    def test_viewer_module_contains_no_file_write(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "viewer.py"),
+                  encoding="utf-8") as handle:
+            source = handle.read()
+        for pattern in self.WRITE_CALLS:
+            self.assertIsNone(pattern.search(source), pattern.pattern)
 
 
 class TestResolvePrimary(unittest.TestCase):

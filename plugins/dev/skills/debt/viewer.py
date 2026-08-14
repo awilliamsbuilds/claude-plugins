@@ -14,8 +14,13 @@ import json
 import os
 import pathlib
 import re
+import signal
 import subprocess
+import sys
+import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # --- Front-matter parsing ---------------------------------------------------
@@ -461,3 +466,245 @@ def make_server(primary, port):
 def serve(primary, port):
     """Run the viewer in the foreground. Does not return."""
     make_server(primary, port).serve_forever()
+
+
+# --- The command line -------------------------------------------------------
+#
+# Server identity is probed over the wire, never recorded: no pidfile, no port
+# file, no state file, nothing in .gitignore. A stale artifact is then impossible
+# to leave behind.
+
+PORT_RANGE = list(range(8730, 8740))
+PROBE_TIMEOUT = 0.4
+START_TIMEOUT = 3.0
+STOP_TIMEOUT = 2.0
+POLL_INTERVAL = 0.1
+
+# Terminal copy. This module is its single source — the skill prints it verbatim.
+STARTED = (
+    "Backlog viewer running at {url}\n"
+    "Serving docs/backlog/ from {primary} — read-only, loopback only.\n"
+    "Refresh the page any time; it re-reads the files on every load.\n"
+    "Stop it with: /dev:debt view stop"
+)
+ALREADY_RUNNING = (
+    "Backlog viewer is already running at {url}\n"
+    "Stop it with: /dev:debt view stop"
+)
+STOPPED = "Backlog viewer stopped."
+NOT_RUNNING = "No backlog viewer is running for this repo."
+PRIMARY_FAILURE = (
+    "Can't resolve the repository root, so there's no store to serve.\n"
+    "{error}\n"
+    "Run this from inside the repository."
+)
+NO_FREE_PORT = (
+    "Ports 8730-8739 are all in use by something else, so the viewer didn't start.\n"
+    "Free one of them, or stop whatever is holding them, and try again."
+)
+USAGE = "Usage: viewer.py [start|stop|serve --port <n> [--primary <path>]]"
+
+_SPAWNED = []  # detached children, kept referenced for this process's lifetime
+
+
+def viewer_url(port):
+    return "http://%s:%d" % (BIND_ADDRESS, port)
+
+
+def probe(port, timeout=PROBE_TIMEOUT):
+    """Ask a port who it is. Returns ("viewer", info) / ("free", None) / ("other", None)."""
+    request = urllib.request.Request(viewer_url(port) + "/", method="HEAD")
+    try:
+        response = urllib.request.urlopen(request, timeout=timeout)
+        headers = response.headers
+        response.close()
+    except urllib.error.HTTPError as exc:
+        headers = exc.headers  # still ours if it carries the identity header
+        exc.close()
+    except urllib.error.URLError as exc:
+        if isinstance(exc.reason, ConnectionRefusedError):
+            return ("free", None)
+        return ("other", None)
+    except ConnectionRefusedError:
+        return ("free", None)
+    except Exception:
+        # Something is there that will not answer. Treat it as occupied rather
+        # than binding into it.
+        return ("other", None)
+
+    identity = headers.get(IDENTITY_HEADER)
+    if not identity:
+        return ("other", None)
+
+    try:
+        pid = int(headers.get(PID_HEADER))
+    except (TypeError, ValueError):
+        pid = None
+    return ("viewer", {"port": port, "primary": identity, "pid": pid})
+
+
+def find_running(primary):
+    """The viewer serving this primary, or None. A viewer for another checkout does not match."""
+    for port in PORT_RANGE:
+        kind, info = probe(port)
+        if kind == "viewer" and info["primary"] == primary:
+            return info
+    return None
+
+
+def free_ports():
+    """Ports in the range that nothing is listening on, in range order."""
+    return [port for port in PORT_RANGE if probe(port)[0] == "free"]
+
+
+def _spawn(primary, port):
+    """Start a detached child that outlives this process and its terminal.
+
+    start_new_session=True calls setsid(2) — the portable equivalent of
+    `nohup … & disown`, and necessary because macOS ships no setsid binary.
+    cwd=primary so the child's own resolve_primary reports the same identity.
+    All three streams go to DEVNULL: an inherited stdout would hold the caller's
+    pipe open and hang it.
+    """
+    child = subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "serve", "--port", str(port)],
+        cwd=primary,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+    # Never reaped — the child is meant to outlive us. Holding the handle keeps
+    # Popen from warning about the running process it finds when collected.
+    _SPAWNED.append(child)
+    return child
+
+
+def _await_viewer(port, primary):
+    """Poll until the port answers as our viewer, or the deadline passes."""
+    deadline = time.time() + START_TIMEOUT
+    while time.time() < deadline:
+        kind, info = probe(port)
+        if kind == "viewer" and info["primary"] == primary:
+            return info
+        time.sleep(POLL_INTERVAL)
+    return None
+
+
+def cmd_start(primary):
+    # The full identity pass finishes before any bind decision: if our viewer is
+    # already up on a later port, binding an earlier free one would start a second.
+    running = find_running(primary)
+    if running:
+        print(ALREADY_RUNNING.format(url=viewer_url(running["port"])))
+        return 0
+
+    candidates = free_ports()
+    if not candidates:
+        print(NO_FREE_PORT)
+        return 1
+
+    for port in candidates:
+        _spawn(primary, port)
+        # Poll for our own identity rather than assuming success, so the URL
+        # printed is always the one actually serving.
+        if _await_viewer(port, primary):
+            print(STARTED.format(url=viewer_url(port), primary=primary))
+            return 0
+        if probe(port)[0] != "free":
+            continue  # another process won the race for this port
+        print("The viewer didn't start on port %d. Run it in the foreground to see why:" % port)
+        print("  %s %s serve --port %d" % (sys.executable, os.path.abspath(__file__), port))
+        return 1
+
+    print(NO_FREE_PORT)
+    return 1
+
+
+def cmd_stop(primary):
+    running = find_running(primary)
+    if not running:
+        print(NOT_RUNNING)
+        return 0
+
+    pid = running["pid"]
+    url = viewer_url(running["port"])
+    if pid is None:
+        print("Found a backlog viewer at %s, but it reported no process id." % url)
+        return 1
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass  # already gone
+
+    deadline = time.time() + STOP_TIMEOUT
+    while time.time() < deadline:
+        kind, info = probe(running["port"])
+        if kind != "viewer" or info["primary"] != primary:
+            print(STOPPED)
+            return 0
+        time.sleep(POLL_INTERVAL)
+
+    print("Backlog viewer at %s is still running (pid %d)." % (url, pid))
+    return 1
+
+
+def main(argv):
+    args = list(argv)
+    command = "start"
+    if args and not args[0].startswith("-"):
+        command = args.pop(0)
+    if command not in ("serve", "start", "stop"):
+        print("Unknown command '%s'.\n%s" % (command, USAGE))
+        return 1
+
+    port = None
+    primary_override = None
+    while args:
+        flag = args.pop(0)
+        if flag == "--port" and args:
+            try:
+                port = int(args.pop(0))
+            except ValueError:
+                print("--port takes a number.\n%s" % USAGE)
+                return 1
+        elif flag == "--primary" and args:
+            primary_override = args.pop(0)
+        else:
+            print("Unrecognized argument '%s'.\n%s" % (flag, USAGE))
+            return 1
+
+    if command == "serve" and port is None:
+        print("serve needs --port <n>.\n%s" % USAGE)
+        return 1
+    if command != "serve" and (port is not None or primary_override is not None):
+        print("%s takes no arguments.\n%s" % (command, USAGE))
+        return 1
+
+    # --primary exists for tests and fixture runs only; the skill never passes it,
+    # so there is exactly one PRIMARY derivation in normal use.
+    if primary_override is not None:
+        primary = os.path.abspath(primary_override)
+    else:
+        try:
+            primary = resolve_primary()
+        except PrimaryError as exc:
+            print(PRIMARY_FAILURE.format(error=exc))  # printed before anything binds
+            return 1
+
+    if command == "start":
+        return cmd_start(primary)
+    if command == "stop":
+        return cmd_stop(primary)
+
+    try:
+        serve(primary, port)
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
