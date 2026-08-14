@@ -381,8 +381,12 @@ class TestFacets(unittest.TestCase):
     def assert_ranked_order(self, field):
         rank = viewer.FACET_RANK[field]
         values = self.values(field)
-        self.assertIsNot(values, [])
+        # assertNotEqual, not assertIsNot: the latter compares identity against a
+        # fresh literal and can never fail, which would let every assertion below
+        # pass vacuously on an empty facet list.
+        self.assertNotEqual(values, [], field)
         ranked = [v for v in values if v in rank]
+        self.assertNotEqual(ranked, [], "%s has no ranked value to order" % field)
         self.assertEqual(ranked, sorted(ranked, key=rank.index), field)
         unranked = [v for v in values if v is not None and v not in rank]
         # Unranked values sort after every ranked one, and alphabetically.
@@ -413,7 +417,12 @@ class TestFacets(unittest.TestCase):
         for field in ("type", "scope"):
             self.assertNotIn(field, viewer.FACET_RANK)  # no rank list to override
             values = [v for v in self.values(field) if v is not None]
+            self.assertNotEqual(values, [], field)
             self.assertEqual(values, sorted(values), field)
+        # `scope` is single-valued today, so its ordering assertion is trivially
+        # true against the live corpus. TestFacetsWithNoLiveSample carries the
+        # real multi-value ordering burden, on a store nobody else edits.
+        self.assertGreater(len(self.values("type")), 1)
 
 
 class TestFacetsWithNoLiveSample(unittest.TestCase):
