@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dev backlog</title>
+<style>
+  :root {
+    --bg: #faf9f7;
+    --panel: #ffffff;
+    --line: #e6e2db;
+    --line-soft: #f0ede7;
+    --ink: #1c1b19;
+    --ink-soft: #57534c;
+    --ink-mute: #8a857c;
+    --accent: #3d5a80;
+    --accent-soft: #eef2f7;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* --- header bar --- */
+
+  .bar {
+    height: 52px;
+    flex: 0 0 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  #repo {
+    color: var(--ink-mute);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .bar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #count {
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  #sort, #search {
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+
+  #search {
+    width: 260px;
+  }
+
+  #sort:focus, #search:focus, #clear:focus-visible, .facet-option:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* --- three-column body --- */
+
+  main {
+    display: flex;
+    height: calc(100% - 52px);
+    align-items: stretch;
+  }
+
+  #rail-col {
+    flex: 0 0 226px;
+    width: 226px;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y: auto;
+    padding: 14px 0 32px;
+  }
+
+  #list-col {
+    flex: 0 0 396px;
+    width: 396px;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y: auto;
+  }
+
+  #detail {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 22px 28px 60px;
+  }
+
+  /* --- filter rail --- */
+
+  .rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 14px 10px;
+  }
+
+  .rail-title {
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  #clear {
+    font: inherit;
+    font-size: 12px;
+    color: var(--accent);
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  #clear:hover { text-decoration: underline; }
+
+  .facet-group { padding: 10px 14px 4px; }
+
+  .facet-heading {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink-mute);
+    padding-bottom: 6px;
+  }
+
+  .facet-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    cursor: pointer;
+  }
+
+  .facet-option input { margin: 0; cursor: pointer; }
+
+  .facet-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .facet-count {
+    color: var(--ink-mute);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- item rows --- */
+
+  .row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--line-soft);
+    border-left: 3px solid transparent;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+
+  .row:hover { background: var(--bg); }
+
+  .row.selected {
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+  }
+
+  .row.linked {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+
+  .row-slug {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .row-chips {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .row-date {
+    margin-left: auto;
+    color: var(--ink-mute);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- chips --- */
+
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #eeece8;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .chip-type-debt      { background: #f6e7d8; color: #7a4a17; }
+  .chip-type-backlog   { background: #e0e9f3; color: #2f4d70; }
+
+  .chip-status-open        { background: #dcefe2; color: #245c38; }
+  .chip-status-in-progress { background: #dde8f6; color: #27496d; }
+  .chip-status-promoted    { background: #e9e1f5; color: #4f3a78; }
+  .chip-status-closed      { background: #ebe9e5; color: #6d6862; }
+
+  .chip-severity-p1  { background: #f8dcdc; color: #8a2020; }
+  .chip-severity-p2  { background: #fadfd0; color: #8c3f12; }
+  .chip-severity-p3  { background: #f7ecd2; color: #7a5a11; }
+  .chip-severity-nit { background: #e7e6ef; color: #4c4a63; }
+
+  .badge-parse-error {
+    display: inline-block;
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #8a2020;
+    color: #fff;
+  }
+
+  /* --- detail pane --- */
+
+  .detail-id {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    word-break: break-all;
+  }
+
+  .detail-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .detail-meta {
+    margin-top: 10px;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  .field-table {
+    width: 100%;
+    max-width: 620px;
+    margin: 18px 0 22px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--panel);
+    table-layout: fixed;
+  }
+
+  .field-table tr + tr td { border-top: 1px solid var(--line-soft); }
+
+  .field-key, .field-value {
+    padding: 6px 12px;
+    vertical-align: top;
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  .field-key {
+    width: 150px;
+    color: var(--ink-mute);
+  }
+
+  .field-value { white-space: pre-wrap; }
+
+  .detail-body { max-width: 720px; }
+
+  .detail-body p { margin: 0 0 14px; }
+
+  .detail-body code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: #f1efeb;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+
+  .detail-rel {
+    margin-top: 26px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+  }
+
+  .rel-link {
+    color: var(--accent);
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .rel-missing { color: var(--ink-mute); font-family: var(--mono); font-size: 12.5px; }
+
+  .rel-closed { color: var(--ink-mute); margin-left: 6px; }
+
+  .parse-note {
+    margin: 18px 0 10px;
+    color: #8a2020;
+    max-width: 720px;
+  }
+
+  .raw-file {
+    margin: 0;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* --- resting and empty states --- */
+
+  #detail-resting { color: var(--ink-mute); }
+
+  #detail-resting p { margin: 0 0 4px; }
+
+  .empty {
+    padding: 28px 20px;
+    color: var(--ink-soft);
+  }
+
+  .empty-line { margin: 0 0 6px; }
+
+  .empty-hint { margin: 0; color: var(--ink-mute); font-size: 13px; }
+
+  [hidden] { display: none !important; }
+
+  /* Narrow window: the detail pane wraps under the list. Not a designed case. */
+  @media (max-width: 1000px) {
+    body { overflow: auto; }
+    main { flex-wrap: wrap; height: auto; }
+    #list-col { flex: 1 1 300px; width: auto; }
+    #detail { flex: 1 1 100%; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">dev backlog<span id="repo"></span></div>
+  <div class="bar-right">
+    <span id="count"></span>
+    <select id="sort" aria-label="sort">
+      <option value="first_recorded">sort: first_recorded</option>
+      <option value="recurrence">sort: recurrence</option>
+    </select>
+    <input id="search" type="search" placeholder="Search body, fields, file paths…" autocomplete="off" spellcheck="false" aria-label="search">
+  </div>
+</header>
+
+<main>
+  <aside id="rail-col">
+    <div class="rail-head">
+      <span class="rail-title">Filters</span>
+      <button id="clear" type="button">Clear all</button>
+    </div>
+    <div id="rail"></div>
+  </aside>
+
+  <section id="list-col">
+    <div id="list"></div>
+    <div id="empty-filters" class="empty" hidden>
+      <p class="empty-line">No items match these filters.</p>
+      <p class="empty-hint">Clear a filter, or widen the search.</p>
+    </div>
+    <div id="empty-store" class="empty" hidden>
+      <p class="empty-line">No items in docs/backlog/ yet.</p>
+      <p class="empty-hint">Capture one with /dev:debt add.</p>
+    </div>
+    <div id="empty-absent" class="empty" hidden>
+      <p class="empty-line">docs/backlog/ doesn't exist in this repo.</p>
+      <p class="empty-hint">Run /dev:init to set up the backlog store.</p>
+    </div>
+  </section>
+
+  <section id="detail">
+    <div id="detail-resting">
+      <p>Select an item to read it.</p>
+      <p><span id="detail-resting-count">0</span> items in the current filter.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const STORE = __STORE_JSON__;
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@ untracked files whose payloads embed absolute source paths, which the portabilit
 would then find.
 """
 
+import json
 import os
 import shutil
 import sys
@@ -377,6 +378,80 @@ class TestFacetsWithNoLiveSample(unittest.TestCase):
         for field, value in (("scope", "plugin"), ("status", "in-progress"), ("severity", "P7")):
             entry = [e for e in self.store["facets"][field] if e["value"] == value][0]
             self.assertEqual(entry["count"], 1, "%s: %s" % (field, value))
+
+
+def store_literal(html):
+    """The JSON literal the page embeds. json.dumps emits no raw newline, so it is one line."""
+    marker = "const STORE = "
+    start = html.index(marker) + len(marker)
+    line = html[start:].split("\n", 1)[0]
+    return line.rstrip().rstrip(";")
+
+
+class TestRenderPage(unittest.TestCase):
+    def setUp(self):
+        self.fixture = StoreFixture()
+
+    def tearDown(self):
+        self.fixture.cleanup()
+
+    def hostile_store(self):
+        body = "</script><!-- & <img src=x onerror=alert(1)>     done"
+        self.fixture.write("debt-hostile.md", item_text() + "\n" + body + "\n")
+        return viewer.load_store(self.fixture.root)
+
+    def test_placeholder_does_not_survive(self):
+        html = viewer.render_page(self.hostile_store())
+        self.assertNotIn("__STORE_JSON__", html)
+
+    def test_hostile_text_is_inert_inside_the_script_literal(self):
+        literal = store_literal(viewer.render_page(self.hostile_store()))
+        for sequence in ("</script>", "<!--", "<", ">", "&", "\u2028", "\u2029"):
+            self.assertNotIn(sequence, literal, sequence)
+
+    def test_literal_round_trips_through_json_loads(self):
+        store = self.hostile_store()
+        literal = store_literal(viewer.render_page(store))
+        self.assertEqual(json.loads(literal), store)
+
+    def test_primary_path_never_reaches_the_page(self):
+        html = viewer.render_page(viewer.load_store(self.fixture.root))
+        self.assertNotIn(self.fixture.root, html)
+        self.assertNotIn('"primary"', html)
+
+    def test_absent_store_still_renders_a_complete_document(self):
+        empty = StoreFixture(make_dir=False)
+        try:
+            html = viewer.render_page(viewer.load_store(empty.root))
+        finally:
+            empty.cleanup()
+        self.assertTrue(html.startswith("<!doctype html>"))
+        self.assertIn("</html>", html)
+        self.assertIn("docs/backlog/ doesn't exist in this repo.", html)
+
+    def test_document_carries_the_dom_contract(self):
+        html = viewer.render_page(viewer.load_store(repo_root()))
+        for element_id in ("repo", "count", "sort", "search", "rail", "clear", "list",
+                           "detail", "detail-resting", "detail-resting-count",
+                           "empty-filters", "empty-store", "empty-absent"):
+            self.assertIn('id="%s"' % element_id, html, element_id)
+        for option in ('value="first_recorded"', 'value="recurrence"'):
+            self.assertIn(option, html, option)
+
+    def test_page_fetches_nothing_external(self):
+        html = viewer.render_page(viewer.load_store(repo_root()))
+        for pattern in ("<link", "src=\"http", "@import", "<script src"):
+            self.assertNotIn(pattern, html, pattern)
+
+    def test_missing_template_is_a_named_error(self):
+        original = viewer.TEMPLATE_PATH
+        viewer.TEMPLATE_PATH = original.with_name("no_such_template.html")
+        try:
+            with self.assertRaises(RuntimeError) as ctx:
+                viewer.render_page(viewer.load_store(self.fixture.root))
+            self.assertIn("no_such_template.html", str(ctx.exception))
+        finally:
+            viewer.TEMPLATE_PATH = original
 
 
 class TestResolvePrimary(unittest.TestCase):

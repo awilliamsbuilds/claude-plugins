@@ -10,7 +10,9 @@ in plugins/dev/references/tech-debt.md.
 """
 
 import glob
+import json
 import os
+import pathlib
 import re
 import subprocess
 
@@ -331,3 +333,40 @@ def load_store(primary):
         "items": items,
         "facets": derive_facets(items),
     }
+
+
+# --- Rendering --------------------------------------------------------------
+
+TEMPLATE_PATH = pathlib.Path(__file__).with_name("viewer_page.html")
+STORE_PLACEHOLDER = "__STORE_JSON__"
+
+# Escapes applied to the embedded JSON literal. The first three keep `</script>`
+# and `<!--` inert inside the script block; the last two are JS line terminators
+# that would otherwise break the literal. Store text can originate outside this
+# repo — dev:fix seeds items from Linear, P9 delivers them as GitHub issues — so
+# this is a real injection boundary. All five are \u escapes, which json.loads
+# reverses, so the data still round-trips.
+JSON_ESCAPES = (
+    ("<", "\\u003c"),
+    (">", "\\u003e"),
+    ("&", "\\u0026"),
+    ("\u2028", "\\u2028"),
+    ("\u2029", "\\u2029"),
+)
+
+
+def embed_json(obj):
+    """Serialize obj as a JSON literal that is safe inside a <script> block."""
+    text = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    for needle, replacement in JSON_ESCAPES:
+        text = text.replace(needle, replacement)
+    return text
+
+
+def render_page(store):
+    """Substitute the store into the page template, producing one complete document."""
+    try:
+        template = TEMPLATE_PATH.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError("page template missing at %s: %s" % (TEMPLATE_PATH, exc))
+    return template.replace(STORE_PLACEHOLDER, embed_json(store))
