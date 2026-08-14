@@ -56,8 +56,9 @@
   #repo {
     color: var(--ink-mute);
     font-weight: 400;
-    margin-left: 8px;
   }
+
+  #repo::before { content: "\00B7"; margin: 0 8px; }
 
   .bar-right {
     margin-left: auto;
@@ -451,6 +452,413 @@
 
 <script>
 const STORE = __STORE_JSON__;
+
+// Every insertion of store-derived text below goes through textContent or
+// createElement. The one exception is the body renderer, which escapes its input
+// before it generates any markup. Nothing here ever hands raw store text to
+// innerHTML.
+
+const el = {
+  repo: document.getElementById('repo'),
+  count: document.getElementById('count'),
+  sort: document.getElementById('sort'),
+  search: document.getElementById('search'),
+  rail: document.getElementById('rail'),
+  clear: document.getElementById('clear'),
+  list: document.getElementById('list'),
+  detail: document.getElementById('detail'),
+  resting: document.getElementById('detail-resting'),
+  restingCount: document.getElementById('detail-resting-count'),
+  emptyFilters: document.getElementById('empty-filters'),
+  emptyStore: document.getElementById('empty-store'),
+  emptyAbsent: document.getElementById('empty-absent')
+};
+
+const CHIP_FIELDS = ['type', 'status', 'severity'];
+const MISSING = '\u0000missing';
+
+const chosen = {};        // field -> Set of chosen facet keys
+const facetInputs = [];   // {field, key, input} — for Clear all
+const rowEls = new Map(); // item id -> row element
+let visible = [];
+let selectedId = null;
+let linkedId = null;
+
+function facetKey(value) {
+  return value === null ? MISSING : value;
+}
+
+function fieldValue(item, field) {
+  const value = item.fields[field];
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.trim();
+}
+
+function itemById(id) {
+  for (const item of STORE.items) {
+    if (item.id === id) return item;
+  }
+  return null;
+}
+
+// --- filter rail ---
+
+function renderRail() {
+  el.rail.textContent = '';
+  if (STORE.state !== 'ok') return;   // an absent or empty store has nothing to filter
+  Object.keys(STORE.facets).forEach(function (field) {
+    const entries = STORE.facets[field];
+    if (!entries.length) return;
+    chosen[field] = chosen[field] || new Set();
+
+    const group = document.createElement('div');
+    group.className = 'facet-group';
+    const heading = document.createElement('div');
+    heading.className = 'facet-heading';
+    heading.textContent = field;
+    group.appendChild(heading);
+
+    entries.forEach(function (entry) {
+      const key = facetKey(entry.value);
+      const option = document.createElement('label');
+      option.className = 'facet-option';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.addEventListener('change', function () {
+        if (box.checked) chosen[field].add(key);
+        else chosen[field].delete(key);
+        refresh();
+      });
+
+      const label = document.createElement('span');
+      label.className = 'facet-label';
+      label.textContent = entry.label;
+
+      // Counts are the unfiltered totals; the header's "<n> of <total>" is what
+      // reflects the active filter.
+      const count = document.createElement('span');
+      count.className = 'facet-count';
+      count.textContent = String(entry.count);
+
+      option.appendChild(box);
+      option.appendChild(label);
+      option.appendChild(count);
+      group.appendChild(option);
+      facetInputs.push({field: field, key: key, input: box});
+    });
+
+    el.rail.appendChild(group);
+  });
+}
+
+// --- filtering, search, sort ---
+
+function matchesFacets(item) {
+  return Object.keys(chosen).every(function (field) {
+    const picked = chosen[field];
+    if (!picked.size) return true;               // within a field: OR
+    return picked.has(facetKey(fieldValue(item, field)));
+  });                                            // across fields: AND
+}
+
+function recurrenceOf(item) {
+  const value = item.fields.recurrence;
+  if (typeof value === 'number' && isFinite(value)) return value;
+  if (typeof value === 'string' && /^[0-9]+$/.test(value.trim())) return parseInt(value, 10);
+  return 0;
+}
+
+function recordedOf(item) {
+  const value = fieldValue(item, 'first_recorded');
+  return value === null ? '\uffff' : value;      // missing dates sort last
+}
+
+function sortItems(items) {
+  const mode = el.sort.value;
+  return items.slice().sort(function (a, b) {
+    if (mode === 'recurrence') {
+      const delta = recurrenceOf(b) - recurrenceOf(a);   // most-seen first
+      if (delta) return delta;
+    } else {
+      const left = recordedOf(a);
+      const right = recordedOf(b);
+      if (left !== right) return left < right ? -1 : 1;  // oldest first
+    }
+    return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);     // stable tie-break
+  });
+}
+
+// --- rows ---
+
+function makeChip(item, field) {
+  const value = fieldValue(item, field);
+  if (value === null) return null;
+  const chip = document.createElement('span');
+  const modifier = value.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  chip.className = 'chip chip-' + field + '-' + modifier;
+  chip.textContent = value;
+  return chip;
+}
+
+function makeRow(item) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'row';
+
+  const slug = document.createElement('div');
+  slug.className = 'row-slug';
+  slug.textContent = item.id;
+  row.appendChild(slug);
+
+  if (item.parse_error) {
+    const badge = document.createElement('span');
+    badge.className = 'badge-parse-error';
+    badge.textContent = 'PARSE ERROR';
+    row.appendChild(badge);
+  } else {
+    const chips = document.createElement('div');
+    chips.className = 'row-chips';
+    CHIP_FIELDS.forEach(function (field) {
+      const chip = makeChip(item, field);
+      if (chip) chips.appendChild(chip);
+    });
+    const recorded = document.createElement('span');
+    recorded.className = 'row-date';
+    recorded.textContent = fieldValue(item, 'first_recorded') || '';
+    chips.appendChild(recorded);
+    row.appendChild(chips);
+  }
+
+  row.addEventListener('click', function () { select(item.id, false); });
+  return row;
+}
+
+function renderList() {
+  el.list.textContent = '';
+  rowEls.clear();
+  visible.forEach(function (item) {
+    const row = makeRow(item);
+    rowEls.set(item.id, row);
+    el.list.appendChild(row);
+  });
+  paintRows();
+}
+
+function paintRows() {
+  rowEls.forEach(function (row, id) {
+    row.classList.toggle('selected', id === selectedId);
+    row.classList.toggle('linked', id === linkedId);
+  });
+}
+
+// --- detail pane ---
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderBody(text) {
+  const body = document.createElement('div');
+  body.className = 'detail-body';
+  text.split(/\n\s*\n/).forEach(function (chunk) {
+    if (!chunk.trim()) return;
+    const paragraph = document.createElement('p');
+    // Escaping happens before any markup is generated, so no store text can
+    // inject markup of its own.
+    paragraph.innerHTML = escapeHtml(chunk)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+    body.appendChild(paragraph);
+  });
+  return body;
+}
+
+function metaLine(item) {
+  const parts = [];
+  const recorded = fieldValue(item, 'first_recorded');
+  if (recorded) parts.push('recorded ' + recorded);
+  parts.push('seen ' + recurrenceOf(item) + '×');
+  const cycles = item.fields.cycles;
+  if (Array.isArray(cycles) && cycles.length) parts.push(cycles.join(', '));
+  return parts.join(' · ');
+}
+
+function fieldTable(item) {
+  const table = document.createElement('table');
+  table.className = 'field-table';
+  Object.keys(item.fields).forEach(function (key) {
+    const value = item.fields[key];
+    const row = document.createElement('tr');
+
+    const keyCell = document.createElement('td');
+    keyCell.className = 'field-key';
+    keyCell.textContent = key;
+
+    const valueCell = document.createElement('td');
+    valueCell.className = 'field-value';
+    if (Array.isArray(value)) valueCell.textContent = value.join('\n');
+    else if (value === null) valueCell.textContent = '';
+    else valueCell.textContent = String(value);
+
+    row.appendChild(keyCell);
+    row.appendChild(valueCell);
+    table.appendChild(row);
+  });
+  return table;
+}
+
+function relationshipBlock(item) {
+  const block = document.createElement('div');
+  block.className = 'detail-rel';
+  const related = item.related;
+
+  if (!related.resolved) {
+    const missing = document.createElement('span');
+    missing.className = 'rel-missing';
+    missing.textContent = 'possibly related to ' + related.id + ' — not found in store';
+    block.appendChild(missing);
+    return block;
+  }
+
+  const link = document.createElement('button');
+  link.type = 'button';
+  link.className = 'rel-link';
+  link.textContent = 'possibly related to ' + related.id;
+  // Following a link changes the detail pane only — never the filter, the sort,
+  // or the search.
+  link.addEventListener('click', function () { select(related.id, true); });
+  block.appendChild(link);
+
+  if (related.archived) {
+    const closed = document.createElement('span');
+    closed.className = 'rel-closed';
+    closed.textContent = '(closed)';
+    block.appendChild(closed);
+  }
+  return block;
+}
+
+function clearDetail() {
+  Array.prototype.slice.call(el.detail.children).forEach(function (node) {
+    if (node !== el.resting) el.detail.removeChild(node);
+  });
+}
+
+function renderDetail() {
+  clearDetail();
+  const item = selectedId === null ? null : itemById(selectedId);
+  if (!item) {
+    el.resting.hidden = false;
+    return;
+  }
+  el.resting.hidden = true;
+
+  const heading = document.createElement('div');
+  heading.className = 'detail-id';
+  heading.textContent = item.id;
+  el.detail.appendChild(heading);
+
+  if (item.parse_error) {
+    const badge = document.createElement('div');
+    badge.className = 'detail-chips';
+    const marker = document.createElement('span');
+    marker.className = 'badge-parse-error';
+    marker.textContent = 'PARSE ERROR';
+    badge.appendChild(marker);
+    el.detail.appendChild(badge);
+
+    const note = document.createElement('p');
+    note.className = 'parse-note';
+    note.textContent = "This file's front-matter couldn't be parsed, so its fields are " +
+      'unavailable. The raw file is below.';
+    el.detail.appendChild(note);
+
+    const reason = document.createElement('p');
+    reason.className = 'parse-note';
+    reason.textContent = item.parse_error;
+    el.detail.appendChild(reason);
+
+    if (item.raw !== null) {
+      const raw = document.createElement('pre');
+      raw.className = 'raw-file';
+      raw.textContent = item.raw;
+      el.detail.appendChild(raw);
+    }
+    return;
+  }
+
+  const chips = document.createElement('div');
+  chips.className = 'detail-chips';
+  CHIP_FIELDS.forEach(function (field) {
+    const chip = makeChip(item, field);
+    if (chip) chips.appendChild(chip);
+  });
+  el.detail.appendChild(chips);
+
+  const meta = document.createElement('div');
+  meta.className = 'detail-meta';
+  meta.textContent = metaLine(item);
+  el.detail.appendChild(meta);
+
+  el.detail.appendChild(fieldTable(item));
+  el.detail.appendChild(renderBody(item.body));
+
+  if (item.related) el.detail.appendChild(relationshipBlock(item));
+}
+
+function select(id, viaLink) {
+  selectedId = id;
+  linkedId = viaLink ? id : null;
+  renderDetail();
+  paintRows();
+  // A link target filtered out of the current list has no row to highlight.
+  const row = rowEls.get(id);
+  if (viaLink && row) row.scrollIntoView({block: 'nearest'});
+}
+
+// --- empty states ---
+
+function renderEmptyStates(count) {
+  // Store-level states win over the filter state; exactly one is ever visible.
+  el.emptyAbsent.hidden = STORE.state !== 'absent';
+  el.emptyStore.hidden = STORE.state !== 'empty';
+  el.emptyFilters.hidden = !(STORE.state === 'ok' && count === 0);
+}
+
+// --- the loop everything calls ---
+
+function refresh() {
+  const query = el.search.value.trim().toLowerCase();
+  const matched = STORE.items.filter(function (item) {
+    if (!matchesFacets(item)) return false;
+    return !query || item.search.indexOf(query) !== -1;
+  });
+  visible = sortItems(matched);
+
+  el.count.textContent = visible.length + ' of ' + STORE.total;
+  el.restingCount.textContent = String(visible.length);
+  renderList();
+  renderEmptyStates(visible.length);
+}
+
+document.title = 'dev backlog — ' + STORE.repo_name;
+el.repo.textContent = STORE.repo_name;
+
+el.search.addEventListener('input', refresh);
+el.sort.addEventListener('change', refresh);
+el.clear.addEventListener('click', function () {
+  facetInputs.forEach(function (entry) {
+    entry.input.checked = false;
+    chosen[entry.field].delete(entry.key);
+  });
+  el.search.value = '';
+  refresh();   // sort and selection are deliberately untouched
+});
+
+renderRail();
+refresh();
+renderDetail();
 </script>
 </body>
 </html>
