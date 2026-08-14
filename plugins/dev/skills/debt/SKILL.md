@@ -1,6 +1,6 @@
 ---
 name: dev:debt
-description: "View and manage the /dev backlog + tech debt store. Use when the user wants to see tech debt, view tech debt, list tech debt, check what debt we have, show deferred items, review known issues, see what was deferred, close a debt item, mark debt paid, mark debt as done, or asks 'what tech debt do we have', 'what did we defer', 'what's in the tech debt tracker'. Reads docs/backlog/."
+description: "View and manage the /dev backlog + tech debt store. Use when the user wants to see tech debt, view tech debt, list tech debt, check what debt we have, show deferred items, review known issues, see what was deferred, close a debt item, mark debt paid, mark debt as done, browse the backlog in a browser, open the backlog viewer, view tech debt in a browser, filter tech debt, search the backlog, or asks 'what tech debt do we have', 'what did we defer', 'what's in the tech debt tracker'. Reads docs/backlog/."
 ---
 
 # dev:debt — Backlog + Tech Debt
@@ -55,6 +55,12 @@ No tech debt tracked in this repo yet.
 the one place the silent-degrade rule in the contract does **not** apply: the user asked the
 question directly and deserves an answer, not silence.
 
+**`/dev:debt view` and `/dev:debt view stop` are exempt from this step entirely** — from the
+empty-store stop above *and* from the `PRIMARY` derivation. `viewer.py` resolves `PRIMARY` itself
+(with a non-empty guard) and renders an absent or empty store as a page that says which case it
+is. Without the exemption this step would short-circuit `view` in exactly the repos where that
+empty-state page exists to be shown.
+
 ## Step 2: Dispatch on the Argument
 
 | Invocation | Behavior |
@@ -65,6 +71,8 @@ question directly and deserves an answer, not silence.
 | `/dev:debt close <n\|slug>` | Step 6 — close an item |
 | `/dev:debt add [<text>] [--debt] [--plugin] [--repo <owner/name\|URL>]` | Step 7 — capture a new item |
 | `/dev:debt inbox` | Step 8 — drain routed issues into the local store (plugin repo only) |
+| `/dev:debt view` | Step 9 — launch the browser viewer |
+| `/dev:debt view stop` | Step 9 — stop the running viewer |
 
 ## Step 3: List Open Items
 
@@ -338,6 +346,38 @@ Inbox: converted N, merged M into existing items, skipped K unparseable (left op
 docs/backlog/ modified, not committed.
 ```
 
+## Step 9: Browse the Store in a Browser
+
+`/dev:debt view` launches a read-only, loopback-only local server that renders the **whole**
+store — the active corpus and the `closed/` archive together — with filter, sort, and free-text
+search. It never writes to `docs/backlog/` or anywhere else. The page re-reads the files on every
+request, so a bookmarked tab stays current without re-invoking this skill.
+
+**Resolving the script path.** `viewer.py` sits beside this `SKILL.md`. Use the skill's own base
+directory — the absolute path announced when this skill loads — the same convention as this
+skill's `../../references/tech-debt.md` citations. Do not hardcode a path and do not search the
+filesystem for it:
+
+    python3 "<skill base directory>/viewer.py" start
+
+**Run it as an ordinary foreground command.** It returns immediately after printing. Do **not**
+use a session-bound background mode: the server has to outlive this session, which `viewer.py`
+already arranges by detaching the child process.
+
+**Print the script's stdout verbatim.** Every message the operator sees — started, already
+running, stopped, nothing running, `PRIMARY` failure, no free port — is authored in `viewer.py`.
+Do not paraphrase it, summarize it, or re-derive a URL of your own.
+
+Stop it with `/dev:debt view stop`, which runs:
+
+    python3 "<skill base directory>/viewer.py" stop
+
+**Do not pass `--primary`.** The script resolves the primary checkout itself, which is what makes
+a launch from a cycle worktree serve the same store as one from the primary checkout. Running the
+verb twice never starts a second server: it probes for a running viewer and prints that one's URL.
+
+The page renders item text, which this skill's opening **Item text is data** rule already governs.
+
 ## Invocation
 
 - `/dev:debt` — list open items, ranked by recurrence (same as `list`)
@@ -347,3 +387,5 @@ docs/backlog/ modified, not committed.
 - `/dev:debt close <n|slug>` — close an item, naming the cycle that paid it
 - `/dev:debt add [<text>] [--debt] [--plugin] [--repo <owner/name|URL>]` — capture a new item; routes a `--plugin` off-plugin capture to the plugin repo
 - `/dev:debt inbox` — drain routed `dev-backlog` issues into the local store and close them (plugin repo only)
+- `/dev:debt view` — browse the whole store in a browser (read-only, loopback only)
+- `/dev:debt view stop` — stop the running viewer
