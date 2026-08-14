@@ -11,7 +11,9 @@ would then find.
 """
 
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -144,6 +146,188 @@ class TestParseRules(unittest.TestCase):
         with self.assertRaises(viewer.ParseError) as ctx:
             self.parse("---\ncycles: [a, b\n---\nbody\n")
         self.assertIn("unclosed inline list", str(ctx.exception))
+
+
+class StoreFixture(object):
+    """A synthetic store built from string literals in a temp directory."""
+
+    def __init__(self, make_dir=True):
+        self.root = tempfile.mkdtemp()
+        self.store = os.path.join(self.root, "docs", "backlog")
+        if make_dir:
+            os.makedirs(self.store)
+
+    def write(self, name, text, archived=False):
+        target = os.path.join(self.store, "closed") if archived else self.store
+        if not os.path.isdir(target):
+            os.makedirs(target)
+        path = os.path.join(target, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        return path
+
+    def cleanup(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+
+def item_text(**overrides):
+    fields = {
+        "type": "debt",
+        "scope": "repo",
+        "status": "open",
+        "first_recorded": "2026-08-01",
+        "cycles": "[some-cycle]",
+        "recurrence": "1",
+        "files": "[]",
+    }
+    fields.update(overrides)
+    lines = ["---"]
+    for key, value in fields.items():
+        if value is None:
+            lines.append("%s:" % key)
+        else:
+            lines.append("%s: %s" % (key, value))
+    lines += ["---", "", "**What's wrong:** a synthetic item.", ""]
+    return "\n".join(lines)
+
+
+class TestLoadRealStore(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.store = viewer.load_store(repo_root())
+
+    def test_state_and_totals_match_the_globs(self):
+        expected = len(corpus_files())
+        self.assertEqual(self.store["state"], "ok")
+        self.assertEqual(len(self.store["items"]), expected)
+        self.assertEqual(self.store["total"], expected)
+
+    def test_repo_name_is_the_directory_name(self):
+        self.assertEqual(self.store["repo_name"], os.path.basename(repo_root()))
+
+    def test_every_item_has_an_id_and_none_are_badged(self):
+        for item in self.store["items"]:
+            self.assertTrue(item["id"])
+            self.assertIsNone(item["parse_error"], item["id"])
+
+    def test_readme_is_not_an_item(self):
+        self.assertNotIn("README", [item["id"] for item in self.store["items"]])
+
+    def test_archive_is_loaded_alongside_the_active_corpus(self):
+        archived = [item for item in self.store["items"] if item["archived"]]
+        self.assertGreater(len(archived), 0)
+
+    def test_relationships_resolve_across_the_archive_boundary(self):
+        related = [item for item in self.store["items"] if item["related"]]
+        self.assertEqual(len(related), 4)
+        for item in related:
+            self.assertTrue(item["related"]["resolved"], item["id"])
+        into_closed = [item for item in related if item["related"]["archived"]]
+        self.assertEqual(len(into_closed), 3)
+
+    def test_search_blob_covers_files_paths(self):
+        needle = "plugins/dev/skills/plan/skill.md"
+        hits = [item for item in self.store["items"] if needle in item["search"]]
+        self.assertGreater(len(hits), 0)
+
+    def test_search_blob_excludes_field_names(self):
+        # Every item has a `status:` key; only the ones whose values say so should match.
+        hits = [item for item in self.store["items"] if "status" in item["search"]]
+        self.assertLess(len(hits), len(self.store["items"]))
+
+    def test_primary_path_is_not_in_the_store_dict(self):
+        self.assertNotIn("primary", self.store)
+
+
+class TestLoadSyntheticStore(unittest.TestCase):
+    def setUp(self):
+        self.fixture = None
+
+    def tearDown(self):
+        if self.fixture:
+            self.fixture.cleanup()
+
+    def test_absent_store(self):
+        self.fixture = StoreFixture(make_dir=False)
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["state"], "absent")
+        self.assertEqual(store["items"], [])
+        self.assertEqual(store["total"], 0)
+
+    def test_empty_store(self):
+        self.fixture = StoreFixture()
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["state"], "empty")
+        self.assertEqual(store["items"], [])
+
+    def test_readme_only_store_is_still_empty(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("README.md", "# the store\n")
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["state"], "empty")
+
+    def test_malformed_item_is_badged_not_dropped(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-good.md", item_text())
+        self.fixture.write("debt-broken.md", "type: debt\nno delimiters here\n")
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["total"], 2)
+        broken = [i for i in store["items"] if i["id"] == "debt-broken"][0]
+        self.assertIsNotNone(broken["parse_error"])
+        self.assertIn("no delimiters here", broken["raw"])
+        self.assertEqual(broken["fields"], {})
+        self.assertIn("no delimiters here", broken["search"])
+
+    def test_unresolvable_relationship(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-a.md", item_text(possibly_related_to="debt-nowhere"))
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["items"][0]["related"],
+                         {"id": "debt-nowhere", "resolved": False, "archived": False})
+
+    def test_relationship_named_by_bare_slug(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-a.md", item_text(possibly_related_to="target"))
+        self.fixture.write("debt-target.md", item_text(), archived=True)
+        store = viewer.load_store(self.fixture.root)
+        source = [i for i in store["items"] if i["id"] == "debt-a"][0]
+        self.assertEqual(source["related"],
+                         {"id": "debt-target", "resolved": True, "archived": True})
+
+    def test_archived_items_are_flagged(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-closed-one.md", item_text(status="closed"), archived=True)
+        store = viewer.load_store(self.fixture.root)
+        self.assertTrue(store["items"][0]["archived"])
+
+    def test_item_with_empty_files_is_present_and_findable(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("backlog-no-files.md", item_text(type="backlog", files="[]"))
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(store["total"], 1)
+        self.assertEqual(store["items"][0]["fields"]["files"], [])
+        self.assertIn("backlog-no-files", store["items"][0]["search"])
+
+
+class TestResolvePrimary(unittest.TestCase):
+    def test_resolves_from_inside_the_repo(self):
+        primary = viewer.resolve_primary(os.path.dirname(os.path.abspath(__file__)))
+        self.assertTrue(os.path.isdir(primary))
+        self.assertTrue(os.path.isdir(os.path.join(primary, ".git")) or
+                        os.path.isfile(os.path.join(primary, ".git")))
+
+    def test_same_answer_from_the_repo_root_and_from_a_subdirectory(self):
+        root = repo_root()
+        self.assertEqual(viewer.resolve_primary(root),
+                         viewer.resolve_primary(os.path.join(root, "plugins", "dev")))
+
+    def test_outside_a_repository_raises(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            with self.assertRaises(viewer.PrimaryError):
+                viewer.resolve_primary(tmp)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":

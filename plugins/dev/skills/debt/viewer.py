@@ -9,7 +9,10 @@ not available, so the front-matter parser below is hand-rolled against the schem
 in plugins/dev/references/tech-debt.md.
 """
 
+import glob
+import os
 import re
+import subprocess
 
 # --- Front-matter parsing ---------------------------------------------------
 #
@@ -122,3 +125,164 @@ def parse_front_matter(text):
         fields["recurrence"] = int(recurrence)
 
     return fields, body
+
+
+# --- The store --------------------------------------------------------------
+
+STORE_PARTS = ("docs", "backlog")
+ARCHIVE_DIRNAME = "closed"
+ITEM_GLOBS = ("debt-*.md", "backlog-*.md")
+
+
+class PrimaryError(Exception):
+    """The primary checkout could not be resolved, so there is no store to serve."""
+
+
+def resolve_primary(cwd=None):
+    """Absolute path of the primary checkout — the only PRIMARY derivation in this cycle.
+
+    Two launches from different working directories (a cycle worktree and the primary
+    checkout) must produce the identical string, because that string is the identity
+    a running server reports and a second launch matches on.
+    """
+    cwd = cwd or os.getcwd()
+    command = ["git", "rev-parse", "--git-common-dir"]
+    try:
+        result = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
+    except OSError as exc:
+        raise PrimaryError("could not run `%s`: %s" % (" ".join(command), exc))
+
+    if result.returncode != 0:
+        raise PrimaryError(
+            "`%s` failed: %s" % (" ".join(command), result.stderr.strip() or "no error output")
+        )
+
+    out = result.stdout.strip()
+    if not out:
+        # The guard debt-primary-cd-failure-unchecked records missing at the other sites.
+        raise PrimaryError("`%s` returned no output" % " ".join(command))
+
+    primary = os.path.abspath(os.path.join(cwd, os.path.dirname(out) or "."))
+    if not os.path.isdir(primary):
+        raise PrimaryError("resolved repository root is not a directory: %s" % primary)
+    return primary
+
+
+def _item_paths(directory):
+    """Item files in one directory. The two globs exclude README.md by construction."""
+    paths = []
+    for pattern in ITEM_GLOBS:
+        paths += sorted(glob.glob(os.path.join(directory, pattern)))
+    return paths
+
+
+def _search_blob(item):
+    """Lowercased haystack: id, field *values*, body, and the raw text of a bad file.
+
+    Field names are deliberately excluded — including them would make every item
+    match the word "severity". Field values are what make a `files:` path findable.
+    """
+    parts = [item["id"]]
+    for value in item["fields"].values():
+        if value is None:
+            continue
+        if isinstance(value, list):
+            parts.append(" ".join(value))
+        else:
+            parts.append(str(value))
+    parts.append(item["body"])
+    if item["parse_error"]:
+        parts.append(item["parse_error"])
+    if item["raw"]:
+        parts.append(item["raw"])
+    return " ".join(parts).lower()
+
+
+def _load_item(path, archived):
+    item = {
+        "id": os.path.splitext(os.path.basename(path))[0],
+        "archived": archived,
+        "fields": {},
+        "body": "",
+        "parse_error": None,
+        "raw": None,
+        "related": None,
+        "search": "",
+    }
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+    except OSError as exc:
+        # One unreadable file must never take the server down.
+        item["parse_error"] = str(exc)
+        item["search"] = _search_blob(item)
+        return item
+
+    try:
+        fields, body = parse_front_matter(text)
+    except ParseError as exc:
+        item["parse_error"] = str(exc)
+        item["raw"] = text
+        item["search"] = _search_blob(item)
+        return item
+
+    item["fields"] = fields
+    item["body"] = body
+    item["search"] = _search_blob(item)
+    return item
+
+
+def _resolve_relationships(items):
+    """Link `possibly_related_to` across the active corpus and the archive together.
+
+    The contract names the field's value a slug; every live value carries the full
+    `<type>-<slug>` stem. Both forms resolve, first hit winning.
+    """
+    index = dict((item["id"], item["archived"]) for item in items)
+    for item in items:
+        value = item["fields"].get("possibly_related_to")
+        if not isinstance(value, str) or not value.strip():
+            continue
+        value = value.strip()
+        for candidate in (value, "debt-" + value, "backlog-" + value):
+            if candidate in index:
+                item["related"] = {
+                    "id": candidate,
+                    "resolved": True,
+                    "archived": index[candidate],
+                }
+                break
+        else:
+            item["related"] = {"id": value, "resolved": False, "archived": False}
+
+
+def load_store(primary):
+    """Read the whole store — active corpus and closed/ archive — into one dict.
+
+    Called fresh on every HTTP request, which is what keeps a refreshed tab current.
+    `primary` is deliberately not part of the result: it would put an absolute home
+    directory path into the served HTML for no reason.
+    """
+    store = {
+        "state": "absent",
+        "repo_name": os.path.basename(primary),
+        "total": 0,
+        "items": [],
+        "facets": {},
+    }
+
+    store_dir = os.path.join(primary, *STORE_PARTS)
+    if not os.path.isdir(store_dir):
+        return store
+
+    archive_dir = os.path.join(store_dir, ARCHIVE_DIRNAME)
+    items = [_load_item(path, False) for path in _item_paths(store_dir)]
+    if os.path.isdir(archive_dir):
+        items += [_load_item(path, True) for path in _item_paths(archive_dir)]
+
+    _resolve_relationships(items)
+
+    store["state"] = "ok" if items else "empty"
+    store["items"] = items
+    store["total"] = len(items)
+    return store
