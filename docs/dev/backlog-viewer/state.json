@@ -3,8 +3,8 @@
   "feature": "backlog-viewer",
   "branch": "feature/backlog-viewer",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "validate",
+  "completed": ["spec", "shape", "plan", "build"],
   "skipped": [],
   "startedAt": "2026-08-13T01:06:13Z",
   "artifacts": {
@@ -75,7 +75,9 @@
       "shape_start": "2026-08-13T03:51:14Z",
       "shape_end": "2026-08-13T04:17:04Z",
       "plan_start": "2026-08-13T04:39:03Z",
-      "plan_end": "2026-08-13T04:53:55Z"
+      "plan_end": "2026-08-13T04:53:55Z",
+      "build_start": "2026-08-14T11:03:44Z",
+      "build_end": "2026-08-14T11:24:37Z"
     }
   }
 }
