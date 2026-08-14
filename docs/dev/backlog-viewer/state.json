@@ -3,15 +3,15 @@
   "feature": "backlog-viewer",
   "branch": "feature/backlog-viewer",
   "mode": "standard",
-  "stage": "validate",
-  "completed": ["spec", "shape", "plan", "build"],
+  "stage": "pr",
+  "completed": ["spec", "shape", "plan", "build", "validate"],
   "skipped": [],
   "startedAt": "2026-08-13T01:06:13Z",
   "artifacts": {
     "spec": "docs/dev/backlog-viewer/spec.md",
     "design": "docs/dev/backlog-viewer/design.md",
     "plan": "docs/dev/backlog-viewer/plan.md",
-    "validation": null,
+    "validation": "docs/dev/backlog-viewer/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -20,9 +20,15 @@
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
+    "p3_open": [
+      "No automated coverage of the page JavaScript; two regressions this cycle passed a green suite",
+      "_pid_is_viewer does not bind the pid to the port that reported it, and has no subprocess timeout",
+      "CSP correctness depends on template invariants no test enforces",
+      "Several real-corpus facet assertions cannot fail; a comment claims coverage that does not exist"
+    ],
     "nits_open": [
-      "TestCliRoundTrip self-skips when a viewer is already running, silently dropping the only end-to-end coverage of detachment",
+      "LABEL_START has known false-positive and false-negative shapes, neither reachable in today's corpus",
+      "TestCliRoundTrip self-skips when a viewer is running, dropping the only end-to-end detachment coverage",
       "test_viewer.py ships into the installed plugin snapshot alongside the runtime files"
     ]
   },
@@ -80,7 +86,9 @@
       "plan_start": "2026-08-13T04:39:03Z",
       "plan_end": "2026-08-13T04:53:55Z",
       "build_start": "2026-08-14T11:03:44Z",
-      "build_end": "2026-08-14T11:24:37Z"
+      "build_end": "2026-08-14T11:24:37Z",
+      "validate_start": "2026-08-14T11:26:51Z",
+      "validate_end": "2026-08-14T12:27:49Z"
     }
   }
 }
