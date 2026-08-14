@@ -422,7 +422,9 @@ class TestFacets(unittest.TestCase):
         # `scope` is single-valued today, so its ordering assertion is trivially
         # true against the live corpus. TestFacetsWithNoLiveSample carries the
         # real multi-value ordering burden, on a store nobody else edits.
-        self.assertGreater(len(self.values("type")), 1)
+        # Counted without the None bucket, which is what the loop above compares.
+        named_types = [v for v in self.values("type") if v is not None]
+        self.assertGreater(len(named_types), 1)
 
 
 class TestFacetsWithNoLiveSample(unittest.TestCase):
