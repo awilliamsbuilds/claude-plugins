@@ -15,7 +15,10 @@ import os
 import shutil
 import sys
 import tempfile
+import threading
 import unittest
+import urllib.error
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -452,6 +455,113 @@ class TestRenderPage(unittest.TestCase):
             self.assertIn("no_such_template.html", str(ctx.exception))
         finally:
             viewer.TEMPLATE_PATH = original
+
+
+class ServerFixture(object):
+    """A live viewer on an ephemeral loopback port, torn down with the test."""
+
+    def __init__(self, primary):
+        self.server = viewer.make_server(primary, 0)
+        self.port = self.server.server_address[1]
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.daemon = True
+        self.thread.start()
+
+    @property
+    def base(self):
+        return "http://127.0.0.1:%d" % self.port
+
+    def request(self, path="/", method="GET", host=None):
+        request = urllib.request.Request(self.base + path, method=method)
+        if host:
+            request.add_header("Host", host)
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                return response.getcode(), response.headers, response.read()
+        except urllib.error.HTTPError as exc:
+            return exc.code, exc.headers, exc.read()
+
+    def stop(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+
+class TestHttpServer(unittest.TestCase):
+    def setUp(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-served.md", item_text())
+        self.server = ServerFixture(self.fixture.root)
+
+    def tearDown(self):
+        self.server.stop()
+        self.fixture.cleanup()
+
+    def test_binds_loopback_only(self):
+        self.assertEqual(self.server.server.server_address[0], "127.0.0.1")
+
+    def test_root_serves_the_page(self):
+        status, headers, body = self.server.request("/")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b"debt-served", body)
+
+    def test_every_response_advertises_its_identity(self):
+        for path, expected in (("/", 200), ("/nope", 404)):
+            status, headers, _ = self.server.request(path)
+            self.assertEqual(status, expected)
+            self.assertEqual(headers[viewer.IDENTITY_HEADER], self.fixture.root)
+            self.assertEqual(int(headers[viewer.PID_HEADER]), os.getpid())
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+            self.assertEqual(headers["Cache-Control"], "no-store")
+
+    def test_unknown_path_is_404(self):
+        status, _, _ = self.server.request("/nope")
+        self.assertEqual(status, 404)
+
+    def test_query_string_on_root_is_ignored(self):
+        status, _, _ = self.server.request("/?status=open")
+        self.assertEqual(status, 200)
+
+    def test_foreign_host_header_is_refused(self):
+        status, _, _ = self.server.request("/", host="evil.example.com")
+        self.assertEqual(status, 403)
+
+    def test_loopback_host_names_are_accepted(self):
+        for host in ("127.0.0.1:%d" % self.server.port, "localhost:%d" % self.server.port):
+            status, _, _ = self.server.request("/", host=host)
+            self.assertEqual(status, 200, host)
+
+    def test_head_returns_headers_without_a_body(self):
+        status, headers, body = self.server.request("/", method="HEAD")
+        self.assertEqual(status, 200)
+        self.assertEqual(body, b"")
+        self.assertIn(viewer.IDENTITY_HEADER, headers)
+
+    def test_write_methods_are_unsupported(self):
+        for method in ("POST", "PUT", "DELETE"):
+            status, _, _ = self.server.request("/", method=method)
+            self.assertEqual(status, 501, method)
+
+    def test_store_is_re_read_on_every_request(self):
+        _, _, first = self.server.request("/")
+        self.assertNotIn(b"debt-added-later", first)
+        self.fixture.write("debt-added-later.md", item_text())
+        _, _, second = self.server.request("/")
+        self.assertIn(b"debt-added-later", second)
+        self.assertNotEqual(first, second)
+
+    def test_a_render_failure_does_not_take_the_server_down(self):
+        original = viewer.TEMPLATE_PATH
+        viewer.TEMPLATE_PATH = original.with_name("no_such_template.html")
+        try:
+            status, headers, _ = self.server.request("/")
+            self.assertEqual(status, 500)
+            self.assertIn(viewer.IDENTITY_HEADER, headers)
+        finally:
+            viewer.TEMPLATE_PATH = original
+        status, _, _ = self.server.request("/")
+        self.assertEqual(status, 200)
 
 
 class TestResolvePrimary(unittest.TestCase):

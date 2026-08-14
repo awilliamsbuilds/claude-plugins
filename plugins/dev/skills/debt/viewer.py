@@ -15,6 +15,8 @@ import os
 import pathlib
 import re
 import subprocess
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # --- Front-matter parsing ---------------------------------------------------
 #
@@ -370,3 +372,92 @@ def render_page(store):
     except OSError as exc:
         raise RuntimeError("page template missing at %s: %s" % (TEMPLATE_PATH, exc))
     return template.replace(STORE_PLACEHOLDER, embed_json(store))
+
+
+# --- The server -------------------------------------------------------------
+#
+# One route, one document, no write path. BaseHTTPRequestHandler with an explicit
+# allowlist rather than SimpleHTTPRequestHandler, which would serve its working
+# directory and expose the whole repo.
+
+IDENTITY_HEADER = "X-Dev-Backlog-Viewer"
+PID_HEADER = "X-Dev-Backlog-Viewer-Pid"
+LOOPBACK_HOSTS = frozenset(("127.0.0.1", "localhost", "::1", "[::1]"))
+BIND_ADDRESS = "127.0.0.1"
+
+
+def _host_name(raw):
+    """The host from a Host header, with any :port stripped."""
+    host = (raw or "").strip()
+    if host.startswith("["):
+        end = host.find("]")
+        return host[:end + 1] if end != -1 else host
+    if host.count(":") > 1:
+        return host  # bare IPv6 literal carries no port
+    return host.split(":")[0]
+
+
+class ViewerHandler(BaseHTTPRequestHandler):
+    """Serves GET / and HEAD / for one primary checkout. Everything else is refused."""
+
+    primary = None  # set by make_server on a per-server subclass
+
+    def _respond(self, status, content_type, payload, with_body):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header(IDENTITY_HEADER, self.primary)
+        self.send_header(PID_HEADER, str(os.getpid()))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        if with_body:
+            self.wfile.write(payload)
+
+    def _handle(self, with_body):
+        # Loopback binding alone does not stop a page elsewhere from pointing a
+        # hostname at 127.0.0.1 and reading this document same-origin.
+        if _host_name(self.headers.get("Host", "")) not in LOOPBACK_HOSTS:
+            self._respond(403, "text/plain; charset=utf-8", b"Forbidden.\n", with_body)
+            return
+
+        path = urllib.parse.urlsplit(self.path).path
+        if path != "/":
+            self._respond(404, "text/plain; charset=utf-8", b"Not found.\n", with_body)
+            return
+
+        try:
+            # Read the store fresh on every request — this is the whole of
+            # "refresh the tab and see the current files".
+            page = render_page(load_store(self.primary))
+        except Exception as exc:  # a template or render fault, never a bad item
+            message = ("Could not render the backlog store: %s\n" % exc).encode("utf-8")
+            self._respond(500, "text/plain; charset=utf-8", message, with_body)
+            return
+
+        self._respond(200, "text/html; charset=utf-8", page.encode("utf-8"), with_body)
+
+    def do_GET(self):
+        self._handle(with_body=True)
+
+    def do_HEAD(self):
+        self._handle(with_body=False)
+
+    # No do_POST/do_PUT/do_DELETE: the base class answers those 501 on its own,
+    # which is exactly right for a server with no write path.
+
+    def log_message(self, fmt, *args):
+        pass  # the detached process writes to /dev/null anyway
+
+
+def make_server(primary, port):
+    """Bind a viewer on loopback. port=0 yields an ephemeral port for tests."""
+    handler = type("BoundViewerHandler", (ViewerHandler,), {"primary": primary})
+    server = ThreadingHTTPServer((BIND_ADDRESS, port), handler)
+    server.daemon_threads = True
+    return server
+
+
+def serve(primary, port):
+    """Run the viewer in the foreground. Does not return."""
+    make_server(primary, port).serve_forever()
