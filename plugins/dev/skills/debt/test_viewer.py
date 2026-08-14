@@ -309,6 +309,76 @@ class TestLoadSyntheticStore(unittest.TestCase):
         self.assertIn("backlog-no-files", store["items"][0]["search"])
 
 
+class TestFacets(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.store = viewer.load_store(repo_root())
+
+    def values(self, field, store=None):
+        facets = (store or self.store)["facets"]
+        return [entry["value"] for entry in facets[field]]
+
+    def test_all_four_fields_are_faceted(self):
+        self.assertEqual(list(self.store["facets"].keys()), list(viewer.FACET_FIELDS))
+
+    def test_counts_sum_to_the_item_total(self):
+        for field in viewer.FACET_FIELDS:
+            total = sum(entry["count"] for entry in self.store["facets"][field])
+            self.assertEqual(total, len(self.store["items"]), field)
+
+    def test_severity_is_ranked_worst_first_with_none_last(self):
+        self.assertEqual(self.values("severity"), ["P2", "P3", "Nit", None])
+
+    def test_status_follows_the_lifecycle_order(self):
+        self.assertEqual(self.values("status"), ["open", "promoted", "closed"])
+
+    def test_ranked_values_with_no_live_item_emit_no_entry(self):
+        self.assertNotIn("in-progress", self.values("status"))
+        self.assertNotIn("P1", self.values("severity"))
+
+    def test_missing_bucket_uses_a_null_sentinel_not_the_string_none(self):
+        entry = [e for e in self.store["facets"]["severity"] if e["value"] is None][0]
+        self.assertEqual(entry["label"], "none")
+
+    def test_type_and_scope_sort_alphabetically(self):
+        self.assertEqual(self.values("type"), ["backlog", "debt"])
+        self.assertEqual(self.values("scope"), ["repo"])
+
+
+class TestFacetsWithNoLiveSample(unittest.TestCase):
+    """Success Criterion 2's fixture at the unit level — values the store has none of."""
+
+    def setUp(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-plugin-scoped.md", item_text(scope="plugin"))
+        self.fixture.write("debt-in-flight.md", item_text(status="in-progress"))
+        self.fixture.write("debt-off-contract.md", item_text(severity="P7"))
+        self.fixture.write("debt-worst.md", item_text(severity="Nit"))
+        self.fixture.write("debt-plain.md", item_text())
+        self.fixture.write("debt-promoted.md", item_text(status="promoted"))
+        self.store = viewer.load_store(self.fixture.root)
+
+    def tearDown(self):
+        self.fixture.cleanup()
+
+    def values(self, field):
+        return [entry["value"] for entry in self.store["facets"][field]]
+
+    def test_scope_plugin_produces_a_facet(self):
+        self.assertIn("plugin", self.values("scope"))
+
+    def test_in_progress_sorts_between_open_and_promoted(self):
+        self.assertEqual(self.values("status"), ["open", "in-progress", "promoted"])
+
+    def test_out_of_contract_severity_sorts_after_ranked_values_and_before_none(self):
+        self.assertEqual(self.values("severity"), ["Nit", "P7", None])
+
+    def test_selecting_a_derived_value_never_hides_the_item_carrying_it(self):
+        for field, value in (("scope", "plugin"), ("status", "in-progress"), ("severity", "P7")):
+            entry = [e for e in self.store["facets"][field] if e["value"] == value][0]
+            self.assertEqual(entry["count"], 1, "%s: %s" % (field, value))
+
+
 class TestResolvePrimary(unittest.TestCase):
     def test_resolves_from_inside_the_repo(self):
         primary = viewer.resolve_primary(os.path.dirname(os.path.abspath(__file__)))

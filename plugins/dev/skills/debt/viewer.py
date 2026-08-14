@@ -256,6 +256,55 @@ def _resolve_relationships(items):
             item["related"] = {"id": value, "resolved": False, "archived": False}
 
 
+# --- Facets -----------------------------------------------------------------
+#
+# Options come from the values found on disk, never from the contract's enums —
+# that is what keeps an out-of-contract value (severity: P2 today) filterable
+# rather than invisible. The rank lists below order values; they never decide
+# membership, and must never be reused as a validity check.
+
+FACET_FIELDS = ("type", "status", "scope", "severity")
+FACET_RANK = {
+    # references/tech-debt.md lifecycle table
+    "status": ["open", "in-progress", "promoted", "closed"],
+    # validate/SKILL.md severity ladder; extends past the contract's P3 | Nit
+    # because debt-p9-issue-body-fence-width carries P2 today
+    "severity": ["P1", "P2", "P3", "Nit"],
+    # type and scope have no inherent sequence — they sort alphabetically
+}
+
+
+def derive_facets(items):
+    """Tally each faceted field across all items, active and archived together."""
+    facets = {}
+    for field in FACET_FIELDS:
+        counts = {}
+        missing = 0
+        for item in items:
+            value = item["fields"].get(field)
+            # Badged items carry no fields at all, so they land in every missing
+            # bucket — visible and filterable rather than dropped.
+            if not isinstance(value, str) or not value.strip():
+                missing += 1
+                continue
+            value = value.strip()
+            counts[value] = counts.get(value, 0) + 1
+
+        rank = FACET_RANK.get(field, [])
+        ordered = [value for value in rank if value in counts]
+        ordered += sorted(value for value in counts if value not in rank)
+
+        entries = [
+            {"value": value, "label": value, "count": counts[value]} for value in ordered
+        ]
+        if missing:
+            # None, not the string "none", so an item literally carrying
+            # `severity: none` stays distinguishable from one carrying nothing.
+            entries.append({"value": None, "label": "none", "count": missing})
+        facets[field] = entries
+    return facets
+
+
 def load_store(primary):
     """Read the whole store — active corpus and closed/ archive — into one dict.
 
@@ -263,26 +312,22 @@ def load_store(primary):
     `primary` is deliberately not part of the result: it would put an absolute home
     directory path into the served HTML for no reason.
     """
-    store = {
-        "state": "absent",
-        "repo_name": os.path.basename(primary),
-        "total": 0,
-        "items": [],
-        "facets": {},
-    }
+    items = []
+    state = "absent"
 
     store_dir = os.path.join(primary, *STORE_PARTS)
-    if not os.path.isdir(store_dir):
-        return store
+    if os.path.isdir(store_dir):
+        archive_dir = os.path.join(store_dir, ARCHIVE_DIRNAME)
+        items = [_load_item(path, False) for path in _item_paths(store_dir)]
+        if os.path.isdir(archive_dir):
+            items += [_load_item(path, True) for path in _item_paths(archive_dir)]
+        _resolve_relationships(items)
+        state = "ok" if items else "empty"
 
-    archive_dir = os.path.join(store_dir, ARCHIVE_DIRNAME)
-    items = [_load_item(path, False) for path in _item_paths(store_dir)]
-    if os.path.isdir(archive_dir):
-        items += [_load_item(path, True) for path in _item_paths(archive_dir)]
-
-    _resolve_relationships(items)
-
-    store["state"] = "ok" if items else "empty"
-    store["items"] = items
-    store["total"] = len(items)
-    return store
+    return {
+        "state": state,
+        "repo_name": os.path.basename(primary),
+        "total": len(items),
+        "items": items,
+        "facets": derive_facets(items),
+    }
