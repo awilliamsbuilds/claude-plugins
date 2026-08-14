@@ -326,7 +326,11 @@
 
   .detail-body { max-width: 720px; }
 
-  .detail-body p { margin: 0 0 14px; }
+  /* pre-wrap, like .field-value and .raw-file: the store's body format puts
+     **What's wrong:** / **Why deferred:** / **Done looks like:** on consecutive
+     lines with no blank line between them, and collapsing those newlines runs
+     the three sections together into one block of prose. */
+  .detail-body p { margin: 0 0 14px; white-space: pre-wrap; }
 
   .detail-body code {
     font-family: var(--mono);
@@ -479,10 +483,12 @@ const MISSING = '\u0000missing';
 
 const chosen = {};        // field -> Set of chosen facet keys
 const facetInputs = [];   // {field, key, input} — for Clear all
-const rowEls = new Map(); // item id -> row element
+const rowEls = new Map(); // item key -> row element
 let visible = [];
-let selectedId = null;
-let linkedId = null;
+// Keyed by item.key, not item.id: a stem present in both the active corpus and
+// closed/ yields two items sharing an id, and either would shadow the other.
+let selectedKey = null;
+let linkedKey = null;
 
 function facetKey(value) {
   return value === null ? MISSING : value;
@@ -494,9 +500,9 @@ function fieldValue(item, field) {
   return value.trim();
 }
 
-function itemById(id) {
+function itemByKey(key) {
   for (const item of STORE.items) {
-    if (item.id === id) return item;
+    if (item.key === key) return item;
   }
   return null;
 }
@@ -630,7 +636,7 @@ function makeRow(item) {
     row.appendChild(chips);
   }
 
-  row.addEventListener('click', function () { select(item.id, false); });
+  row.addEventListener('click', function () { select(item.key, false); });
   return row;
 }
 
@@ -639,16 +645,16 @@ function renderList() {
   rowEls.clear();
   visible.forEach(function (item) {
     const row = makeRow(item);
-    rowEls.set(item.id, row);
+    rowEls.set(item.key, row);
     el.list.appendChild(row);
   });
   paintRows();
 }
 
 function paintRows() {
-  rowEls.forEach(function (row, id) {
-    row.classList.toggle('selected', id === selectedId);
-    row.classList.toggle('linked', id === linkedId);
+  rowEls.forEach(function (row, key) {
+    row.classList.toggle('selected', key === selectedKey);
+    row.classList.toggle('linked', key === linkedKey);
   });
 }
 
@@ -665,8 +671,9 @@ function renderBody(text) {
     if (!chunk.trim()) return;
     const paragraph = document.createElement('p');
     // Escaping happens before any markup is generated, so no store text can
-    // inject markup of its own.
-    paragraph.innerHTML = escapeHtml(chunk)
+    // inject markup of its own. Trimmed because the paragraph renders pre-wrap,
+    // where a stray leading newline would show as a blank line.
+    paragraph.innerHTML = escapeHtml(chunk.trim())
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code>$1</code>');
     body.appendChild(paragraph);
@@ -678,7 +685,13 @@ function metaLine(item) {
   const parts = [];
   const recorded = fieldValue(item, 'first_recorded');
   if (recorded) parts.push('recorded ' + recorded);
-  parts.push('seen ' + recurrenceOf(item) + '×');
+  // The raw value, not recurrenceOf's sort coercion: a malformed `recurrence`
+  // is preserved verbatim through the parser precisely so it stays visible, and
+  // showing it as `seen 0×` here would undo that.
+  const seen = item.fields.recurrence;
+  if (seen !== undefined && seen !== null && String(seen).trim()) {
+    parts.push('seen ' + String(seen).trim() + '×');
+  }
   const cycles = item.fields.cycles;
   if (Array.isArray(cycles) && cycles.length) parts.push(cycles.join(', '));
   return parts.join(' · ');
@@ -727,7 +740,7 @@ function relationshipBlock(item) {
   link.textContent = 'possibly related to ' + related.id;
   // Following a link changes the detail pane only — never the filter, the sort,
   // or the search.
-  link.addEventListener('click', function () { select(related.id, true); });
+  link.addEventListener('click', function () { select(related.key, true); });
   block.appendChild(link);
 
   if (related.archived) {
@@ -747,7 +760,7 @@ function clearDetail() {
 
 function renderDetail() {
   clearDetail();
-  const item = selectedId === null ? null : itemById(selectedId);
+  const item = selectedKey === null ? null : itemByKey(selectedKey);
   if (!item) {
     el.resting.hidden = false;
     return;
@@ -807,13 +820,13 @@ function renderDetail() {
   if (item.related) el.detail.appendChild(relationshipBlock(item));
 }
 
-function select(id, viaLink) {
-  selectedId = id;
-  linkedId = viaLink ? id : null;
+function select(key, viaLink) {
+  selectedKey = key;
+  linkedKey = viaLink ? key : null;
   renderDetail();
   paintRows();
   // A link target filtered out of the current list has no row to highlight.
-  const row = rowEls.get(id);
+  const row = rowEls.get(key);
   if (viaLink && row) row.scrollIntoView({block: 'nearest'});
 }
 

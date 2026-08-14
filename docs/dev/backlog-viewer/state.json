@@ -16,12 +16,15 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
     "p3_open": [],
-    "nits_open": []
+    "nits_open": [
+      "TestCliRoundTrip self-skips when a viewer is already running, silently dropping the only end-to-end coverage of detachment",
+      "test_viewer.py ships into the installed plugin snapshot alongside the runtime files"
+    ]
   },
   "challenge": {
     "run": true,

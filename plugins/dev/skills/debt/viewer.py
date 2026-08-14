@@ -208,8 +208,14 @@ def _search_blob(item):
 
 
 def _load_item(path, archived):
+    item_id = os.path.splitext(os.path.basename(path))[0]
     item = {
-        "id": os.path.splitext(os.path.basename(path))[0],
+        "id": item_id,
+        # Unique even when the same stem exists in both the active corpus and
+        # closed/ — an interrupted close leaves exactly that. `id` is what the
+        # page displays; `key` is what selects and highlights, so neither copy
+        # can shadow the other into being unreachable.
+        "key": ("closed/" + item_id) if archived else item_id,
         "archived": archived,
         "fields": {},
         "body": "",
@@ -247,22 +253,30 @@ def _resolve_relationships(items):
     The contract names the field's value a slug; every live value carries the full
     `<type>-<slug>` stem. Both forms resolve, first hit winning.
     """
-    index = dict((item["id"], item["archived"]) for item in items)
+    # First hit wins, and the active corpus is loaded before closed/, so a stem
+    # present in both resolves to the active copy.
+    index = {}
+    for item in items:
+        index.setdefault(item["id"], item)
     for item in items:
         value = item["fields"].get("possibly_related_to")
         if not isinstance(value, str) or not value.strip():
             continue
         value = value.strip()
         for candidate in (value, "debt-" + value, "backlog-" + value):
-            if candidate in index:
+            target = index.get(candidate)
+            if target is not None:
                 item["related"] = {
                     "id": candidate,
+                    "key": target["key"],
                     "resolved": True,
-                    "archived": index[candidate],
+                    "archived": target["archived"],
                 }
                 break
         else:
-            item["related"] = {"id": value, "resolved": False, "archived": False}
+            item["related"] = {
+                "id": value, "key": None, "resolved": False, "archived": False,
+            }
 
 
 # --- Facets -----------------------------------------------------------------
@@ -390,6 +404,18 @@ PID_HEADER = "X-Dev-Backlog-Viewer-Pid"
 LOOPBACK_HOSTS = frozenset(("127.0.0.1", "localhost", "::1", "[::1]"))
 BIND_ADDRESS = "127.0.0.1"
 
+# The page carries its own style and script inline and fetches nothing, so every
+# source but inline can be denied outright. frame-ancestors keeps another origin
+# from framing the store; 'unsafe-inline' is what the inline <style>/<script> need.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; "
+    "style-src 'unsafe-inline'; "
+    "script-src 'unsafe-inline'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'none'; "
+    "form-action 'none'"
+)
+
 
 def _host_name(raw):
     """The host from a Host header, with any :port stripped."""
@@ -407,23 +433,33 @@ class ViewerHandler(BaseHTTPRequestHandler):
 
     primary = None  # set by make_server on a per-server subclass
 
-    def _respond(self, status, content_type, payload, with_body):
+    def _respond(self, status, content_type, payload, with_body, with_identity=True):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header(IDENTITY_HEADER, self.primary)
-        self.send_header(PID_HEADER, str(os.getpid()))
+        if payload is not None:
+            self.send_header("Content-Length", str(len(payload)))
+        if with_identity:
+            # Only ever on a response to an allowed host. The identity string is
+            # an absolute path on this machine, and the 403 below is precisely
+            # the response a rebinding attacker can read.
+            self.send_header(IDENTITY_HEADER, self.primary)
+            self.send_header(PID_HEADER, str(os.getpid()))
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        if with_body:
+        if with_body and payload:
             self.wfile.write(payload)
 
     def _handle(self, with_body):
         # Loopback binding alone does not stop a page elsewhere from pointing a
         # hostname at 127.0.0.1 and reading this document same-origin.
         if _host_name(self.headers.get("Host", "")) not in LOOPBACK_HOSTS:
-            self._respond(403, "text/plain; charset=utf-8", b"Forbidden.\n", with_body)
+            self._respond(
+                403, "text/plain; charset=utf-8", b"Forbidden.\n", with_body,
+                with_identity=False,
+            )
             return
 
         path = urllib.parse.urlsplit(self.path).path
@@ -431,16 +467,25 @@ class ViewerHandler(BaseHTTPRequestHandler):
             self._respond(404, "text/plain; charset=utf-8", b"Not found.\n", with_body)
             return
 
+        if not with_body:
+            # HEAD is the probe path. Answer the identity question without
+            # reading the store or rendering the page: the probe runs up to ten
+            # times per command and would otherwise re-parse the whole store
+            # each time, only to discard the bytes. Content-Length is omitted
+            # rather than guessed, since nothing was rendered to measure.
+            self._respond(200, "text/html; charset=utf-8", None, False)
+            return
+
         try:
             # Read the store fresh on every request — this is the whole of
             # "refresh the tab and see the current files".
-            page = render_page(load_store(self.primary))
+            payload = render_page(load_store(self.primary)).encode("utf-8")
         except Exception as exc:  # a template or render fault, never a bad item
             message = ("Could not render the backlog store: %s\n" % exc).encode("utf-8")
             self._respond(500, "text/plain; charset=utf-8", message, with_body)
             return
 
-        self._respond(200, "text/html; charset=utf-8", page.encode("utf-8"), with_body)
+        self._respond(200, "text/html; charset=utf-8", payload, with_body)
 
     def do_GET(self):
         self._handle(with_body=True)
@@ -450,6 +495,10 @@ class ViewerHandler(BaseHTTPRequestHandler):
 
     # No do_POST/do_PUT/do_DELETE: the base class answers those 501 on its own,
     # which is exactly right for a server with no write path.
+
+    def version_string(self):
+        # Default would name the exact Python patch version on every response.
+        return "dev-backlog-viewer"
 
     def log_message(self, fmt, *args):
         pass  # the detached process writes to /dev/null anyway
@@ -475,6 +524,7 @@ def serve(primary, port):
 # to leave behind.
 
 PORT_RANGE = list(range(8730, 8740))
+SCRIPT_NAME = os.path.basename(os.path.abspath(__file__))
 PROBE_TIMEOUT = 0.4
 START_TIMEOUT = 3.0
 STOP_TIMEOUT = 2.0
@@ -511,11 +561,22 @@ def viewer_url(port):
     return "http://%s:%d" % (BIND_ADDRESS, port)
 
 
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuse 3xx. A process squatting a port could otherwise redirect the probe
+    to an arbitrary external URL and turn /dev:debt view into an outbound beacon."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_PROBE_OPENER = urllib.request.build_opener(_NoRedirects)
+
+
 def probe(port, timeout=PROBE_TIMEOUT):
     """Ask a port who it is. Returns ("viewer", info) / ("free", None) / ("other", None)."""
     request = urllib.request.Request(viewer_url(port) + "/", method="HEAD")
     try:
-        response = urllib.request.urlopen(request, timeout=timeout)
+        response = _PROBE_OPENER.open(request, timeout=timeout)
         headers = response.headers
         response.close()
     except urllib.error.HTTPError as exc:
@@ -539,6 +600,10 @@ def probe(port, timeout=PROBE_TIMEOUT):
     try:
         pid = int(headers.get(PID_HEADER))
     except (TypeError, ValueError):
+        pid = None
+    if pid is not None and pid <= 0:
+        # os.kill(0, …) signals our whole process group and os.kill(-1, …) every
+        # process we may signal. A pid off the wire never gets to mean either.
         pid = None
     return ("viewer", {"port": port, "primary": identity, "pid": pid})
 
@@ -612,7 +677,15 @@ def cmd_start(primary):
         if _await_viewer(port, primary):
             print(STARTED.format(url=viewer_url(port), primary=primary))
             return 0
-        if probe(port)[0] != "free":
+
+        kind, info = probe(port)
+        if kind == "viewer" and info["primary"] == primary:
+            # Slow to come up, not lost. Treating this as a lost race would
+            # spawn a second server for the same primary — and a later stop
+            # would only ever find the first, orphaning this one for good.
+            print(STARTED.format(url=viewer_url(port), primary=primary))
+            return 0
+        if kind != "free":
             continue  # another process won the race for this port
         print("The viewer didn't start on port %d. Run it in the foreground to see why:" % port)
         print("  %s %s serve --port %d" % (sys.executable, os.path.abspath(__file__), port))
@@ -620,6 +693,28 @@ def cmd_start(primary):
 
     print(NO_FREE_PORT)
     return 1
+
+
+def _pid_is_viewer(pid):
+    """True when pid's command line is one of our serve processes.
+
+    The pid cmd_stop acts on comes off the wire, so anything that can bind a
+    port in the range can name a pid it does not own. Without this check a
+    squatter answering with the right identity header could make us SIGTERM an
+    arbitrary process of the invoking user's.
+    """
+    try:
+        result = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "args="],
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False  # can't confirm, so don't signal
+    if result.returncode != 0:
+        return False
+    args = result.stdout.strip()
+    return SCRIPT_NAME in args and "serve" in args.split()
 
 
 def cmd_stop(primary):
@@ -632,6 +727,11 @@ def cmd_stop(primary):
     url = viewer_url(running["port"])
     if pid is None:
         print("Found a backlog viewer at %s, but it reported no process id." % url)
+        return 1
+
+    if not _pid_is_viewer(pid):
+        print("Found a backlog viewer at %s reporting pid %d," % (url, pid))
+        print("but that process isn't a %s serve process. Nothing was stopped." % SCRIPT_NAME)
         return 1
 
     try:
@@ -664,13 +764,16 @@ def main(argv):
     primary_override = None
     while args:
         flag = args.pop(0)
-        if flag == "--port" and args:
+        if flag in ("--port", "--primary") and not args:
+            print("%s needs a value.\n%s" % (flag, USAGE))
+            return 1
+        if flag == "--port":
             try:
                 port = int(args.pop(0))
             except ValueError:
                 print("--port takes a number.\n%s" % USAGE)
                 return 1
-        elif flag == "--primary" and args:
+        elif flag == "--primary":
             primary_override = args.pop(0)
         else:
             print("Unrecognized argument '%s'.\n%s" % (flag, USAGE))

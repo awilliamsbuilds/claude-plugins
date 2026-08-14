@@ -17,9 +17,11 @@ import re
 import shutil
 import signal
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -227,12 +229,15 @@ class TestLoadRealStore(unittest.TestCase):
         self.assertGreater(len(archived), 0)
 
     def test_relationships_resolve_across_the_archive_boundary(self):
+        # Counted as properties, not as today's totals: a fifth item carrying
+        # possibly_related_to is ordinary store growth, not a regression.
         related = [item for item in self.store["items"] if item["related"]]
-        self.assertEqual(len(related), 4)
+        self.assertGreater(len(related), 0)
         for item in related:
             self.assertTrue(item["related"]["resolved"], item["id"])
+            self.assertIsNotNone(item["related"]["key"], item["id"])
         into_closed = [item for item in related if item["related"]["archived"]]
-        self.assertEqual(len(into_closed), 3)
+        self.assertGreater(len(into_closed), 0)
 
     def test_search_blob_covers_files_paths(self):
         needle = "plugins/dev/skills/plan/skill.md"
@@ -291,8 +296,10 @@ class TestLoadSyntheticStore(unittest.TestCase):
         self.fixture = StoreFixture()
         self.fixture.write("debt-a.md", item_text(possibly_related_to="debt-nowhere"))
         store = viewer.load_store(self.fixture.root)
-        self.assertEqual(store["items"][0]["related"],
-                         {"id": "debt-nowhere", "resolved": False, "archived": False})
+        self.assertEqual(
+            store["items"][0]["related"],
+            {"id": "debt-nowhere", "key": None, "resolved": False, "archived": False},
+        )
 
     def test_relationship_named_by_bare_slug(self):
         self.fixture = StoreFixture()
@@ -300,8 +307,37 @@ class TestLoadSyntheticStore(unittest.TestCase):
         self.fixture.write("debt-target.md", item_text(), archived=True)
         store = viewer.load_store(self.fixture.root)
         source = [i for i in store["items"] if i["id"] == "debt-a"][0]
-        self.assertEqual(source["related"],
-                         {"id": "debt-target", "resolved": True, "archived": True})
+        self.assertEqual(
+            source["related"],
+            {
+                "id": "debt-target",
+                "key": "closed/debt-target",
+                "resolved": True,
+                "archived": True,
+            },
+        )
+
+    def test_same_stem_in_both_corpora_keeps_both_reachable(self):
+        # An interrupted close leaves the same stem active and archived. Both must
+        # render and both must be individually selectable, so their keys differ.
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-twin.md", item_text(status="open"))
+        self.fixture.write("debt-twin.md", item_text(status="closed"), archived=True)
+        store = viewer.load_store(self.fixture.root)
+        self.assertEqual(len(store["items"]), 2)
+        keys = sorted(item["key"] for item in store["items"])
+        self.assertEqual(keys, ["closed/debt-twin", "debt-twin"])
+        self.assertEqual(len(set(keys)), 2)
+
+    def test_relationship_to_a_colliding_stem_prefers_the_active_copy(self):
+        self.fixture = StoreFixture()
+        self.fixture.write("debt-a.md", item_text(possibly_related_to="debt-twin"))
+        self.fixture.write("debt-twin.md", item_text(status="open"))
+        self.fixture.write("debt-twin.md", item_text(status="closed"), archived=True)
+        store = viewer.load_store(self.fixture.root)
+        source = [i for i in store["items"] if i["id"] == "debt-a"][0]
+        self.assertEqual(source["related"]["key"], "debt-twin")
+        self.assertFalse(source["related"]["archived"])
 
     def test_archived_items_are_flagged(self):
         self.fixture = StoreFixture()
@@ -335,23 +371,49 @@ class TestFacets(unittest.TestCase):
             total = sum(entry["count"] for entry in self.store["facets"][field])
             self.assertEqual(total, len(self.store["items"]), field)
 
+    # These assert the ordering *rules* against the live corpus rather than the
+    # exact values it happens to hold today. Pinning the values would turn one
+    # /dev:debt add — the first `scope: plugin`, the first P1, the first
+    # in-progress item — into a red suite for a change the viewer handles fine.
+    # The synthetic corpus in TestFacetsWithNoLiveSample pins exact orderings,
+    # which is where a store nobody else edits belongs.
+
+    def assert_ranked_order(self, field):
+        rank = viewer.FACET_RANK[field]
+        values = self.values(field)
+        self.assertIsNot(values, [])
+        ranked = [v for v in values if v in rank]
+        self.assertEqual(ranked, sorted(ranked, key=rank.index), field)
+        unranked = [v for v in values if v is not None and v not in rank]
+        # Unranked values sort after every ranked one, and alphabetically.
+        if ranked and unranked:
+            self.assertGreater(values.index(unranked[0]), values.index(ranked[-1]), field)
+        self.assertEqual(unranked, sorted(unranked), field)
+        if None in values:
+            self.assertEqual(values[-1], None, field)  # missing bucket always last
+
     def test_severity_is_ranked_worst_first_with_none_last(self):
-        self.assertEqual(self.values("severity"), ["P2", "P3", "Nit", None])
+        self.assert_ranked_order("severity")
 
     def test_status_follows_the_lifecycle_order(self):
-        self.assertEqual(self.values("status"), ["open", "promoted", "closed"])
+        self.assert_ranked_order("status")
 
-    def test_ranked_values_with_no_live_item_emit_no_entry(self):
-        self.assertNotIn("in-progress", self.values("status"))
-        self.assertNotIn("P1", self.values("severity"))
+    def test_no_facet_entry_is_ever_empty(self):
+        # A ranked value with no live item emits no entry at all — P1 and
+        # in-progress appear the moment something carries them, and not before.
+        for field in viewer.FACET_FIELDS:
+            for entry in self.store["facets"][field]:
+                self.assertGreater(entry["count"], 0, "%s/%s" % (field, entry["value"]))
 
     def test_missing_bucket_uses_a_null_sentinel_not_the_string_none(self):
         entry = [e for e in self.store["facets"]["severity"] if e["value"] is None][0]
         self.assertEqual(entry["label"], "none")
 
     def test_type_and_scope_sort_alphabetically(self):
-        self.assertEqual(self.values("type"), ["backlog", "debt"])
-        self.assertEqual(self.values("scope"), ["repo"])
+        for field in ("type", "scope"):
+            self.assertNotIn(field, viewer.FACET_RANK)  # no rank list to override
+            values = [v for v in self.values(field) if v is not None]
+            self.assertEqual(values, sorted(values), field)
 
 
 class TestFacetsWithNoLiveSample(unittest.TestCase):
@@ -532,6 +594,26 @@ class TestHttpServer(unittest.TestCase):
         status, _, _ = self.server.request("/", host="evil.example.com")
         self.assertEqual(status, 403)
 
+    def test_the_rejection_leaks_no_identity(self):
+        # A page that rebinds its hostname to 127.0.0.1 reads this response
+        # same-origin. The identity header is an absolute path on this machine,
+        # so the one response the attacker can read must not carry it.
+        status, headers, _ = self.server.request("/", host="evil.example.com")
+        self.assertEqual(status, 403)
+        self.assertNotIn(viewer.IDENTITY_HEADER, headers)
+        self.assertNotIn(viewer.PID_HEADER, headers)
+
+    def test_every_response_carries_the_framing_and_policy_headers(self):
+        for host in (None, "evil.example.com"):
+            _, headers, _ = self.server.request("/", host=host)
+            self.assertEqual(headers["X-Frame-Options"], "DENY")
+            self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
+            self.assertIn("default-src 'none'", headers["Content-Security-Policy"])
+
+    def test_the_server_header_does_not_name_the_python_version(self):
+        _, headers, _ = self.server.request("/")
+        self.assertNotIn("Python", headers["Server"])
+
     def test_loopback_host_names_are_accepted(self):
         for host in ("127.0.0.1:%d" % self.server.port, "localhost:%d" % self.server.port):
             status, _, _ = self.server.request("/", host=host)
@@ -542,6 +624,20 @@ class TestHttpServer(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body, b"")
         self.assertIn(viewer.IDENTITY_HEADER, headers)
+
+    def test_head_answers_without_reading_the_store(self):
+        # The probe runs up to ten times per CLI command; it must not re-parse
+        # the whole store each time only to discard the bytes. Breaking the
+        # template proves the point: HEAD still answers, GET cannot.
+        original = viewer.TEMPLATE_PATH
+        viewer.TEMPLATE_PATH = original.with_name("no_such_template.html")
+        try:
+            status, _, _ = self.server.request("/", method="HEAD")
+            self.assertEqual(status, 200)
+            status, _, _ = self.server.request("/")
+            self.assertEqual(status, 500)
+        finally:
+            viewer.TEMPLATE_PATH = original
 
     def test_write_methods_are_unsupported(self):
         for method in ("POST", "PUT", "DELETE"):
@@ -637,6 +733,79 @@ class TestProbe(unittest.TestCase):
             self.assertEqual(viewer.free_ports(), [])
         finally:
             viewer.PORT_RANGE = original
+
+
+class ImpostorHandler(BaseHTTPRequestHandler):
+    """Answers with our identity headers but names someone else's pid."""
+
+    primary = ""
+    claimed_pid = 0
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.send_header(viewer.IDENTITY_HEADER, self.primary)
+        self.send_header(viewer.PID_HEADER, str(self.claimed_pid))
+        self.end_headers()
+
+    def log_message(self, fmt, *args):
+        pass
+
+
+class TestStopSignalsOnlyItsOwn(unittest.TestCase):
+    """cmd_stop's pid arrives over the wire, so it must be verified before use."""
+
+    def setUp(self):
+        self.fixture = StoreFixture()
+        self.bystander = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(60)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        handler = type("BoundImpostor", (ImpostorHandler,), {
+            "primary": self.fixture.root,
+            "claimed_pid": self.bystander.pid,
+        })
+        self.server = HTTPServer(("127.0.0.1", 0), handler)
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.daemon = True
+        self.thread.start()
+        self.original_range = viewer.PORT_RANGE
+        viewer.PORT_RANGE = [self.server.server_address[1]]
+
+    def tearDown(self):
+        viewer.PORT_RANGE = self.original_range
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+        self.bystander.kill()
+        self.bystander.wait(timeout=5)
+        self.fixture.cleanup()
+
+    def test_a_squatter_cannot_make_us_signal_an_unrelated_process(self):
+        buffer = io.StringIO()
+        stdout = sys.stdout
+        sys.stdout = buffer
+        try:
+            code = viewer.cmd_stop(self.fixture.root)
+        finally:
+            sys.stdout = stdout
+        self.assertEqual(code, 1)
+        self.assertIn("isn't a viewer.py serve process", buffer.getvalue())
+        time.sleep(0.2)
+        self.assertIsNone(self.bystander.poll(), "the bystander process was signalled")
+
+    def test_this_test_process_is_not_mistaken_for_a_viewer(self):
+        self.assertFalse(viewer._pid_is_viewer(os.getpid()))
+
+    def test_a_non_positive_pid_never_reaches_os_kill(self):
+        # os.kill(0, …) signals our whole process group; os.kill(-1, …) signals
+        # every process we may signal. Neither may come off the wire.
+        for claimed in ("0", "-1"):
+            self.server.RequestHandlerClass.claimed_pid = claimed
+            kind, info = viewer.probe(viewer.PORT_RANGE[0])
+            self.assertEqual(kind, "viewer")
+            self.assertIsNone(info["pid"], claimed)
 
 
 class TestCliRoundTrip(unittest.TestCase):
