@@ -4,10 +4,11 @@
   "branch": "feature/entry-adapters",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -74,12 +75,14 @@
     "spec_questions_asked": 6,
     "spec_revisions": 1,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 9,
     "stage_timestamps": {
       "spec_start": "2026-08-15T12:15:17Z",
       "spec_end": "2026-08-15T12:58:38Z",
       "plan_start": "2026-08-15T12:55:21Z",
-      "plan_end": "2026-08-15T13:04:10Z"
+      "plan_end": "2026-08-15T13:04:10Z",
+      "build_start": "2026-08-15T15:06:02Z",
+      "build_end": "2026-08-15T15:17:18Z"
     }
   }
 }
