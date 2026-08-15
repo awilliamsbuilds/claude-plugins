@@ -61,7 +61,8 @@ awilliamsbuilds/claude-plugins/
         └── skills/
             └── <skill-name>/
                 ├── SKILL.md
-                └── references/     # Optional — refs scoped to a single skill
+                ├── <runtime files>  # Optional — e.g. dev:debt's viewer.py
+                └── references/      # Optional — refs scoped to a single skill
                     └── <reference>.md
 ```
 
@@ -81,3 +82,4 @@ Use the `add-plugin` skill — it walks through the full process. Or manually:
 
 - Use `github` source type only. The `directory` source type is broken in Claude Code.
 - The `description` field in SKILL.md frontmatter drives skill invocation — write rich trigger phrases.
+- Skills are markdown-first, but may ship runtime files beside `SKILL.md`. `dev:debt`'s viewer needs `python3` (stdlib only) — the repo's only runtime dependency.
