@@ -4,12 +4,13 @@
   "branch": "feature/entry-adapters",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -20,8 +21,8 @@
     "design": null,
     "plan": "docs/dev/entry-adapters/plan.md",
     "validation": "docs/dev/entry-adapters/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/81",
+    "pr_number": 81
   },
   "validate": {
     "loops_run": 3,
@@ -90,7 +91,8 @@
       "build_start": "2026-08-15T15:06:02Z",
       "build_end": "2026-08-15T15:17:18Z",
       "validate_start": "2026-08-15T15:40:14Z",
-      "validate_end": "2026-08-15T16:17:24Z"
+      "validate_end": "2026-08-15T16:17:24Z",
+      "pr_created": "2026-08-15T16:21:06Z"
     }
   }
 }
