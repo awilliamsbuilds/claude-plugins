@@ -84,13 +84,22 @@ Scope is the tracked files of `$PRIMARY`. Three passes, in order. Collect the fu
 Detect first, then run only what applies:
 
 - `package.json` present → `npm audit --json`, falling back to plain `npm audit`
-- `requirements.txt` or `pyproject.toml` present → `pip-audit`, falling back to `safety check`
+- `requirements.txt` present → `pip-audit -r requirements.txt`; `pyproject.toml` present →
+  `pip-audit .`; falling back to `safety check`
 - `go.mod` present → `govulncheck ./...`
 
-**A scanner that is not installed is reported as "scanner not available" — never as clean.** This
-distinction is load-bearing: an absent scanner is missing evidence, not evidence of absence. Saying
-"no vulnerabilities found" when nothing ran is the single most misleading line this skill could
-print.
+**Pin the Python scope rather than running bare `pip-audit`.** Bare, it audits the *active
+environment*, not the project — so on a machine where the repo's dependencies are not installed, a
+`requirements.txt` pinning a known-vulnerable version comes back clean. The `-r` / `.` forms resolve
+the project's own dependencies, which may build them; that cost is the deliberate trade for an
+unattended run auditing the right thing.
+
+**A scanner that is absent, or that exits non-zero without a parsable report, is missing evidence —
+never clean.** Report it as "scanner not available" or "scanner failed (exit N)" and include stderr.
+Both halves are load-bearing. The second is the easier one to lose: `npm audit --json` in a repo with
+a `package.json` and no lockfile exits non-zero and prints nothing, which is indistinguishable from a
+clean audit unless the exit code is checked. Saying "no vulnerabilities found" when nothing ran is
+the single most misleading line this skill could print.
 
 Where no manifest matches, say that no ecosystem scanner applies to this project.
 
@@ -142,16 +151,37 @@ The `diff` verb audits **only what changed** against a base branch.
 ### Resolve the base
 
 **An explicit base wins outright.** When the invocation supplied a second token
-(`/dev:secure diff main`), use it verbatim and run no resolution at all — the derivation below is the
-no-argument path only. This is what lets a caller that has already resolved a default branch hand it
-in rather than have this skill independently re-derive it, which is how the two can disagree.
+(`/dev:secure diff main`), use it rather than resolving — the derivation below is the no-argument path
+only. This is what lets a caller that has already resolved a default branch hand it in instead of
+having this skill independently re-derive it, which is how the two come to disagree.
+
+**Validate it before use — "explicit" is not "trusted."** The token reaches `git diff` as an
+argument, so a value beginning with `-` is parsed as an *option*, not a ref:
+`/dev:secure diff --output=/tmp/x` becomes `git diff --output=/tmp/x...HEAD`, which **writes a file**
+and returns an empty diff — breaking this skill's zero-write invariant while reporting that it
+examined nothing. Quoting stops shell injection; it does not stop argument injection. `dev:fix`
+anchors the first character of its `owner/name` slug for exactly this reason
+(`fix/SKILL.md:70-84`); this is the same class from the same trust level.
+
+```bash
+if ! printf '%s' "$BASE" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
+  echo "STOP: '$BASE' is not a valid base ref name."; exit 1
+fi
+if ! git -C "$PRIMARY" rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
+  echo "STOP: base '$BASE' does not resolve to a commit."; exit 1
+fi
+```
 
 With no second token, never assume `main`:
 
 ```bash
 BASE=$(git -C "$PRIMARY" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
 if [ -z "$BASE" ]; then
-  BASE=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null) || BASE=""
+  SLUG=$(git -C "$PRIMARY" remote get-url origin 2>/dev/null \
+    | sed -E 's|^ssh://||; s|^git@[^:/]+[:/]||; s|^https?://[^/]+/||; s|\.git$||')
+  if printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$'; then
+    BASE=$(gh repo view "$SLUG" --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null) || BASE=""
+  fi
 fi
 if [ -z "$BASE" ]; then
   echo "STOP: could not resolve a base branch to diff against."
@@ -164,7 +194,13 @@ fi
 
 The two rungs are ordered **local-first** because this verb needs no network and is called from an
 unattended lane. Guards use `if … fi` rather than `[ … ] && …` so the healthy path exits 0 — the rule
-stated at `validate/SKILL.md:140`.
+stated in `dev:validate` Step 4's **healthy-path shell exit-code rule**.
+
+**Rung 2 names its repo.** Without an explicit slug `gh` resolves the base repo from the git remotes,
+and its rule for a fork is to resolve the fork's *parent* — so a fork clone missing
+`refs/remotes/origin/HEAD` (exactly the case rung 2 exists for) would otherwise audit against the
+upstream's default branch. `dev:fix` carries the same anchored `owner/name` allowlist for the same
+reason (`fix/SKILL.md:70-84`). A slug that fails the allowlist means rung 2 is skipped, not guessed.
 
 **The stop message names which resolution failed**, and points at the verb that still works. A bare
 "cannot diff" would leave the user with no next move.
@@ -172,9 +208,13 @@ stated at `validate/SKILL.md:140`.
 ### Scope the audit
 
 ```bash
-git -C "$PRIMARY" diff "$BASE"...HEAD
-git -C "$PRIMARY" diff "$BASE"...HEAD --name-only
+git -C "$PRIMARY" diff --end-of-options "$BASE"...HEAD
+git -C "$PRIMARY" diff --end-of-options "$BASE"...HEAD --name-only
 ```
+
+`--end-of-options` is the second half of the guard above: the allowlist rejects a `-`-leading value,
+and this makes `git` treat what follows as operands regardless. Belt and braces, because the failure
+mode is a silent write plus an empty diff rather than an error.
 
 **Empty diff → say the diff is empty and stop.** Do **not** report "no findings" — that phrasing
 reads as an audit that ran and came back clean, which is a different claim from one that had nothing
@@ -214,7 +254,7 @@ Then Step 4 applies unchanged: print, stop, write nothing.
 ## Step 3: Report
 
 **Classify every finding as P1 / P2 / P3 / Nit.** This skill **consumes** the severity vocabulary
-`dev:validate` Step 3 defines (`validate/SKILL.md:102-111`) and does not define a second scheme:
+`dev:validate` **Step 3** defines and does not define a second scheme:
 
 | Level | Meaning |
 |-------|---------|
