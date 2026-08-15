@@ -1,5 +1,5 @@
 ---
-name: dev:validate
+name: validate
 description: "Stage 5 of the /dev workflow. Runs code review and security review in parallel (feature cycles), classifies issues P1-Nit, and iterates a fix loop until clean or limit reached. Architecture cycles review decision documents. Writes validation.md."
 ---
 

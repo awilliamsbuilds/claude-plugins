@@ -1,5 +1,5 @@
 ---
-name: dev:pr
+name: pr
 description: "Stage 6 of the /dev workflow. Opens a pull request with a description auto-generated from the full artifact chain (spec + design + plan + validation). Stores PR URL and number in state.json."
 ---
 

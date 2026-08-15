@@ -1,5 +1,5 @@
 ---
-name: dev:init
+name: init
 description: "Sets up the /dev workflow infrastructure in a repo. Detects stack, asks 1 setup question, creates docs/dev/ and docs/decisions/, writes CLAUDE.md Component Registry and config.json. Auto-triggered by /dev when config.json is missing."
 ---
 

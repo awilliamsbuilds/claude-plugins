@@ -1,5 +1,5 @@
 ---
-name: dev:debt
+name: debt
 description: "View and manage the /dev backlog + tech debt store. Use when the user wants to see tech debt, view tech debt, list tech debt, check what debt we have, show deferred items, review known issues, see what was deferred, close a debt item, mark debt paid, mark debt as done, browse the backlog in a browser, open the backlog viewer, view tech debt in a browser, filter tech debt, search the backlog, or asks 'what tech debt do we have', 'what did we defer', 'what's in the tech debt tracker'. Reads docs/backlog/."
 ---
 

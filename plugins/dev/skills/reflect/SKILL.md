@@ -1,5 +1,5 @@
 ---
-name: dev:reflect
+name: reflect
 description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:done automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
 ---
 

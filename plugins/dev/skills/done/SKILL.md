@@ -1,5 +1,5 @@
 ---
-name: dev:done
+name: done
 description: "Stage 7 of the /dev workflow. Merges the PR, generates a decision log, invokes dev:reflect, and cleans up the feature branch and working directory. Requires PR URL in state.json."
 ---
 

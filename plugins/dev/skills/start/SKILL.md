@@ -1,5 +1,5 @@
 ---
-name: dev:start
+name: start
 description: "Prints a quick reference for the /dev workflow — which skill covers each stage, how to invoke it, and non-pathway skills as FYI. Use when you've forgotten how /dev works, need a refresher on the workflow stages and commands, or aren't sure which dev:* skill to run next."
 ---
 

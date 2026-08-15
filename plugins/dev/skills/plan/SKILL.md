@@ -1,5 +1,5 @@
 ---
-name: dev:plan
+name: plan
 description: "Stage 3 of the /dev workflow. Transforms spec + design into an ordered, implementation-ready task list. Applies the isolation principle to every task. Shows a visual sequence flow before writing plan.md. Requires spec.md and design.md (or spec.md alone in no-ui mode)."
 ---
 

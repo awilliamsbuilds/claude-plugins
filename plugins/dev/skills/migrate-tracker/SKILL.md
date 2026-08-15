@@ -1,5 +1,5 @@
 ---
-name: dev:migrate-tracker
+name: migrate-tracker
 description: "Migrate a repo's legacy docs/dev/tech-debt.md aggregate tracker into the per-item docs/backlog/ store. Use when the user says migrate the tech debt tracker, migrate the legacy tracker, move tech-debt.md to docs/backlog, this repo still has the old tracker, convert tech-debt.md, upgrade the debt store, or asks how to get off the old tech-debt.md format."
 ---
 

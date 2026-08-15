@@ -1,5 +1,5 @@
 ---
-name: dev:spec
+name: spec
 description: "Stage 1 of the /dev workflow. Builds a specification through guided questions with a confidence meter. Creates the feature branch, determines cycle tier, and produces spec.md committed to the branch."
 ---
 

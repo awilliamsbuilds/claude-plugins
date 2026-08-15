@@ -1,5 +1,5 @@
 ---
-name: dev:fix
+name: fix
 description: "Linear-aware entry point into the full /dev workflow. Takes a Linear issue ID (e.g., /dev:fix ENG-123) or lists open issues to pick from. Pre-fills spec dimensions from the issue, starts confidence meter higher, names branch from issue ID. Continues into normal /dev spec flow."
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: dev:build
+name: build
 description: "Stage 4 of the /dev workflow. Implements the plan. Feature cycles produce TDD code committed per task. Architecture cycles produce ADR documents. Requires plan.md (or spec.md Implementation Note for Micro tier)."
 ---
 

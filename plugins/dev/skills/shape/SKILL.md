@@ -1,5 +1,5 @@
 ---
-name: dev:shape
+name: shape
 description: "Stage 2 of the /dev workflow. Produces design.md — user flows, component inventory, copy, and wireframes. Presents 2-3 alternatives before committing to full design. Runs per-section approval in standard mode. Requires spec.md."
 ---
 
