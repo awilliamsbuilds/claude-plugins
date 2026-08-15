@@ -1,5 +1,5 @@
 ---
-name: dev:autopilot
+name: autopilot
 description: "No-gate orchestrator for the /dev workflow. Chains all stages end-to-end without approval gates or browser interaction. Self-review substitutes for comprehension checks. Spec questions capped at spec_max_questions, then auto-fills. Stops only on true blockers. Invoked via /dev:autopilot or /dev auto."
 ---
 
