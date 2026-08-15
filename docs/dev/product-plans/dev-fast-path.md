@@ -1,5 +1,5 @@
 # Dev Fast Path — Product Plan
-*Created: 2026-08-15 · Cycles completed: 0/3*
+*Created: 2026-08-15 · Cycles completed: 1/3*
 
 Promoted from `backlog-fix-as-short-bug-round-trip`, which asked a narrower question — what becomes
 of `/fix` — and is answered here as one part of a larger one.
@@ -16,7 +16,7 @@ The worked example is the session that produced this plan: five PRs merged in on
 browser where the suite could not reach, capturing what was deferred, and reporting honestly.
 
 ## Milestone 1: The fast path
-- [ ] fast-path (feature)
+- [x] fast-path (feature)
 
 The compressed lane and the escalation rule that refuses it. Triage and lane ship together: a lane
 without triage is dangerous, and triage without a lane has nowhere to route. Expected to absorb the
