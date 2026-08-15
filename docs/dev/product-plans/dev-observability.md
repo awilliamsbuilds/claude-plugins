@@ -1,12 +1,12 @@
 # /dev Observability — Product Plan
-*Created: 2026-08-13 · Cycles completed: 0/4*
+*Created: 2026-08-13 · Cycles completed: 1/4*
 
 Promoted from two backlog items — `backlog-backlog-viewer-app` and
 `backlog-stage-lifecycle-telemetry-app` — which both noted they may share a shell rather than
 ship as two standalone things. This plan is that shared shell plus its two consumers.
 
 ## Milestone 1: Backlog viewer
-- [ ] backlog-viewer (feature)
+- [x] backlog-viewer (feature)
 
 Establishes the app shell and its first consumer together, rather than building the shell
 speculatively ahead of a live consumer. Renders `docs/backlog/` — active corpus plus `closed/`
