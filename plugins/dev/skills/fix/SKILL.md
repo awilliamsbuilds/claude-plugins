@@ -284,11 +284,30 @@ the user's behalf that they never saw.
 **What distinguishes the 1 row from the 2+ row.** Both can end in proceeding, so the observable
 difference matters:
 
-- **1 decision** — ask inline and proceed in the same turn. Do not print the `/dev` command.
-- **2+ decisions** — **always print the `/dev` command** before asking, and never begin changing
+- **1 decision** — ask inline and proceed in the same turn. Do not print the escalation command.
+- **2+ decisions** — **always print the escalation command** before asking, and never begin changing
   files in the same turn as the question.
 
 That printed command is the marker that the escalation actually happened.
+
+**Which command gets printed depends on the dispatch**, so the escalated cycle starts from the same
+source this run did rather than from a blank spec:
+
+| Dispatch | Printed command |
+|---|---|
+| free text | `/dev` — unchanged |
+| `linear` | `/dev:spec linear <issue-id>` |
+| `backlog` | `/dev:spec`, with `<item>` named in the message body |
+
+The Linear form matters most: `dev:spec` pre-fills confidence dimensions from the issue
+(`../../references/entry-adapters.md` §A5), so escalating without it would silently discard work the
+issue already did. There is no `linear` argument form for the backlog source — the item is named in
+prose because `dev:spec` has no backlog entry path, and adding one is not this lane's call.
+
+**An escalation reverts no side effect.** A Linear-sourced stop leaves the issue at its `started`
+status — Pre-lane already fired, and the work genuinely has begun, just in a heavier lane. A
+backlog-sourced stop leaves the item `status: open`, because nothing has been paid yet. Say which,
+so the user is not left wondering what the stop touched.
 
 Worked examples:
 
@@ -388,6 +407,11 @@ On that stop: **commit the partial work to the feature branch** and report the b
 is on it. Open no PR. Do not leave the tree dirty (Step 2's check would then refuse the follow-up
 invocation with a confusing "modified files" message) and do not revert (that discards real work over
 a question).
+
+**On an adapter-sourced request, print the same source-aware escalation command Step 4 would have
+printed** — `/dev:spec linear <issue-id>` for Linear, `/dev:spec` naming `<item>` for backlog. A
+mid-flight escalation is the same escalation arriving later; it should not lose the source the Step 4
+path would have carried.
 
 ### Verify
 
