@@ -55,13 +55,28 @@ Implementation steps:
    `done:256`, `tech-debt.md:137`, `tech-debt.md:428`, `viewer.py:367`, `README.md:13`,
    `CLAUDE.md:35`, `add-plugin/SKILL.md:25`. Every one of these describes the *Linear* behavior, so
    every one becomes `dev:linear`.
-5. **Exclusion rule — do not edit:** `docs/decisions/*.md` (SC7: a decision log records what was true
+5. **Two further references are *path* strings, not `dev:fix` strings — the `dev:fix` grep will not
+   surface them**, because the path contains `skills/fix`:
+   - `CLAUDE.md:35`'s Path column becomes `plugins/dev/skills/linear/SKILL.md`. Without this, Task 7's
+     new `dev:fix` row and this renamed `dev:linear` row would both point at the lane's file, failing
+     SC7 and SC9.
+   - `docs/backlog/debt-primary-cd-failure-unchecked.md`'s `files:` entry
+     `plugins/dev/skills/fix/SKILL.md` becomes `plugins/dev/skills/linear/SKILL.md`. The count stays
+     **13** — the renamed file is still unguarded, and the new lane at `skills/fix/` carries the
+     guard. Without this the item would name the guarded new lane while the real unguarded site went
+     unlisted, silently falsifying Task 2 step 2's own "does not grow the count to 14" reasoning.
+   - `docs/backlog/closed/debt-feature-slug-allowlist.md` and
+     `docs/backlog/closed/debt-primary-path-relative-in-dev-headers.md` keep the old path — closed
+     items are historical records, like decision logs.
+6. **Exclusion rule — do not edit:** `docs/decisions/*.md` (SC7: a decision log records what was true
    on its date). Also do not edit `docs/backlog/backlog-fix-as-short-bug-round-trip.md` or
    `docs/dev/product-plans/dev-fast-path.md` — both use `dev:fix` in its pre-rename sense as a record
    of what was asked, and both are ephemeral cycle artifacts that `dev:done` closes or deletes. This
    settles the spec's open question about the exclusion set beyond `docs/decisions/`.
-6. Re-run `grep -rn 'dev:fix' plugins/ README.md CLAUDE.md` and confirm every surviving hit is either
-   an intentional reference to the *new* lane (none yet at this task) or in the exclusion set.
+7. Re-run `grep -rn 'dev:fix' plugins/ README.md CLAUDE.md` and confirm every surviving hit is either
+   an intentional reference to the *new* lane (none yet at this task) or in the exclusion set. Then
+   run the path sweep `grep -rn 'skills/fix' .` for the same reason — step 5's references are invisible
+   to the first grep.
 
 ### Task 2: Lane skill — header, `PRIMARY`, argument parse, preflight refusals
 
@@ -101,7 +116,8 @@ Implementation steps:
    Any longer argument, including one whose first word is `merge`, is a free-text lane request. State
    this rule explicitly with the worked example `/dev:fix merge the two config loaders` → lane, not
    tail. Empty argument → ask what to do; do not guess.
-5. **Preflight refusals — all four run before any branch is created, in this order:**
+5. **Preflight refusals — the first three run in both modes, before any branch is created, in this
+   order:**
    - `gh` unavailable or unauthenticated (`gh auth status`) → STOP with the reason. Checked first
      because it is the cheapest and the lane cannot finish without it.
    - Dirty working tree in `$PRIMARY` (`git -C "$PRIMARY" status --porcelain`) → STOP, naming the
@@ -110,12 +126,16 @@ Implementation steps:
      cycle whose `worktreePath` is null and whose `stage` is not `done` → STOP naming that feature.
      Explain why the clean-tree check above does not catch it: a committed in-place cycle leaves the
      tree clean. A modern worktree cycle does not contend and must not trigger this.
-   - The currently checked-out branch already has an open PR
+   - **Lane mode only — the currently checked-out branch already has an open PR**
      (`gh pr list --head "$(git -C "$PRIMARY" branch --show-current)" --state open`) → STOP and report
-     it. This is the lane's own leftover state: the lane stops at PR and leaves `$PRIMARY` on that
-     feature branch, so a second invocation would otherwise branch off `$DEFAULT_BRANCH` and strand
-     the first PR, which `/dev:fix merge` (defined as operating on the current branch) could then no
-     longer reach. Offer the two exits: `/dev:fix merge`, or switch branches manually.
+     it. **In tail mode (`/dev:fix merge`) this same condition is the expected precondition, not a
+     refusal: skip this check entirely and dispatch to the merge tail.** Running it in both modes
+     would make `/dev:fix merge` always STOP while offering `/dev:fix merge` as the exit — an
+     infinite loop that puts Success Criterion 4 out of reach. This is the lane's own leftover
+     state: the lane stops at PR and leaves `$PRIMARY` on that feature branch, so a second *lane*
+     invocation would otherwise branch off `$DEFAULT_BRANCH` and strand the first PR, which
+     `/dev:fix merge` (defined as operating on the current branch) could then no longer reach. Offer
+     the two exits: `/dev:fix merge`, or switch branches manually.
 
 ### Task 3: Lane skill — Ground, Triage, Branch
 
@@ -146,9 +166,13 @@ Implementation steps:
    rename as the canonical 0-decision case (size is never the trigger), and a one-file change with two
    defensible answers as the 2+ case.
 5. **Branch.** `git -C "$PRIMARY" fetch origin`, then
-   `git -C "$PRIMARY" checkout -b <name> "origin/$DEFAULT_BRANCH"`. Name the branch for the change
-   (`fix/<kebab-summary>`), normalized to `^[a-z0-9][a-z0-9-]*$` by the same construction `dev:spec`
-   Step 6 uses — collapse every non-`[a-z0-9]` run to a single `-`, strip leading/trailing `-`.
+   `git -C "$PRIMARY" checkout -b <name> "origin/$DEFAULT_BRANCH"`. Name the branch
+   `fix/<kebab-summary>`. **The allowlist applies to `<kebab-summary>` alone, not to the full branch
+   name** — `dev:spec` Step 6 (`spec/SKILL.md:135`) normalizes a bare feature slug, and a prefixed
+   `fix/…` can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be collapsed.
+   Normalize by Step 6's construction — collapse every non-`[a-z0-9]` run to a single `-`, strip
+   leading/trailing `-` — and carry its STOP: if the result is empty, ask for a name rather than
+   proceeding.
 6. **Branch-name collision.** Check both `git -C "$PRIMARY" rev-parse --verify` (local) and
    `git -C "$PRIMARY" ls-remote --exit-code --heads origin <name>` (remote). On either hit,
    disambiguate with a `-2`, `-3` suffix. Never reuse an existing branch, never force-push.
@@ -166,7 +190,9 @@ Interfaces:
 - Produces: an open PR URL, reported to the user; `$PRIMARY` left checked out on the feature branch
 - Shared procedure: `open PR` — this is a **mirror** of `dev:pr` Step 4 (`pr/SKILL.md:115-140`), not
   the canonical implementation. Restating its branch structure in full: (a) push the branch with
-  `git push -u origin <branch>`; (b) determine the base branch — `dev:pr` reads
+  `git -C "$PRIMARY" push -u origin <branch>` — the `-C` is required, not optional, since the lane may
+  be invoked from anywhere in the repo including inside a `.dev-worktrees/<feature>` tree; (b)
+  determine the base branch — `dev:pr` reads
   `state.json.parentFeature` and falls back to `main`, whereas **the lane has no state.json and always
   targets `$DEFAULT_BRANCH`**; (c) `dev:pr`'s nested-cycle push of the parent branch has **no lane
   equivalent** and is deliberately absent — the lane never nests; (d) run `gh pr create` from inside
@@ -302,11 +328,16 @@ Interfaces:
 
 Implementation steps:
 1. **SC7/SC8:** `grep -rn 'dev:fix' plugins/ README.md CLAUDE.md` — every hit must refer to the *new*
-   lane, and `grep -rn 'dev:linear' …` must cover every Linear reference. Then
+   lane, and `grep -rn 'dev:linear' …` must cover every Linear reference. Then the path sweep
+   `grep -rn 'skills/fix' .` — every surviving hit must name the *new* lane or sit in Task 1 step 5's
+   exclusion set, since the `dev:fix` grep structurally cannot see path strings. Then
    `grep -rn '/Users/\|awilliamsbuilds\|adam' plugins/dev/` must still return zero.
-2. **SC6:** `git -C "$WORKDIR" diff --stat main -- plugins/dev/skills/{spec,shape,plan,build,validate,pr,done}` and
-   inspect each hunk — every one must be a rename reference, or one of the three Task 6 pointers, and
-   nothing else. `plugins/dev/skills/{shape,build}/SKILL.md` should show **no diff at all**.
+2. **SC6:** `git -C "$WORKDIR" diff --stat main -- plugins/dev/skills/{spec,shape,plan,build,validate,pr,done,autopilot,dev}` and
+   inspect each hunk — every one must be a rename reference, one of the three Task 6 pointers
+   (carve-out c), or in `dev/SKILL.md` only, Task 7's two invocation rows and description mention
+   (carve-out b), and nothing else. `plugins/dev/skills/{shape,build,autopilot}/SKILL.md` should show
+   **no diff at all**. `autopilot` is in the pathspec because SC6 names `/dev:autopilot` explicitly;
+   it holds no `dev:fix` reference today, so any diff there is a defect.
 3. **SC9:** confirm all five discoverability sites from Task 7 list the new lane.
 4. **Skill loading:** confirm `plugins/dev/.claude-plugin/plugin.json` still has no skills array (both
    skills are auto-discovered, so no plugin.json or marketplace edit is needed — spec §Technical
