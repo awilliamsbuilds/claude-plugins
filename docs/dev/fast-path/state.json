@@ -23,7 +23,7 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 3,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],

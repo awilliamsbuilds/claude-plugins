@@ -392,8 +392,11 @@ must be captured here or they will be re-derived later against a checkout that h
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+  git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+  SCAN_REF="origin/$DEFAULT_BRANCH"
+  git -C "$PRIMARY" rev-parse --verify --quiet "$SCAN_REF" >/dev/null || SCAN_REF="$DEFAULT_BRANCH"
   LEFTOVER=$(git -C "$PRIMARY" for-each-ref --format='%(refname:short)' \
-    --merged "$DEFAULT_BRANCH" 'refs/heads/fix/*')
+    --merged "$SCAN_REF" 'refs/heads/fix/*')
   if [ -n "$LEFTOVER" ]; then
     echo "STOP: $PRIMARY is on $DEFAULT_BRANCH, but these already-merged fix branches remain:"
     echo "$LEFTOVER"
@@ -430,14 +433,24 @@ branch still present, and a flat "the tail already completed" would push the use
 hand-finishing this section forbids. So the guard looks for a leftover `fix/*` branch and, when it
 finds one, names it and prints the command to resume from it.
 
-**`--merged "$DEFAULT_BRANCH"` is the load-bearing part of that scan, not a refinement.** An
-interrupted tail always leaves its branch merged — the `gh pr merge` succeeded, so the feature tip is
-an ancestor of the default branch. An unrelated branch with a still-open PR never is. Without the
+**The `--merged` filter is the load-bearing part of that scan, not a refinement.** An interrupted tail
+always leaves its branch merged — the `gh pr merge` succeeded, so the feature tip is an ancestor of
+`origin/$DEFAULT_BRANCH`. An unrelated branch with a still-open PR never is. Without the
 filter, any repo that uses `fix/` as a team branch convention — and the lane runs across several
 repos — would list colleagues' branches under a heading saying to resume from one, and resuming from
 a branch whose PR is still **open** would bind `ALREADY_MERGED=0` and merge that unrelated PR.
 Nothing downstream would catch it. The listed branches are candidates; a branch whose PR is still
 open is by construction not among them.
+
+**Scan against `origin/$DEFAULT_BRANCH`, not the local ref — that distinction is the whole fix.** The
+local default branch only advances via the `pull --ff-only` below, which is the exact command whose
+failure produces `RECONCILED=0`. So in the compound failure this guard most needs to catch — pull
+fails *and* `delete_feature_branch` fails, which share causes like network loss or an expired token
+backing both `git` and `gh` — the local ref still sits at the pre-merge tip, the merged branch is not
+its ancestor, and a local-ref scan would report "nothing to merge (the tail already completed)" while
+the remote branch is still up. That miss is permanent, not transient: the local ref never advances on
+its own. The `fetch` refreshes the remote-tracking ref best-effort and the `rev-parse` fallback keeps
+the scan working in a repo that has no such ref.
 
 **Why the merged-PR fallback exists.** Once `gh pr merge` succeeds the PR is no longer open, so a
 failure anywhere downstream — a `checkout` blocked by another worktree holding `$DEFAULT_BRANCH`, a
