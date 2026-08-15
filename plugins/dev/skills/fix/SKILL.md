@@ -65,14 +65,18 @@ The lane's target is always the repo it is operating in, so resolve the slug fro
 ```bash
 SLUG=$(git -C "$PRIMARY" remote get-url origin 2>/dev/null \
   | sed -E 's|^ssh://||; s|^git@[^:/]+[:/]||; s|^https?://[^/]+/||; s|\.git$||')
-if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
+if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$'; then
   echo "Could not resolve a valid owner/name for origin."; exit 1
 fi
 ```
 
-The regex is `../../references/tech-debt.md` §P9.target-resolution's allowlist, and it is **validation,
-not decoration**: it rejects any value beginning with `-`, which is an argument-injection vector into
-`gh --repo`. A slug that fails it is a stop, never something to pass to `gh` anyway.
+This is `../../references/tech-debt.md` §P9.target-resolution's allowlist **with the first character
+anchored**, and it is validation rather than decoration. §P9's own form is
+`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, and that form is described there as rejecting a value beginning
+with `-` — an argument-injection vector into `gh --repo`. It does not: `-` is inside the character
+class, so `-foo/bar` passes it. The anchored first character above is what actually delivers the
+property §P9 claims. §P9 is the shared contract and this cycle does not rewrite it; the discrepancy is
+recorded in `docs/backlog/`. A slug that fails this check is a stop, never something to pass to `gh`.
 
 The `sed` handles all four remote forms in use — `git@host:owner/name[.git]`,
 `https://host/owner/name[.git]`, `ssh://git@host/owner/name.git`, and a credential-bearing
@@ -387,7 +391,15 @@ must be captured here or they will be re-derived later against a checkout that h
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
-  echo "STOP: $PRIMARY is on $DEFAULT_BRANCH — no feature branch to merge (the tail may have already completed)."
+  LEFTOVER=$(git -C "$PRIMARY" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*')
+  if [ -n "$LEFTOVER" ]; then
+    echo "STOP: $PRIMARY is on $DEFAULT_BRANCH, but a fix branch is still present:"
+    echo "$LEFTOVER"
+    echo "If a tail was interrupted, resume it from that branch:"
+    echo "  git -C \"$PRIMARY\" checkout <branch> && /dev:fix merge"
+  else
+    echo "STOP: $PRIMARY is on $DEFAULT_BRANCH — nothing to merge (the tail already completed)."
+  fi
   exit 1
 fi
 
@@ -408,6 +420,13 @@ is on `$DEFAULT_BRANCH` — so a re-run would bind `BRANCH` to it. On any repo t
 third party's PR, set `ALREADY_MERGED=1`, and run the cleanup against the default branch: GitHub
 refuses the deletion, but the lane prints an alarming "protected or insufficient token scope" warning
 and reports four end states for a PR it never touched.
+
+**The guard is a stop, not a dead end.** A tail *can* be interrupted after the checkout succeeded but
+before deletion finished — `delete_feature_branch`'s own `gh pr view` can hit the transient failure it
+is designed to fail closed on. In that state `$PRIMARY` is on `$DEFAULT_BRANCH` with the feature
+branch still present, and a flat "the tail already completed" would push the user into exactly the
+hand-finishing this section forbids. So the guard looks for a leftover `fix/*` branch and, when it
+finds one, names it and prints the command to resume from it.
 
 **Why the merged-PR fallback exists.** Once `gh pr merge` succeeds the PR is no longer open, so a
 failure anywhere downstream — a `checkout` blocked by another worktree holding `$DEFAULT_BRANCH`, a
@@ -431,6 +450,15 @@ Defining it in its own earlier block would put document order right and still pr
 `command not found` at exactly the moment the merge has already succeeded. Keep definition and call
 in one script.
 
+**The same argument applies to the values, which is why the fence opens with a bind guard.**
+`PRIMARY`, `SLUG`, `BRANCH`, `PR_NUMBER`, `DEFAULT_BRANCH`, and `ALREADY_MERGED` are all set in
+earlier blocks, and an unset variable here fails far worse than a missing function:
+`[ "$ALREADY_MERGED" -eq 0 ]` errors and evaluates false, **silently skipping the merge**, and
+`git -C ""` is not an error at all — git just operates on the current directory, so a lane invoked
+from inside a `.dev-worktrees/<feature>` tree would detach an unrelated cycle's worktree. The `:?`
+expansions turn all of that into one loud stop. The tail's blocks are one script: if you run the
+merge block separately, re-run the resolution blocks first in the same invocation.
+
 ### Check mergeability
 
 Skip this entirely when `ALREADY_MERGED=1`.
@@ -449,6 +477,9 @@ a branch whose PR did not merge.
 ### Merge, then clean up
 
 ```bash
+: "${PRIMARY:?run the resolution blocks first, in this same invocation}" \
+  "${SLUG:?}" "${BRANCH:?}" "${PR_NUMBER:?}" "${DEFAULT_BRANCH:?}" "${ALREADY_MERGED:?}"
+
 delete_feature_branch() {
   if [ "$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json state -q .state)" != "MERGED" ]; then
     echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:fix merge."
@@ -467,9 +498,12 @@ if [ "$ALREADY_MERGED" -eq 0 ]; then
 fi
 
 RECONCILED=1
-git -C "$PRIMARY" checkout "$DEFAULT_BRANCH" 2>/dev/null \
-  && git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH" \
-  || { RECONCILED=0; git -C "$PRIMARY" checkout --detach || exit 1; }
+if git -C "$PRIMARY" checkout "$DEFAULT_BRANCH" 2>/dev/null; then
+  git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH" || RECONCILED=0
+else
+  RECONCILED=0
+  git -C "$PRIMARY" checkout --detach || exit 1
+fi
 
 delete_feature_branch || exit 1
 ```
@@ -482,9 +516,12 @@ fails if another worktree already holds that branch — git forbids one branch i
 that failure is identical on every re-run, so a bare `|| exit 1` would strand the feature branch
 undeleted forever. Detaching frees the feature branch just as well, so the deletion still completes;
 only the primary-checkout reconciliation is skipped. The canonical solves the same problem the same
-way (`done/SKILL.md:56-133` uses `checkout --detach` throughout its worktree path). When
-`RECONCILED=0`, the Report must say the checkout was left detached and reconciliation skipped —
-that is three of the four end states, not four.
+way (`done/SKILL.md:56-133` uses `checkout --detach` throughout its worktree path).
+
+**Detaching is scoped to the checkout failure specifically** — an `if`/`else`, not an
+`A && B || C` compound. A failed `pull --ff-only` after a *successful* checkout sets `RECONCILED=0`
+and stops there; detaching would be no remedy for it and would leave the primary checkout detached
+for no reason, which a later `/dev:fix merge` would then refuse on the detached-HEAD guard.
 
 **Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its cleanup after the
 server-side merge and reads the current branch to do it, which makes it fragile in exactly the states
@@ -494,12 +531,17 @@ re-add `--delete-branch`.
 
 ### Report
 
-State all four end states plainly: PR merged, remote branch gone, local branch gone, primary checkout
-on `$DEFAULT_BRANCH` at the merged tip with a clean tree.
+When `RECONCILED=1`, state all four end states plainly: PR merged, remote branch gone, local branch
+gone, primary checkout on `$DEFAULT_BRANCH` at the merged tip with a clean tree.
 
-**Read each one from the command that produced it — do not assert them.** The sequence above exits on
-any failure, so reaching this point means they hold; but a Report written as a template rather than as
-a read is how a partial run comes to describe itself as a clean one.
+**When `RECONCILED=0`, report three** — plus "primary checkout left detached; reconciliation skipped
+(another worktree holds `$DEFAULT_BRANCH`)" or "…`pull --ff-only` did not fast-forward", whichever
+applies. The fourth state is genuinely unmet, and saying so is the whole point.
+
+**Read each state from the command that produced it — do not assert them.** Most of the sequence exits
+on failure, but the reconciliation path deliberately does not, so "we got here" is not by itself proof
+that all four hold. A Report written as a template rather than as a read is how a partial run comes to
+describe itself as a clean one.
 
 **This mirrors `dev:done` Step 2 (`done/SKILL.md:56-133`), which is canonical.** It is duplicated
 because the lane writes no `state.json` and so cannot enter that stage. A change to either side
