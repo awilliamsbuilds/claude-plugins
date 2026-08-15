@@ -346,8 +346,9 @@ specific. Task 5 renders its outcome into the PR body.
 **Depends on:** Task 2 (the `diff` verb must exist to be called) and Task 3 (file ordering — this
 section is written immediately after Verify, which Task 3 edits).
 
-**Files:** modify `plugins/dev/skills/fix/SKILL.md` (new `### Security` section between
-`### Verify`/`### The rigor floor` and `### PR`)
+**Files:** modify `plugins/dev/skills/fix/SKILL.md` — a new `### Security` section inserted
+immediately after `### Verify` and before `### The rigor floor`, plus one bullet added to the rigor
+floor itself (step 7)
 
 **Interfaces:**
 - Consumes: `/dev:secure diff <base>` from Task 2 — **including its optional base parameter**, which
@@ -835,6 +836,11 @@ plugins are and how to set them up.
    has nothing to do with `/dev`. Naming the exclusion is what stops the next reader from assuming
    the sweep missed it.
 
+   **Put this sentence in `## Notes`, not in `## Retired commands`.** SC7 requires that `branches.md`
+   *not appear* in the retirement section, and a literal read of that criterion at Validate would
+   find the string there. The exclusion still gets said; it is said one section over, where it cannot
+   be misread as a fifth retirement.
+
 6. Update the `dev` row of the `## Plugins` table (line 13) to include `dev:secure` in its skills
    list, and extend the description with one clause naming it as the on-demand security review
    (SC13). Change no other row.
@@ -907,8 +913,8 @@ missing-registry fallback.
 
 | Edge case | Handled in | Approach |
 |-----------|-----------|----------|
-| No build system detected | Task 3 (O3), Task 6 (O3), Task 5 step 2 | Skip the check, continue, and render the result as `no build system detected` — never as a pass |
-| Build passes, suite fails | Task 3 step 3 | One rule covers both; neither outranks the other. Stop before the PR, commit, report |
+| No build system detected | Task 3 (O3), Task 6 (O3), Task 5 step 3 | Skip the check, continue, and render the result as `no build system detected` — never as a pass |
+| Build passes, suite fails | Task 3 step 4 | One rule covers both; neither outranks the other. Stop before the PR, commit, report |
 | Security subagent dispatch unavailable | Task 4 step 2 | Run the checklist in-session, the fallback `dev:validate` Step 2 already specifies. Never skip silently |
 | The inline fix introduces a new finding | Task 4 step 4.5 + step 5 | The cold re-review catches it; the lane stops rather than running a second round. This is the bound |
 | The inline fix cannot be made (design problem, not a line) | Task 4 step 5 | Stop, commit, report. Never open a PR with a known P1 |
