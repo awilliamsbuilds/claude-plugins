@@ -1,5 +1,5 @@
 # Dev Fast Path — Product Plan
-*Created: 2026-08-15 · Cycles completed: 1/3*
+*Created: 2026-08-15 · Cycles completed: 2/3*
 
 Promoted from `backlog-fix-as-short-bug-round-trip`, which asked a narrower question — what becomes
 of `/fix` — and is answered here as one part of a larger one.
@@ -30,11 +30,17 @@ ceremonious undermines its own premise; the decision is small enough to settle i
 and Success Criteria. If the spec challenger's scope lens disagrees, split then.
 
 ## Milestone 2: Backlog-driven invocation
-- [ ] fast-path-backlog (feature)
+- [x] fast-path-backlog (feature) — delivered as `entry-adapters`
 
 Point the lane at a `docs/backlog/` item and let it run with as little interaction as possible,
 closing the item on merge. Touches `dev:debt` and the tech-debt contract's lifecycle rules. Depends
 on Milestone 1 defining what the lane guarantees.
+
+**Delivered as `entry-adapters` (PR #81), which absorbed and superseded this item.** Rather than
+building a backlog-only path, it built **one adapter seam** with two sources on it — `/dev:fix
+backlog <item>` and `/dev:fix linear <id>` — on the reasoning that a seam shaped by a single consumer
+is a guess, and two real consumers are what validate it. That also let it retire `dev:linear`, whose
+Linear round trip a repo-wide sweep confirmed was inert in both directions.
 
 ## Milestone 3: Retire the legacy commands
 - [ ] retire-legacy-commands (feature)
