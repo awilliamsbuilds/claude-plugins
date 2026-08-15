@@ -195,7 +195,7 @@ Files: modify `plugins/dev/skills/fix/SKILL.md` (append segments)
 Interfaces:
 - Consumes: the branch, grounding inventory, and decision count from Task 3
 - Produces: an open PR URL, reported to the user; `$PRIMARY` left checked out on the feature branch
-- Shared procedure: `open PR` — this is a **mirror** of `dev:pr` Step 4 (`pr/SKILL.md:115-140`), not
+- Shared procedure: `open PR` — this is a **mirror** of `dev:pr` Step 4 (`pr/SKILL.md:115-144`), not
   the canonical implementation. Restating its branch structure in full: (a) push the branch with
   `git -C "$PRIMARY" push -u origin <branch>` — the `-C` is required, not optional, since the lane may
   be invoked from anywhere in the repo including inside a `.dev-worktrees/<feature>` tree; (b)
@@ -237,7 +237,7 @@ Implementation steps:
 8. **Stop.** Report the PR URL and end the turn. State plainly in the file that the PR is the
    checkpoint and that the lane never merges.
 9. **Name the duplication at the lane's end.** In the PR segment, write one line: *This mirrors
-   `dev:pr` Step 4 (`pr/SKILL.md:115-140`), which is canonical. It is duplicated because the lane
+   `dev:pr` Step 4 (`pr/SKILL.md:115-144`), which is canonical. It is duplicated because the lane
    produces no `validation.md` and so cannot enter that stage; a change to either side should be
    reflected at the other.* Task 6 adds the matching pointer at the `dev:pr` end. Both halves are
    required — spec §Technical Constraints says the duplication must be named at **both ends**, and
@@ -255,7 +255,7 @@ Interfaces:
 - Consumes: `$PRIMARY`, `$DEFAULT_BRANCH` (Task 2); the open PR on the currently checked-out branch
 - Produces: merged PR; remote and local branch deleted; `$PRIMARY` on `$DEFAULT_BRANCH`, fast-forwarded,
   working tree clean
-- Shared procedure: `merge and clean up` — a **mirror** of `dev:done` Step 2 (`done/SKILL.md:56-131`),
+- Shared procedure: `merge and clean up` — a **mirror** of `dev:done` Step 2 (`done/SKILL.md:56-133`),
   not the canonical implementation. Restating its branch structure in full: (a) a mergeability
   precheck via `gh pr view --json mergeable,mergeStateStatus`, which STOPs on a definite conflicting
   or blocked state but **not** on `UNKNOWN` — GitHub computes mergeability asynchronously, so re-query
@@ -283,7 +283,7 @@ Implementation steps:
 5. Report: PR merged, branches gone, primary checkout on `$DEFAULT_BRANCH` at the merged tip, tree
    clean — the four states Success Criterion 4 tests.
 6. **Name the duplication at the lane's end.** In the merge tail, write one line: *This mirrors
-   `dev:done` Step 2 (`done/SKILL.md:56-131`), which is canonical. It is duplicated because the lane
+   `dev:done` Step 2 (`done/SKILL.md:56-133`), which is canonical. It is duplicated because the lane
    writes no `state.json` and so cannot enter that stage; a change to either side should be reflected
    at the other.* Task 6 adds the matching pointer at the `dev:done` end. Both halves are required,
    for the same reason given in Task 4 step 9.

@@ -73,7 +73,7 @@ I'll ask only about the missing dimensions before writing the spec.
 
 ## Step 3: Set Branch Name
 
-Branch naming for fix cycles: `fix/ENG-123-short-title`
+Branch naming for Linear cycles: `fix/ENG-123-short-title`
 
 Where `short-title` is kebab-case derived from the issue title (2-4 words, strip articles/prepositions).
 

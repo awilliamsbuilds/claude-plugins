@@ -41,14 +41,43 @@ third is the non-empty guard **none of those 13 shell sites carries** — the ga
 `docs/backlog/debt-primary-cd-failure-unchecked.md` records. This site carries it, so adding the
 lane does not grow that item's count to 14. Do not "simplify" the guard away to match the others.
 
-For the rest of this lane: run every git command as `git -C "$PRIMARY" …`. Never `cd`.
+For the rest of this lane: run every git command as `git -C "$PRIMARY" …`, **and resolve every file
+path you read or edit against `$PRIMARY/`**. Never `cd`.
+
+Both halves matter. The lane can legitimately be invoked from inside a `.dev-worktrees/<feature>`
+tree, and anchoring only the git commands would ground and edit *that* worktree's files — a different
+branch's content — while every commit targeted `$PRIMARY`. The commit would find nothing staged,
+`gh pr create` would fail with "no commits between", and an in-flight cycle's worktree would be left
+dirty. `dev:done` states both halves for the same reason (`done/SKILL.md:22-23`).
+
+## Resolve the target repo
+
+**Every `gh` call in this lane passes `--repo "$SLUG"`.** Without it, `gh` resolves the base repo from
+the git remotes, and **its rule for a fork is to send the PR to the fork's *parent*** — so a lane run
+in someone's fork would open a PR against an upstream they don't own, unattended, with the branch
+already pushed. `dev:reflect` guards exactly this (`reflect/SKILL.md:212`); the lane needs it more,
+because its own premise is that it runs across several repos.
+
+The lane's target is always the repo it is operating in, so resolve the slug from `origin`:
+
+```bash
+SLUG=$(git -C "$PRIMARY" remote get-url origin 2>/dev/null \
+  | sed -E 's|^git@[^:]+:||; s|^https?://[^/]+/||; s|\.git$||')
+if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
+  echo "Could not resolve a valid owner/name for origin."; exit 1
+fi
+```
+
+The regex is `../../references/tech-debt.md` §P9.target-resolution's allowlist, and it is **validation,
+not decoration**: it rejects any value beginning with `-`, which is an argument-injection vector into
+`gh --repo`. A slug that fails it is a stop, never something to pass to `gh` anyway.
 
 ## Resolve the default branch
 
 Never assume `main`:
 
 ```bash
-DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null) \
+DEFAULT_BRANCH=$(gh repo view "$SLUG" --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null) \
   || DEFAULT_BRANCH=""
 if [ -z "$DEFAULT_BRANCH" ]; then
   DEFAULT_BRANCH=$(git -C "$PRIMARY" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
@@ -58,6 +87,13 @@ if [ -z "$DEFAULT_BRANCH" ]; then echo "Could not determine the default branch."
 
 `dev:done` hardcodes `main` (`done/SKILL.md:26`). The lane deliberately does not copy that — it runs
 across several repos, and not all of them use `main`.
+
+**Resolve this after Step 2's check 1, not before it.** The `gh repo view` call is a network round
+trip, and check 1 is the lane's cheapest failure. The `2>/dev/null` fallback means an unauthenticated
+`gh` degrades here rather than erroring, and check 1 then STOPs with the right reason — but doing the
+work in that order keeps the stated rationale true. If both rungs come back empty on a healthy repo
+(single-branch clones and many older clones have no `refs/remotes/origin/HEAD`), try
+`git -C "$PRIMARY" remote show origin` before giving up.
 
 ## Step 1: Parse the argument
 
@@ -88,8 +124,17 @@ No argument at all → ask what the user wants done. Do not guess.
 
 **The fourth check is lane mode only:**
 
-4. **The current branch has no open PR** —
-   `gh pr list --head "$(git -C "$PRIMARY" branch --show-current)" --state open`. If one exists,
+4. **The current branch has no open PR:**
+
+   ```bash
+   CURRENT=$(git -C "$PRIMARY" branch --show-current)
+   if [ -n "$CURRENT" ]; then
+     gh pr list --repo "$SLUG" --head "$CURRENT" --state open
+   fi
+   ```
+
+   The non-empty guard is required: on a detached-HEAD `$PRIMARY` the substitution is empty, and
+   `--head ""` drops the filter and lists **every** open PR — a spurious refusal. If a PR exists,
    STOP and report it, offering the two exits: `/dev:fix merge`, or switch branches manually.
 
    This is the lane's own leftover state. The lane stops at PR and leaves `$PRIMARY` on that feature
@@ -171,7 +216,7 @@ name rather than proceeding.
 **Collision check — both, before creating the branch:**
 
 ```bash
-git -C "$PRIMARY" rev-parse --verify "fix/<kebab-summary>" >/dev/null 2>&1          # local
+git -C "$PRIMARY" rev-parse --verify "refs/heads/fix/<kebab-summary>" >/dev/null 2>&1          # local
 git -C "$PRIMARY" ls-remote --exit-code --heads origin "fix/<kebab-summary>" >/dev/null 2>&1  # remote
 ```
 
@@ -189,7 +234,9 @@ git -C "$PRIMARY" checkout -b "fix/<kebab-summary>" "origin/$DEFAULT_BRANCH"
 
 ### Change
 
-Make the minimal edit that does the job. Commit it with a conventional-commit message.
+Make the minimal edit that does the job. Commit it with a conventional-commit message — via
+`git commit -F -` with a **single-quoted** heredoc rather than `-m "<message>"` whenever the message
+carries quoted text, for the reason spelled out under **PR** below.
 
 **Mid-flight discovery.** If implementation reveals a real fork that grounding missed — a decision
 that would have been countable at Step 4 — **stop and escalate at that point** rather than deciding
@@ -238,12 +285,33 @@ is a **consumer** of that schema and must not fork it.
 
 ```bash
 git -C "$PRIMARY" push -u origin "fix/<kebab-summary>"
+
+BODY_FILE="$PRIMARY/.git/dev-fix-pr-body.md"
+cat > "$BODY_FILE" <<'PRBODY'
+<the body below — a single-quoted heredoc, so nothing in it expands>
+PRBODY
+
 ( cd "$PRIMARY" && gh pr create \
+    --repo "$SLUG" \
     --title "<one-sentence summary>" \
-    --body "<body below>" \
+    --body-file "$BODY_FILE" \
     --base "$DEFAULT_BRANCH" \
     --head "fix/<kebab-summary>" )
+rm -f "$BODY_FILE"
 ```
+
+**Never interpolate the body into a double-quoted `--body`.** Inside double quotes the shell still
+expands `$…`, `` `…` ``, and `$(…)`, and three of this body's inputs are outside the author's control
+at the moment of the call: the user's free-text request, **verbatim** test-suite output, and quoted
+repo file content from Step 3's grounding. Skill prose in this very repo is thick with `$WORKDIR`,
+`$PRIMARY`, and `$(git rev-parse …)` — so a grounding quote silently losing a variable is close to
+certain, and a backticked payload executing is reachable. The lane is unattended, so nobody sees the
+command before it runs. `dev:reflect` states this same rule for the same reason
+(`reflect/SKILL.md:223`), as does `dev:migrate-tracker` (`migrate-tracker/SKILL.md:747`); it travels
+with this mirrored step rather than living only there.
+
+The same applies to the commit message in **Change** above: use `git commit -F -` with a
+single-quoted heredoc rather than `-m "<message>"` whenever the message carries quoted text.
 
 The `-C "$PRIMARY"` on the push is required, not optional — the lane may be invoked from anywhere in
 the repo, including from inside a `.dev-worktrees/<feature>` tree. `gh` has no `-C` flag, so it runs
@@ -267,11 +335,14 @@ tree happens to be on.
 [the 1-decision question and its answer, or "none"]
 ```
 
-**This mirrors `dev:pr` Step 4 (`pr/SKILL.md:115-140`), which is canonical.** It is duplicated
+**This mirrors `dev:pr` Step 4 (`pr/SKILL.md:115-144`), which is canonical.** It is duplicated
 because the lane produces no `validation.md` and so cannot enter that stage — every `/dev` stage
 gates on the prior stage's artifact, and a lane that writes no artifacts cannot enter the chain
 anywhere. A change to either side should be reflected at the other. `dev:pr` Step 4 carries the
-matching pointer back to here.
+matching pointer back to here. Two branches of the canonical are **deliberately absent**: its
+base-branch resolution via `state.json.parentFeature` (the lane has no state file and always targets
+`$DEFAULT_BRANCH`) and its nested-cycle push of the parent branch (`pr/SKILL.md:128-132`) — the lane
+never nests.
 
 ### Stop
 
@@ -279,51 +350,91 @@ Report the PR URL and end the turn. **The PR is the checkpoint — the lane neve
 
 ## Step 7: The merge tail (`/dev:fix merge`)
 
-### Resolve the PR
+**The tail is idempotent and safe to re-run.** Every step below tolerates having already happened, so
+a partial failure is recovered by running `/dev:fix merge` again — not by hand-finishing it.
 
-The target is the open PR for the branch currently checked out in `$PRIMARY`. If that branch has no
-open PR, or if more than one resolves, **stop and report** rather than guessing.
+### Resolve the branch and PR
+
+Bind both to variables **before** anything mutates them, and use the variables everywhere after. The
+canonical reads `pr_number` and `branch` from `state.json`; the lane has no state file, so the values
+must be captured here or they will be re-derived later against a checkout that has already moved:
+
+```bash
+BRANCH=$(git -C "$PRIMARY" branch --show-current)
+if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
+
+PR_NUMBER=$(gh pr list --repo "$SLUG" --head "$BRANCH" --state open --json number -q '.[0].number')
+ALREADY_MERGED=0
+if [ -z "$PR_NUMBER" ]; then
+  PR_NUMBER=$(gh pr list --repo "$SLUG" --head "$BRANCH" --state merged --limit 1 --json number -q '.[0].number')
+  ALREADY_MERGED=1
+fi
+if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; exit 1; fi
+```
+
+If more than one **open** PR resolves for the branch, stop and report rather than guessing.
+
+**Why the merged-PR fallback exists.** Once `gh pr merge` succeeds the PR is no longer open, so a
+failure anywhere downstream — a `checkout` blocked by another worktree holding `$DEFAULT_BRANCH`, a
+`pull --ff-only` refusal — would leave a re-run unable to find its own PR and permanently unable to
+finish the cleanup. Without this fallback the guard's own "re-run `/dev:fix merge`" advice would be
+impossible to follow. When `ALREADY_MERGED=1`, **skip the mergeability check and the merge itself**
+and resume at the cleanup.
+
+### The branch-deletion guard
+
+Define this **before** using it — the merge sequence below calls it, and a helper defined afterwards
+is a `command not found` at exactly the moment the merge has already succeeded:
+
+```bash
+delete_feature_branch() {
+  if [ "$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json state -q .state)" != "MERGED" ]; then
+    echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:fix merge."
+    return 1
+  fi
+  git -C "$PRIMARY" push origin --delete "$BRANCH" 2>/dev/null || {
+    git -C "$PRIMARY" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 \
+      && echo "WARNING: remote branch '$BRANCH' still exists but could not be deleted (protected or insufficient token scope) — delete it manually." \
+      || true
+  }
+  git -C "$PRIMARY" branch -D "$BRANCH" 2>/dev/null || true
+}
+```
+
+It **refuses to delete anything unless the PR actually merged**, so a `gh pr merge` that failed
+(branch protection, a check that flipped, stale mergeability, a transient API error) can never delete
+unmerged work. It fails closed: an empty result from `gh pr view` — network error, auth loss — is
+`!= "MERGED"` and returns 1. Both deletions are idempotent and safe to re-run.
 
 ### Check mergeability
 
+Skip this entirely when `ALREADY_MERGED=1`.
+
 ```bash
-gh pr view <pr-number> --json mergeable,mergeStateStatus
+gh pr view "$PR_NUMBER" --repo "$SLUG" --json mergeable,mergeStateStatus
 ```
 
 GitHub computes mergeability asynchronously, so immediately after PR creation the result can be
-`UNKNOWN`/`null` — if so, wait a few seconds and re-query. **Only STOP on a definite conflicting or
-blocked state, never on `UNKNOWN`.** Never force, and never delete a branch whose PR did not merge.
+`UNKNOWN`/`null` — if so, wait a few seconds and re-query. **Never STOP on `UNKNOWN`.** Stop on
+`DIRTY`, `BLOCKED`, or `BEHIND`. On `UNSTABLE` (failing non-required checks) report what is failing
+and confirm before proceeding — a lane whose whole safety story is "the PR is the checkpoint" should
+not merge past red checks silently. Proceed on `CLEAN` or `HAS_HOOKS`. Never force, and never delete
+a branch whose PR did not merge.
 
 ### Merge, then clean up
 
 ```bash
-( cd "$PRIMARY" && gh pr merge <pr-number> --merge )
-git -C "$PRIMARY" checkout "$DEFAULT_BRANCH"
-git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH"
+if [ "$ALREADY_MERGED" -eq 0 ]; then
+  ( cd "$PRIMARY" && gh pr merge "$PR_NUMBER" --repo "$SLUG" --merge ) || exit 1
+fi
+git -C "$PRIMARY" checkout "$DEFAULT_BRANCH" || exit 1
+git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH" || exit 1
 delete_feature_branch || exit 1
 ```
 
 Ordering matters: the local branch cannot be deleted while it is checked out, so the checkout comes
-first.
-
-Branch deletion goes through one guarded helper that **refuses to delete anything unless the PR
-actually merged** — so a `gh pr merge` that failed (branch protection, a check that flipped, stale
-mergeability, a transient API error) can never delete an unmerged branch:
-
-```bash
-delete_feature_branch() {
-  if [ "$(gh pr view <pr-number> --json state -q .state)" != "MERGED" ]; then
-    echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:fix merge."
-    return 1
-  fi
-  git -C "$PRIMARY" push origin --delete <branch> 2>/dev/null || {
-    git -C "$PRIMARY" ls-remote --exit-code --heads origin <branch> >/dev/null 2>&1 \
-      && echo "WARNING: remote branch '<branch>' still exists but could not be deleted (protected or insufficient token scope) — delete it manually." \
-      || true
-  }
-  git -C "$PRIMARY" branch -D <branch> 2>/dev/null || true
-}
-```
+first. Each step is gated on the one before it — a partial run must not continue into a Report that
+would assert end states it never reached.
 
 **Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its cleanup after the
 server-side merge and reads the current branch to do it, which makes it fragile in exactly the states
@@ -336,7 +447,11 @@ re-add `--delete-branch`.
 State all four end states plainly: PR merged, remote branch gone, local branch gone, primary checkout
 on `$DEFAULT_BRANCH` at the merged tip with a clean tree.
 
-**This mirrors `dev:done` Step 2 (`done/SKILL.md:56-131`), which is canonical.** It is duplicated
+**Read each one from the command that produced it — do not assert them.** The sequence above exits on
+any failure, so reaching this point means they hold; but a Report written as a template rather than as
+a read is how a partial run comes to describe itself as a clean one.
+
+**This mirrors `dev:done` Step 2 (`done/SKILL.md:56-133`), which is canonical.** It is duplicated
 because the lane writes no `state.json` and so cannot enter that stage. A change to either side
 should be reflected at the other. `dev:done` Step 2 and Step 7 carry the matching pointers back to
 here. Two branches of the canonical are **deliberately absent**: its detached-HEAD worktree path (the

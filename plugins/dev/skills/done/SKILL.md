@@ -474,8 +474,10 @@ can be re-run.
 
 ## Step 7: Clean Up
 
-**Duplicated at `dev:fix`.** The branch-deletion half of this step is canonical; `dev:fix`'s merge
-tail mirrors it. A change here should be reflected there.
+**Duplicated at `dev:fix`.** This step's post-merge primary-checkout reconciliation is canonical;
+`dev:fix`'s merge tail mirrors it with `checkout "$DEFAULT_BRANCH"` + `pull --ff-only`. A change here
+should be reflected there. (Branch deletion is **not** part of this step — Step 2's
+`delete_feature_branch` already did it.)
 
 **Check for a rebase in progress first — before deleting anything.** If Step 6a's flush hit a
 push conflict and left `$WORKDIR` mid-rebase, the buffer at `docs/dev/<feature>/debt-pending.md`
