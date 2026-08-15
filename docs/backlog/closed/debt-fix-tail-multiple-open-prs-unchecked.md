@@ -1,11 +1,13 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 severity: P3
 first_recorded: 2026-08-15
 cycles: [fast-path]
 recurrence: 1
+closed: 2026-08-15
+closed_by: entry-adapters
 files:
   - plugins/dev/skills/fix/SKILL.md
 ---
