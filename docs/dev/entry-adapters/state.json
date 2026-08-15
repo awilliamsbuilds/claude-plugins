@@ -23,7 +23,7 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 2,
+    "loops_run": 3,
     "loops_max": 5,
     "p1_open": [],
     "p2_open": [],
@@ -31,7 +31,8 @@
       "autopilot/SKILL.md:139 cites spec/SKILL.md:478, now stale; repairing it would violate SC10 byte-identical"
     ],
     "nits_open": [
-      "pr/SKILL.md pre-existing unquoted <placeholder> args in 3 shell blocks (not introduced by this diff)"
+      "pr/SKILL.md pre-existing unquoted <placeholder> args in 3 shell blocks",
+      "bare references/tech-debt.md paths remain in init/SKILL.md:162 and done/SKILL.md:264 (pre-existing, untouched; done/ is SC10-constrained)"
     ]
   },
   "challenge": {

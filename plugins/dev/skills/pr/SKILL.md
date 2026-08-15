@@ -153,7 +153,7 @@ A nested cycle's PR happens before its parent's own `dev:pr` stage runs (the par
 Open the PR using the `gh` CLI (run inside the worktree with explicit head). **Bind the title and
 body through single-quoted heredocs — never interpolate either into a double-quoted flag:**
 ```bash
-BODY_FILE="$GIT_COMMON/dev-pr-body.md"   # NOT "$WORKDIR/.git/…" — see below
+BODY_FILE="$PRIMARY/.git/dev-pr-body.md"   # NOT "$WORKDIR/.git/…" — see below
 cat > "$BODY_FILE" <<'PRBODY'
 [PR description from Step 2 — a single-quoted heredoc, so nothing in it expands]
 PRBODY
@@ -170,12 +170,21 @@ PRTITLE
     --head "<branch-name>" ) && rm -f "$BODY_FILE"
 ```
 
-**`$GIT_COMMON`, not `$WORKDIR/.git`.** In a worktree cycle — which is every cycle — `$WORKDIR/.git`
-is a regular **file** containing a `gitdir:` pointer, not a directory, so redirecting into it fails
-with `Not a directory` and `gh pr create --body-file` then errors on a missing file, opening no PR at
-all. `$GIT_COMMON` is already computed at the top of this stage and resolves to the real common git
-directory from either a worktree or the primary checkout. (`dev:fix`'s mirror writes to
-`$PRIMARY/.git/…`, which is correct *there* only because that lane never runs in a worktree.)
+**`$PRIMARY/.git`, not `$WORKDIR/.git` — and not `$GIT_COMMON` either.** Two separate traps here:
+
+- **`$WORKDIR/.git` is a regular file** in a worktree cycle — which is every modern cycle — holding a
+  `gitdir:` pointer rather than being a directory. Redirecting into it fails with `Not a directory`,
+  `gh pr create --body-file` then errors on a missing file, and the stage opens no PR at all.
+- **`$GIT_COMMON` is only absolute from a worktree.** From the primary checkout `git rev-parse
+  --git-common-dir` returns `.git`, or `../.git` from a subdirectory. On the legacy in-place lane
+  (`worktreePath` null, so `WORKDIR == PRIMARY`) the `cat >` would write the relative path from the
+  agent's cwd, and the `( cd "$WORKDIR" && … )` subshell would then re-resolve the *same* relative
+  string from the repo root — a different file, one level up. `gh` errors on the missing body.
+
+`$PRIMARY` is absolutized by the preamble's `cd … && pwd`, and `$PRIMARY/.git` is the common git
+directory on both lanes, so it is correct everywhere without a second derivation. This is also why
+`dev:fix`'s mirror writes to `$PRIMARY/.git/…`: that lane is explicitly allowed to be invoked from
+inside a worktree, and anchoring on `$PRIMARY` is what makes it safe there.
 
 **Why this is not optional.** Inside double quotes the shell still expands `$…`, `` `…` ``, and
 `$(…)`, and this body's inputs are outside the author's control at the moment of the call: `spec.md`'s
