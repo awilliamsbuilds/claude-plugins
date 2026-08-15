@@ -4,11 +4,12 @@
   "branch": "feature/fast-path",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -18,7 +19,7 @@
     "spec": "docs/dev/fast-path/spec.md",
     "design": null,
     "plan": "docs/dev/fast-path/plan.md",
-    "validation": null,
+    "validation": "docs/dev/fast-path/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -82,7 +83,8 @@
       "plan_start": "2026-08-15T04:00:33Z",
       "plan_end": "2026-08-15T04:04:02Z",
       "build_start": "2026-08-15T04:20:07Z",
-      "build_end": "2026-08-15T04:25:08Z"
+      "build_end": "2026-08-15T04:25:08Z",
+      "validate_end": "2026-08-15T05:59:49Z"
     }
   }
 }

@@ -40,6 +40,65 @@ claiming a property it does not deliver. `reflect/SKILL.md:205`'s matching claim
 same pass, and `dev:fix` drops its local divergence note in favour of citing §P9 plainly.
 ````
 
+### debt-fix-tail-guard-stale-when-offline
+
+````markdown
+---
+type: debt
+scope: plugin
+status: open
+first_recorded: 2026-08-15
+cycles: [fast-path]
+recurrence: 1
+files:
+  - plugins/dev/skills/fix/SKILL.md
+---
+
+**What's wrong:** the merge tail's interrupted-tail guard refreshes `origin/$DEFAULT_BRANCH` with
+`git fetch … || true`, then scans `for-each-ref --merged "$SCAN_REF"`. When the fetch fails but a
+stale remote-tracking ref still exists, `rev-parse` succeeds, the fallback does not fire, and the scan
+comes back empty — so the lane prints the flat "nothing to merge (the tail already completed)" over a
+branch that is merged server-side and still present locally. It asserts a state it did not verify,
+which is the exact failure the file's own Report rule forbids.
+
+**Why deferred:** transient rather than permanent — one re-run with connectivity gives the right
+answer — and largely fenced already, since both causes the prose names (network loss, expired token)
+trip Step 2 check 1's `gh auth status` first, which exits before the tail is reached. The residual
+window is a git-transport-only failure with `gh` healthy: a broken SSH agent, or a git-only proxy.
+Found by the final cold review after this cycle's Validate loop budget was already spent.
+
+**Done looks like:** the fetch's exit status is captured (`FETCH_OK=0` on failure) and the empty-scan
+message is downgraded when it is unset — "nothing merged is left behind, but `origin/$DEFAULT_BRANCH`
+could not be refreshed, so this reading may be stale; re-run once connectivity returns."
+````
+
+### debt-fix-tail-multiple-open-prs-unchecked
+
+````markdown
+---
+type: debt
+scope: plugin
+status: open
+first_recorded: 2026-08-15
+cycles: [fast-path]
+recurrence: 1
+files:
+  - plugins/dev/skills/fix/SKILL.md
+---
+
+**What's wrong:** the merge tail's prose says "if more than one **open** PR resolves for the branch,
+stop and report rather than guessing," but the snippet implementing it uses
+`gh pr list … --json number -q '.[0].number'`, which silently takes the first. The stated guard is not
+the delivered one.
+
+**Why deferred:** reachable only by manually opening a second PR from the same head branch to a
+different base, which the lane itself never does. Non-blocking, and found after this cycle's Validate
+loop budget was spent.
+
+**Done looks like:** the count is read (`--json number -q 'length'`) and a result greater than 1 stops
+with both PR numbers named, matching what the prose already promises.
+````
+
 ## To Close
 
 - backlog-reflect-before-pr-merge — this cycle has to decide where reflection sits for a lane that merges in one motion; answering it for the fast path settles the open question
