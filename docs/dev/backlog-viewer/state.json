@@ -3,8 +3,8 @@
   "feature": "backlog-viewer",
   "branch": "feature/backlog-viewer",
   "mode": "standard",
-  "stage": "pr",
-  "completed": ["spec", "shape", "plan", "build", "validate"],
+  "stage": "done",
+  "completed": ["spec", "shape", "plan", "build", "validate", "pr"],
   "skipped": [],
   "startedAt": "2026-08-13T01:06:13Z",
   "artifacts": {
@@ -12,8 +12,8 @@
     "design": "docs/dev/backlog-viewer/design.md",
     "plan": "docs/dev/backlog-viewer/plan.md",
     "validation": "docs/dev/backlog-viewer/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/73",
+    "pr_number": 73
   },
   "validate": {
     "loops_run": 3,
@@ -88,7 +88,8 @@
       "build_start": "2026-08-14T11:03:44Z",
       "build_end": "2026-08-14T11:24:37Z",
       "validate_start": "2026-08-14T11:26:51Z",
-      "validate_end": "2026-08-14T12:27:49Z"
+      "validate_end": "2026-08-14T12:27:49Z",
+      "pr_created": "2026-08-15T01:49:00Z"
     }
   }
 }
