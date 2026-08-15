@@ -1,6 +1,6 @@
 ---
 name: dev
-description: "Main entry point for the /dev workflow. Standard mode: manages the 7-stage development workflow (spec → shape → plan → build → validate → PR → done) with explicit approval gates between stages. Use /dev:autopilot for no-gate mode. Use /dev:init to set up a new project. Use /dev:fix for Linear issue entry."
+description: "Main entry point for the /dev workflow. Standard mode: manages the 7-stage development workflow (spec → shape → plan → build → validate → PR → done) with explicit approval gates between stages. Use /dev:autopilot for no-gate mode. Use /dev:init to set up a new project. Use /dev:fix for the fast path — a grounded change straight to an open PR with no cycle artifacts. Use /dev:linear for Linear issue entry."
 ---
 
 # dev — Development Workflow Orchestrator
@@ -176,6 +176,8 @@ Wait for user's choice, then invoke dev:spec with the chosen feature name.
 | `/dev validate` | Jump to Validate (requires build) |
 | `/dev pr` | Jump to PR (requires validation) |
 | `/dev done` | Jump to Done (requires PR) |
-| `/dev:fix ENG-123` | Linear issue entry |
+| `/dev:fix "<what you want done>"` | Fast path — grounded change straight to an open PR, no cycle artifacts; escalates here at 2+ unresolved decisions |
+| `/dev:fix merge` | Merge that fast-path PR and clean up |
+| `/dev:linear ENG-123` | Linear issue entry |
 | `/dev:<stage> docs/dev/<feature>/<artifact>.md` | Resume any stage without conversation memory — every `dev:<stage>` skill accepts an optional artifact-path argument (the prior stage's committed artifact) and derives `<feature>` from it. This is what the exit-protocol message after each stage prints as the exact resume command. |
 | `/dev:autopilot docs/dev/<feature>/<artifact>.md` | Resume a gated cycle in autopilot from the named artifact — the alternative command printed at the Spec and Shape gates. Derives `<feature>` from the path. |

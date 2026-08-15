@@ -114,6 +114,10 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 ## Step 4: Open PR
 
+**Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s PR segment mirrors it for the
+artifact-free fast path, which produces no `validation.md` and so cannot enter this stage. A change
+here should be reflected there.
+
 Push the branch if not already pushed:
 ```bash
 git -C "$WORKDIR" push -u origin <branch-name>

@@ -13,7 +13,7 @@ files:
   - plugins/dev/skills/debt/SKILL.md
   - plugins/dev/skills/dev/SKILL.md
   - plugins/dev/skills/done/SKILL.md
-  - plugins/dev/skills/fix/SKILL.md
+  - plugins/dev/skills/linear/SKILL.md
   - plugins/dev/skills/migrate-tracker/SKILL.md
   - plugins/dev/skills/plan/SKILL.md
   - plugins/dev/skills/pr/SKILL.md

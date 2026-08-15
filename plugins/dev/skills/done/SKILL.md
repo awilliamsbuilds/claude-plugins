@@ -55,6 +55,10 @@ Note the pre-merge commit SHA (used in decision log for artifact archiving).
 
 ## Step 2: Merge PR
 
+**Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s merge tail mirrors it for the
+artifact-free fast path, which writes no `state.json` and so cannot enter this stage. A change here
+should be reflected there.
+
 First, check mergeability without touching the worktree's checkout:
 
 ```bash
@@ -253,7 +257,7 @@ git -C "$WORKDIR" commit -m "docs: reconcile README/CLAUDE.md prose after <featu
 push_integration
 ```
 
-The pathspec on the commit is required for the same reason Steps 6a/7 use one: an earlier step's commit may have left the index otherwise-clean, but the pathspec guarantees this commit sweeps in nothing else under a "reconcile prose" message. `<feature>` is safe to interpolate here **because of `dev:spec` Step 6 / `dev:fix` Step 3's allowlist** — the slug matches `^[a-z0-9][a-z0-9-]*$` (or `^[A-Za-z0-9][A-Za-z0-9-]*$` for a fix cycle) by construction, so no shell metacharacter can reach this `-m`. Dismissed spots are routed to the durable record (step 7).
+The pathspec on the commit is required for the same reason Steps 6a/7 use one: an earlier step's commit may have left the index otherwise-clean, but the pathspec guarantees this commit sweeps in nothing else under a "reconcile prose" message. `<feature>` is safe to interpolate here **because of `dev:spec` Step 6 / `dev:linear` Step 3's allowlist** — the slug matches `^[a-z0-9][a-z0-9-]*$` (or `^[A-Za-z0-9][A-Za-z0-9-]*$` for a Linear cycle) by construction, so no shell metacharacter can reach this `-m`. Dismissed spots are routed to the durable record (step 7).
 
 **5. On a mismatch — autopilot mode.** No gate. Print the proposed edits into the run log and record **all** detected spots durably (step 7). **Never auto-apply prose in autopilot.** This step therefore introduces **no new stop condition** — so `dev:autopilot` Step 2's "When autopilot stops" list needs no change, and its "Debt surfacing: print, never ask" self-applied-writes carve-out already covers this write (it is an unconditional `dev:done` debt write, self-applied, identical in both modes except that prose is only *applied* in standard mode). This mirrors the reason Step 7's reconcile block "needs no change to `dev:autopilot` Step 2."
 
@@ -469,6 +473,12 @@ again. If it still fails, stop the stage and surface it; the buffer is still on 
 can be re-run.
 
 ## Step 7: Clean Up
+
+**Duplicated at `dev:fix`.** This step's post-merge primary-checkout reconciliation is canonical;
+`dev:fix`'s merge tail mirrors it with `checkout "$DEFAULT_BRANCH"` + `pull --ff-only`, falling back
+to `checkout --detach` when another worktree holds the default branch. A change here should be
+reflected there. (Branch deletion is **not** part of this step — Step 2's `delete_feature_branch`
+already did it.)
 
 **Check for a rebase in progress first — before deleting anything.** If Step 6a's flush hit a
 push conflict and left `$WORKDIR` mid-rebase, the buffer at `docs/dev/<feature>/debt-pending.md`
