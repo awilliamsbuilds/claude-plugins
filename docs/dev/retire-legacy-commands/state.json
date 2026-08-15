@@ -3,11 +3,12 @@
   "feature": "retire-legacy-commands",
   "branch": "feature/retire-legacy-commands",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,7 +18,7 @@
     "spec": "docs/dev/retire-legacy-commands/spec.md",
     "design": null,
     "plan": "docs/dev/retire-legacy-commands/plan.md",
-    "validation": null,
+    "validation": "docs/dev/retire-legacy-commands/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -26,8 +27,14 @@
     "loops_max": 5,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
-    "nits_open": []
+    "p3_open": [
+      "AUDIT_BRANCH not printed on the healthy path \u2014 report field from recall",
+      "notice remediation line unactionable for a /dev worktree",
+      "whole-project verb has same wrong-tree exposure, no disclosure"
+    ],
+    "nits_open": [
+      "BASE=\"$2\" is the only positional-parameter notation in any dev skill"
+    ]
   },
   "challenge": {
     "run": true,
@@ -81,7 +88,9 @@
       "plan_start": "2026-08-15T22:26:07Z",
       "plan_end": "2026-08-15T22:33:41Z",
       "build_start": "2026-08-15T22:56:19Z",
-      "build_end": "2026-08-15T23:02:54Z"
+      "build_end": "2026-08-15T23:02:54Z",
+      "validate_start": "2026-08-15T23:03:16Z",
+      "validate_end": "2026-08-15T23:34:23Z"
     }
   },
   "handoff_at": "spec"
