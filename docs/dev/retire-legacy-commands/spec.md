@@ -191,8 +191,16 @@ instruction to split.
    the same P1/P2/P3/Nit vocabulary `dev:validate` Step 3 already defines — not a second severity
    scheme.
 3. `/dev:fix` invokes `/dev:secure diff` before opening a PR. **The lane does not restate the
-   security checklist** — `grep -c 'injection\|XSS\|CSRF' plugins/dev/skills/fix/SKILL.md` returns
-   zero, proving the call is a call and not a copy.
+   security checklist** — the grep for `injection\|XSS\|CSRF` in `plugins/dev/skills/fix/SKILL.md`
+   returns zero **inside the new security section**, proving the call is a call and not a copy.
+
+   *Amended during Plan: the criterion originally asserted a whole-file count of zero, which was
+   unsatisfiable.* Measured, that grep returns **1** today — `fix/SKILL.md:76`, the `owner/name`
+   allowlist's "argument-injection vector into `gh --repo`" rationale. It is correct prose unrelated
+   to the security checklist, and read literally the criterion would have forced Build to either fail
+   it or delete a load-bearing sentence. The check is therefore section-scoped:
+   `sed -n '/^### Security/,/^### /p' plugins/dev/skills/fix/SKILL.md | grep -c 'injection\|XSS\|CSRF'`
+   returns zero. This is the same whole-file-versus-section trap SC7 carries.
 4. On a P1/P2 the lane fixes once, cold re-reviews **that fix's diff**, and opens the PR only on a
    clean re-review. A finding on the re-review leaves the work committed on the branch with no PR
    opened, and the report says which finding stopped it.
