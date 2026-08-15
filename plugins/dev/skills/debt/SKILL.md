@@ -13,7 +13,9 @@ The on-demand surface for the `docs/backlog/` store. This skill owns **all reads
 manual lifecycle changes** — listing open items, showing closed ones, and closing an item by
 hand.
 
-It does not own the rest of the lifecycle. `dev:done` Step 6a owns **automatic** closing, and
+It does not own the rest of the lifecycle. `dev:done` Step 6a owns **automatic** closing, as does
+the backlog adapter's Closeout hook in `dev:fix`'s merge tail (a marked mirror of Step 6 below — see
+`../../references/entry-adapters.md` §A4), and
 the producing stages (`dev:build`, `dev:validate`, `dev:reflect`, `dev:spec`) only ever append
 to their cycle's buffer — the one exception being `dev:reflect` invoked standalone after the
 cycle directory is gone, which has no buffer and writes item files into `docs/backlog/` directly.
@@ -202,7 +204,25 @@ Accept either a Step 3 index or an item slug.
 
    This is deliberate. `dev:debt` is invoked outside a cycle, usually with the primary checkout
    sitting on `main`, and the standing convention is never to commit directly to `main`. Do not
-   "fix" this by adding a commit.
+   "fix" this by adding a commit. (The mirror named below *does* commit — that is a declared
+   divergence with its own grounding, not the thing this rule warns against.)
+
+**Mirrored at `references/entry-adapters.md` §A4.** That section restates **step 4** of this
+procedure — the front-matter write and the P3 move — for the `/dev:fix backlog` merge tail, which
+cannot invoke this skill directly. **This step is canonical**; a change here should be reflected
+there. Three divergences are deliberate, and both ends name the same three:
+
+- **(a) No confirmation turn.** Step 3 above echoes the item and its payer and waits for a yes. The
+  mirror does not: the user already bound the identity across two deliberate invocations
+  (`/dev:fix backlog <item>`, then `/dev:fix merge`), and the tail runs unattended by design.
+- **(b) No paying-cycle resolution.** Step 2 above scans both cycle locations. The lane has no cycle
+  directory at all, so the mirror's `closed_by:` records the feature branch name instead.
+- **(c) The mirror commits and pushes**, where step 5 above refuses. Step 5's stated reason is that
+  `dev:debt` runs outside a cycle with the checkout usually on the default branch. Neither half holds
+  in the tail: it runs inside the lane's own flow on a checkout that has just merged the user's own
+  PR, which is the same post-merge bookkeeping write `dev:done` Step 6a makes.
+
+Do **not** "fix" either side into agreement with the other.
 
 ## Step 7: Add an Item
 
