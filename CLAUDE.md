@@ -22,13 +22,14 @@ Changes must be merged to `main`. After merging, run `/plugin update` in Claude 
 - `GITHUB_PERSONAL_ACCESS_TOKEN` must be set in `~/.claude/settings.json` with `repo` scope for this repo.
 
 ## Component Registry
-*Last updated by /dev · 2026-08-11*
+*Last updated by /dev · 2026-08-15*
 
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `dev:autopilot` | plugins/dev/skills/autopilot/SKILL.md | No-gate orchestrator for the /dev workflow; also the handoff target — accepts `/dev:autopilot docs/dev/<feature>/<artifact>.md`, resolves `WORKDIR` itself, reads `tier`/`stage` from the resolved `state.json`, and writes the `handoff_at` marker `(writes: autopilot-only)` on the `standard` → `autopilot` flip |
 | `dev:build` | plugins/dev/skills/build/SKILL.md | Stage 4 — implements the plan |
-| `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand backlog + tech debt tracker — `list` (surfaces `promoted` + `routing: pending`, re-attempts stranded deliveries), `show`, `closed`, `close`, `add` (capture verb with `--debt`/`--plugin`/`--repo` overrides + P9 cross-repo routing), `inbox` (drain/convert routed `dev-backlog` issues into the local store; plugin repo only) |
+| `dev:debt` | plugins/dev/skills/debt/SKILL.md | On-demand backlog + tech debt tracker — `list` (surfaces `promoted` + `routing: pending`, re-attempts stranded deliveries), `show`, `closed`, `close`, `add` (capture verb with `--debt`/`--plugin`/`--repo` overrides + P9 cross-repo routing), `inbox` (drain/convert routed `dev-backlog` issues into the local store; plugin repo only), `view` / `view stop` (Step 9 — launches the detached loopback-only browser viewer via `viewer.py`; exempt from Step 1's store derivation and empty-store stop) |
+| `dev:debt` viewer | plugins/dev/skills/debt/viewer.py · viewer_page.html · test_viewer.py | The `view` verb's runtime — stdlib-only (Python 3.9) front-matter parser, store loader over the active corpus + `closed/` archive, disk-derived facet derivation, page render, `BaseHTTPRequestHandler` server (route allowlist, `127.0.0.1` bind, Host allowlist, identity/pid headers), and the `serve`/`start`/`stop` CLI with probe-based identity on ports 8730–8739. The repo's sole guarded `PRIMARY` derivation outside the skills. `viewer_page.html` is the rail/list/detail shell Milestone 3's `lifecycle-viewer` inherits |
 | `dev:dev` | plugins/dev/skills/dev/SKILL.md | Main entry point for the /dev workflow; Step 6 product-plan continuation scopes to the governing plan, else scans `docs/dev/product-plans/` (multi-plan-aware) |
 | `dev:done` | plugins/dev/skills/done/SKILL.md | Stage 7 — merges PR, generates decision record, reconciles README/CLAUDE.md prose (Step 4a) and the primary checkout post-merge; deletes the product-plan on project completion (all `[x]`) and closes the promoted source backlog item; Step 6a's flush re-attempts `routing: pending` items before writing new ones and carries the forward-defensive buffered plugin-scope routing branch; Step 5's decision-log template gains one `*Handed off to autopilot at <stage>*` line when `handoff_at` is set |
 | `dev:fix` | plugins/dev/skills/fix/SKILL.md | Linear-aware entry point into the /dev workflow |
