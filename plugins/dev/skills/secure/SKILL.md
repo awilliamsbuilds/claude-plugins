@@ -157,7 +157,7 @@ only. This is what lets a caller that has already resolved a default branch hand
 having this skill independently re-derive it, which is how the two come to disagree.
 
 ```bash
-BASE="<the second token, verbatim>"
+BASE="$2"   # the second token, verbatim — e.g. origin/main
 ```
 
 **Validate it before use — "explicit" is not "trusted."** The token reaches `git diff` as an
@@ -212,10 +212,30 @@ reason (`dev:fix`'s **Resolve the target repo**). A slug that fails the allowlis
 
 ### Scope the audit
 
+**Name the tree before diffing it.** `$PRIMARY` is the *primary checkout*, which on a repo with
+active `/dev` worktrees is usually sitting on the default branch while the work under review lives on
+a worktree's branch. Diffing the wrong tree does not error — it returns an **empty diff**, and this
+verb's empty-diff branch then reports there was nothing to examine. For a pre-PR security gate, a
+confident "nothing to audit" is the worst available failure.
+
 ```bash
+AUDIT_BRANCH=$(git -C "$PRIMARY" branch --show-current)
+INVOKED_IN=$(git rev-parse --show-toplevel 2>/dev/null) || INVOKED_IN=""
+if [ -n "$INVOKED_IN" ] && [ "$INVOKED_IN" != "$PRIMARY" ]; then
+  echo "NOTE: auditing the primary checkout ($PRIMARY, branch ${AUDIT_BRANCH:-detached}),"
+  echo "      not the tree you invoked from ($INVOKED_IN)."
+  echo "      To audit that tree instead, run /dev:secure diff from the primary checkout of it."
+fi
+
 git -C "$PRIMARY" diff --end-of-options "$BASE"...HEAD
 git -C "$PRIMARY" diff --name-only --end-of-options "$BASE"...HEAD
 ```
+
+**`$PRIMARY` is deliberate, not incidental** — `dev:fix` is this verb's main caller and operates on
+the primary checkout by contract, creating its branch and commits there, so `$PRIMARY` is exactly the
+tree its PR will open from. The notice above exists for the *standalone* case, where a user inside a
+worktree means "audit what I am looking at." It discloses rather than guesses: the audit still runs,
+and the report says which branch it covered.
 
 `--end-of-options` is the second half of the guard above: the allowlist rejects a `-`-leading value,
 and this makes `git` treat what follows as operands regardless. Belt and braces, because the failure
@@ -230,7 +250,9 @@ changed-file list on every run, which for a caller reads as a review that could 
 **Empty diff → say the diff is empty and stop.** Do **not** report "no findings" — that phrasing
 reads as an audit that ran and came back clean, which is a different claim from one that had nothing
 to examine. The distinction matters most to an unattended caller, which would otherwise record a
-clean review that never happened.
+clean review that never happened. **Name the branch and base in that message** (`<AUDIT_BRANCH>` has
+no changes against `<BASE>`), because the commonest cause of a surprising empty diff is auditing a
+different tree than intended — see the notice above.
 
 Otherwise run the audit against the diff only:
 
@@ -248,7 +270,7 @@ records the deliberate skip rather than going silent.
 
 ```
 ## Security Review — diff vs <BASE>
-**Files changed:** <count>
+**Branch audited:** <AUDIT_BRANCH> · **Files changed:** <count>
 
 ### P1 — blockers
 ### P2 — significant
