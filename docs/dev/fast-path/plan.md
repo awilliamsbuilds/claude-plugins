@@ -20,6 +20,7 @@
 | `README.md` | Modify | Rename ref + new `dev:fix` entry in the skill list (`:13`) |
 | `CLAUDE.md` | Modify | Registry row renamed to `dev:linear` + new `dev:fix` row (`:35`) |
 | `plugins/plugin-manager/skills/add-plugin/SKILL.md` | Modify | Rename ref + new `dev:fix` entry (`:25`) |
+| `docs/backlog/debt-primary-cd-failure-unchecked.md` | Modify | Path-only edit: its `files:` entry follows the renamed skill (count stays 13) |
 
 **Not touched, deliberately:** `docs/decisions/*.md` (historical records — SC7), and the working
 artifacts `docs/backlog/backlog-fix-as-short-bug-round-trip.md` and
@@ -36,7 +37,8 @@ the two skills collide on one directory.
 Depends on: nothing — first task.
 Files: `plugins/dev/skills/fix/SKILL.md` → `plugins/dev/skills/linear/SKILL.md`; rename-only edits to
 `skills/{dev,start,spec,plan,validate,done}/SKILL.md`, `references/tech-debt.md`,
-`skills/debt/viewer.py`, `README.md`, `CLAUDE.md`, `add-plugin/SKILL.md`.
+`skills/debt/viewer.py`, `README.md`, `CLAUDE.md`, `add-plugin/SKILL.md`; path-only edit to
+`docs/backlog/debt-primary-cd-failure-unchecked.md`.
 Interfaces:
 - Consumes: nothing
 - Produces: the skill `dev:linear` at `plugins/dev/skills/linear/SKILL.md` with frontmatter
@@ -175,7 +177,9 @@ Implementation steps:
    proceeding.
 6. **Branch-name collision.** Check both `git -C "$PRIMARY" rev-parse --verify` (local) and
    `git -C "$PRIMARY" ls-remote --exit-code --heads origin <name>` (remote). On either hit,
-   disambiguate with a `-2`, `-3` suffix. Never reuse an existing branch, never force-push.
+   disambiguate with a `-2`, `-3` suffix. Never reuse an existing branch, never force-push. Both
+   checks run **before** step 5's `checkout -b` — resolve the final name first, then create the
+   branch once.
 7. **Nothing to change.** If grounding shows the request is already satisfied, say so, open no PR, and
    do not create a branch — an empty PR is worse than no PR. This check belongs before step 5.
 
@@ -220,12 +224,21 @@ Implementation steps:
 6. **Deferred-work capture.** Anything noticed and not done goes to `docs/backlog/` per
    `plugins/dev/references/tech-debt.md` — the lane is a consumer of that schema and must not fork it.
    Per §P7's writer-side rule, create `docs/backlog/` (and `closed/`) when absent and proceed; degrade
-   silently rather than erroring when the store cannot be written.
+   silently rather than erroring when the store cannot be written. Spec §Audience has the lane running
+   across several repos, so a `scope: plugin` item captured **off** the plugin repo routes per §P9 —
+   cite that section rather than restating it, and carry its degrade-to-local branch
+   (`routing: pending`) so a failed route buffers instead of dropping.
 7. **PR body template.** Three required sections: what changed, why, and what was verified (including
    what could not be). Plus a "Decisions made for you" section, which prints the 1-decision question
    and its answer when Triage took that route, and states "none" otherwise.
 8. **Stop.** Report the PR URL and end the turn. State plainly in the file that the PR is the
    checkpoint and that the lane never merges.
+9. **Name the duplication at the lane's end.** In the PR segment, write one line: *This mirrors
+   `dev:pr` Step 4 (`pr/SKILL.md:115-140`), which is canonical. It is duplicated because the lane
+   produces no `validation.md` and so cannot enter that stage; a change to either side should be
+   reflected at the other.* Task 6 adds the matching pointer at the `dev:pr` end. Both halves are
+   required — spec §Technical Constraints says the duplication must be named at **both ends**, and
+   the `Shared procedure:` line above is plan metadata that never reaches the shipped file.
 
 ### Task 5: Lane skill — the `merge` tail
 
@@ -249,7 +262,9 @@ Interfaces:
   two worktrees) and a **legacy in-place** branch (plain checkout) — **the lane has only the in-place
   shape**, since it never creates a worktree, so the detached-HEAD branch is deliberately absent;
   (d) `gh pr merge --merge` with **no** `--delete-branch`, and deletion done with explicit git
-  plumbing. Task 6 adds the pointer at the `dev:done` end.
+  plumbing; (e) `dev:done`'s `push_integration` helper (end of Step 2) has **no lane equivalent** and
+  is deliberately absent — the lane makes no post-merge commits, so it never pushes to the integration
+  branch. Task 6 adds the pointer at the `dev:done` end.
 
 Implementation steps:
 1. Resolve the target PR: the open PR for the branch currently checked out in `$PRIMARY`. If that
@@ -264,6 +279,11 @@ Implementation steps:
    Ordering matters: the local branch cannot be deleted while it is checked out.
 5. Report: PR merged, branches gone, primary checkout on `$DEFAULT_BRANCH` at the merged tip, tree
    clean — the four states Success Criterion 4 tests.
+6. **Name the duplication at the lane's end.** In the merge tail, write one line: *This mirrors
+   `dev:done` Step 2 (`done/SKILL.md:56-131`), which is canonical. It is duplicated because the lane
+   writes no `state.json` and so cannot enter that stage; a change to either side should be reflected
+   at the other.* Task 6 adds the matching pointer at the `dev:done` end. Both halves are required,
+   for the same reason given in Task 4 step 9.
 
 ### Task 6: Duplication pointers in `dev:pr` and `dev:done`
 
@@ -329,8 +349,12 @@ Interfaces:
 Implementation steps:
 1. **SC7/SC8:** `grep -rn 'dev:fix' plugins/ README.md CLAUDE.md` — every hit must refer to the *new*
    lane, and `grep -rn 'dev:linear' …` must cover every Linear reference. Then the path sweep
-   `grep -rn 'skills/fix' .` — every surviving hit must name the *new* lane or sit in Task 1 step 5's
-   exclusion set, since the `dev:fix` grep structurally cannot see path strings. Then
+   `grep -rn 'skills/fix' .` — every surviving hit must name the *new* lane or sit in the exclusion
+   set of Task 1 **steps 5–6** (the two `closed/` items, `backlog-fix-as-short-bug-round-trip.md`, and
+   `product-plans/dev-fast-path.md`), since the `dev:fix` grep structurally cannot see path strings.
+   Also confirm `fix/SKILL.md` carries both mirror-pointer lines (Task 4 step 9, Task 5 step 6), so
+   the "both ends" requirement is verified from both directions rather than only from
+   `dev:pr`/`dev:done`. Then
    `grep -rn '/Users/\|awilliamsbuilds\|adam' plugins/dev/` must still return zero.
 2. **SC6:** `git -C "$WORKDIR" diff --stat main -- plugins/dev/skills/{spec,shape,plan,build,validate,pr,done,autopilot,dev}` and
    inspect each hunk — every one must be a rename reference, one of the three Task 6 pointers
@@ -372,6 +396,10 @@ Implementation steps:
 - Backlog-item entry (`/dev:fix <backlog-slug>`) — Milestone 2.
 - Retiring `~/.claude/commands/` — Milestone 3; those files are outside this repo.
 - Auto-merge — merging stays behind the second invocation.
+- Narrowing Task 7's `dev/SKILL.md` addition to a single invocation row. SC6 carve-out (b) reads "one
+  added invocation-table row"; the lane genuinely has two invocation forms (`/dev:fix "<request>"` and
+  `/dev:fix merge`), so Task 7 adds both and Task 8 validates both. Recorded here so a literal SC6
+  check at Validate reads the pair as the one authorized addition rather than as an unapproved edit.
 - Correcting the spec footer's "a micro cycle still writes every artifact" sentence. Carried from the
   cold review as a concern: micro sets `skipped: ["shape", "plan"]` (`spec/SKILL.md:126`), so
   `design.md` and `plan.md` are never written. The Intent's argument is unaffected — worktree,
