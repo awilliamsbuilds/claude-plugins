@@ -555,6 +555,7 @@ must be captured here or they will be re-derived later against a checkout that h
 ```bash
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
+ITEM=${BRANCH#fix/}   # backlog-adapter identity; resolves to no file on a free-text branch
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
   git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
   SCAN_REF="origin/$DEFAULT_BRANCH"
@@ -737,6 +738,45 @@ tail, racing. This absence is a decision, not an omission.
 
 **On a free-text branch it is also a no-op**, since there is no external record to update.
 
+**On a backlog-sourced branch it closes the item**, per `../../references/entry-adapters.md` §A4.
+That section is a **marked mirror of `dev:debt` Step 6 step 4, which is canonical** — read it there,
+and keep both ends in step. Its four numbered steps run in order:
+
+```bash
+: "${PRIMARY:?run the tail's resolution block first, in this same invocation}" \
+  "${DEFAULT_BRANCH:?}" "${BRANCH:?}" "${ITEM:?}"
+
+[ -f "$PRIMARY/docs/backlog/$ITEM.md" ] || exit 0   # free-text branch — no-op, not an error
+
+RECONCILED=0
+CMP_REF="origin/$DEFAULT_BRANCH"
+git -C "$PRIMARY" rev-parse --verify --quiet "$CMP_REF" >/dev/null || CMP_REF="$DEFAULT_BRANCH"
+if [ "$(git -C "$PRIMARY" branch --show-current)" = "$DEFAULT_BRANCH" ] \
+   && git -C "$PRIMARY" merge-base --is-ancestor "$CMP_REF" HEAD 2>/dev/null; then
+  RECONCILED=1
+fi
+[ "$RECONCILED" -eq 1 ] || { echo "Closeout skipped: checkout not reconciled — $ITEM left open."; exit 0; }
+```
+
+Then, only with both preconditions met **and** the item's front-matter reading `status: open`: edit
+the front-matter (`status: closed`, `closed:` from `date -u +%Y-%m-%d`, `closed_by: $BRANCH`), move
+the file to `docs/backlog/closed/$ITEM.md` (P3 — same basename, new directory; create `closed/` if
+absent), then stage and commit under a `docs/backlog/` pathspec with `git commit -F -` and push with
+the fetch/rebase/re-push retry shape.
+
+**Why `RECONCILED` is re-derived rather than inherited, and `ITEM` is not.** Both are needed here, and
+they are bound in different places. `ITEM` and the other three come from the resolution block above,
+which is re-runnable, so they are asserted with `:?`. `RECONCILED` is bound *inside the merge fence* —
+the invocation this block is deliberately not in, because the front-matter edit between them forces an
+agent turn. Asserting it would abort the closeout on every single run. Re-deriving reads the state
+rather than trusting a variable, which is the rule the Report section below already imposes.
+
+**A `status` that is not `open` is a stop, not a fixup** — a coincidental basename match must never
+archive an unrelated or already-closed item.
+
+**If the push still fails after its retry**, the item is edited but unpushed: say so and name the
+file. Never exit silently leaving a close that reached no branch.
+
 ### Report
 
 When `RECONCILED=1`, state all four end states plainly: PR merged, remote branch gone, local branch
@@ -752,6 +792,11 @@ full, because they leave the checkout in different places:
 
 The fourth state is genuinely unmet either way, and saying so is the whole point.
 
+**On a backlog-sourced branch, add the closeout's outcome** as a fifth line — one of: the item closed
+and pushed (name it); the item left open because the checkout was not reconciled; the item edited but
+unpushed after a failed retry (name the file); or, on a free-text branch, nothing at all, because the
+hook was a no-op.
+
 **Read each state from the command that produced it — do not assert them.** Most of the sequence exits
 on failure, but the reconciliation path deliberately does not, so "we got here" is not by itself proof
 that all four hold. A Report written as a template rather than as a read is how a partial run comes to
@@ -762,11 +807,25 @@ because the lane writes no `state.json` and so cannot enter that stage. A change
 should be reflected at the other. `dev:done` Step 2 and Step 7 carry the matching pointers back to
 here. Two branches of the canonical are **deliberately absent**: its detached-HEAD worktree path (the
 lane never creates a worktree, so it has only the in-place shape) and its `push_integration` helper
-(the lane makes no post-merge commits, so it never pushes to the integration branch).
+— the lane targets `$DEFAULT_BRANCH` directly and has no `$INTEGRATION` branch, so the backlog
+closeout's post-merge commit reuses that helper's fetch/rebase/re-push **shape** without the helper
+itself.
+
+**On reusing rather than invoking `dev:debt` Step 6 for the closeout.** The requirement is that an
+item close through the existing path, not a second implementation — so the mirror in §A4 is marked,
+restates the canonical in full, and names every divergence. `dev:debt` Step 6 is not literally
+invocable from here: it requires a user confirmation turn, and it deliberately refuses to commit. The
+`debt-pending.md` buffer is not available either — it is flushed by `dev:done`, which the lane never
+enters, because the lane writes no `state.json`. A marked mirror is the closest available reading: it
+keeps one canonical, makes the second site findable from the first, and is the same pattern the PR
+body above already uses with `dev:pr` Step 4.
 
 ## Invocation
 
 - `/dev:fix "<what you want done>"` — the lane: ground, triage, branch, change, verify, PR, stop
-- `/dev:fix merge` — the tail: merge that PR, delete both branches, fast-forward, report
+- `/dev:fix linear [<issue-id>]` — the lane, sourced from a Linear issue (no ID opens the picker)
+- `/dev:fix backlog <item>` — the lane, sourced from a `docs/backlog/` item
+- `/dev:fix merge` — the tail: merge that PR, delete both branches, fast-forward, report, close the
+  backlog item if the branch was sourced from one
 
 For a full seven-stage cycle with approval gates, use `/dev`. For a Linear issue, use `/dev:linear`.
