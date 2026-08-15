@@ -6,7 +6,7 @@
 
 ## Intent
 
-Five commands in `~/.claude/commands/` predate the `dev` plugin and overlap it. They cannot simply be
+Five files sit in `~/.claude/commands/`; four of them predate the `dev` plugin and overlap it. They cannot simply be
 deleted: two of them hold capabilities `/dev` does not have, and one of the two — the security
 review — turns out to be missing from the very path this project spent two cycles building.
 
@@ -36,6 +36,12 @@ the new skill's blast radius at zero and makes retiring `security-review.md` an 
 than an expansion. (Chosen over offer-to-capture and auto-capture; the store's writer set stays as the
 tech-debt contract defines it.)
 
+**Where this meets `dev:fix`'s rigor floor, the floor wins.** The floor requires the lane to capture
+anything deferred to `docs/backlog/`. The new skill writing nothing is a property of *the skill*, not
+a licence for its **caller** to drop findings: when the lane declines to fix a P3 or Nit the audit
+surfaced, the lane captures it per the floor, exactly as it already captures any other deferred work.
+The skill reports; the lane decides and records.
+
 **2. `/dev:fix` gains a security review — by calling `/dev:security diff`, not by growing its own.**
 
 The lane runs the diff audit before it opens a PR. It **calls the new skill's `diff` verb** rather
@@ -48,7 +54,12 @@ exactly:
 1. Attempt the fix in the same unattended run.
 2. **Cold re-review the fix diff** — a fresh subagent seeing only that diff, the pattern `dev:validate`
    Step 4 step 8 already uses.
-3. Clean → open the PR. **Any finding on the re-review → stop, commit the work, open no PR.**
+3. Clean → open the PR. **A P1 or P2 on the re-review → stop, commit the work, open no PR.**
+
+   The gate is **P1/P2, matching the initial review's own threshold** and `dev:validate` Step 4 step
+   8's rule that the re-reviewer gates loop exit on P1/P2 only. A P3 or Nit surfaced by the re-review
+   does not block — blocking on one would mean a Nit stops the PR on the second pass while the same
+   Nit ships on the first.
 
 One round only. This is `dev:validate`'s fix loop with `loops_max` pinned to 1.
 
@@ -64,6 +75,11 @@ unattended and unchecked.
 `/dev:fix` and `dev:validate` gain a build check: detect a build system (`package.json` `build`
 script, `Makefile` target, `cargo build`, `go build`), run it, and **stop before the PR if it fails**.
 No build system detected → skip, and say so.
+
+**The suite half of this rule is `/dev:fix`-only, and that asymmetry is deliberate.** `dev:validate`
+runs no test suite at all — verified, its Steps 1–6 contain no suite invocation; `dev:build` runs
+tests per task during TDD, and `dev:validate` reviews. So on the pipeline route there is only a build
+to apply the rule to. Say that in both skills rather than implying a symmetry that does not exist.
 
 **This also settles an existing ambiguity rather than adding a second inconsistent rule.** The lane
 today runs the test suite and says only "Record each result verbatim for the PR body" — it never
@@ -84,7 +100,12 @@ escalation already does. This changes existing suite behavior, deliberately.
 | `security-review-diff.md` | `/dev:security diff` |
 
 **No PR in this repo can delete them** — they live in the user's home directory. This cycle documents
-the exact removal step and states plainly that the keystroke is the user's.
+the exact removal step in a named home: a `## Retired commands` section in **`README.md`**, which
+`CLAUDE.md` already establishes as the human-facing front door for what the plugins are and how to
+set them up. It lists each retired command, its `/dev` replacement, and the `rm` the user runs — and
+states plainly that the keystroke is theirs. `pr.md`'s entry additionally notes that its security step
+already referenced a command (`/security-review-pr`) that never existed, so the flow it advertised had
+not been running.
 
 **5. Three debt items, folded in at the Step 7 cross-check.**
 
@@ -93,10 +114,21 @@ the exact removal step and states plainly that the keystroke is the user's.
   writes build-detection shell into two skills, which is exactly that class of claim.
 - `debt-bare-reference-paths-do-not-resolve` — **closed.** The two remaining bare `references/` paths
   in `init/SKILL.md` and `done/SKILL.md` gain the `../../` prefix that resolves.
-- `debt-primary-cd-failure-unchecked` — **not closed, and deliberately so.** `dev:security` is a new
-  skill needing its own `PRIMARY` derivation. This cycle guards *that one site* so the item's count
+- `debt-primary-cd-failure-unchecked` — **not closed, and deliberately so.** The new skill needs its
+  own `PRIMARY` derivation for a stated reason: both verbs must resolve the repository root to scope
+  what they audit, and the skill can be invoked from inside a `.dev-worktrees/<feature>` tree, so it
+  cannot rely on the shell's directory — the same situation `dev:debt` Step 1 solves the same way. This cycle guards *that one site* so the item's count
   does not grow 12 → 13 and its body does not go stale on merge. The other 12 sites stay unguarded and
   the item stays `status: open`. This is the same forced-bookkeeping shape `entry-adapters` hit.
+
+**Note for Plan — six workstreams, at the top of one deep cycle's range.** In scope: the new skill
+with two checklists, the lane's bounded fix loop plus cold re-review, build/suite rules across two
+skills, the retirement documentation, and three debt items. **If the task list comes back oversized,
+the split seam is capability-then-retirement, not layer-shaped:** (1) §1 + §2 + §5's `PRIMARY` guard —
+the security half, which is precisely what makes retiring the two `security-review*` commands a trade
+rather than a loss; then (2) §3 + §4 + the two debt closes. §3 depends on nothing in §1, and §4's
+retirement table cannot honestly be written until §1 exists. This is a fallback ordering, not an
+instruction to split.
 
 ## Out of Scope
 
@@ -134,21 +166,33 @@ the exact removal step and states plainly that the keystroke is the user's.
    and reported. Both are covered by a single stated rule, not two.
 6. A repo with no detectable build system runs the lane unchanged and says in the PR body that no
    build was found — distinguishable from "the build passed."
-7. `~/.claude/commands/{fix,pr,security-review,security-review-diff}.md` each have a named `/dev`
-   replacement documented in the repo, and the manual removal step is written down as the user's to
-   perform. `branches.md` is not mentioned as a retirement target.
+7. `README.md` carries a `## Retired commands` section naming all four of
+   `{fix,pr,security-review,security-review-diff}.md`, each with its `/dev` replacement and the `rm`
+   command, and stating the deletion is the user's to run. `branches.md` does not appear in it.
+   Checkable: `grep -c '^| \`' README.md` against that section returns 4.
 8. `plugins/dev/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` are **unchanged** —
    verified against `origin/main`. Adding a skill to an existing plugin touches only a new `SKILL.md`
    (`CLAUDE.md:11`), and a diff to either file means that rule was misread.
 9. `docs/backlog/debt-validate-fix-claims-unmeasured.md` and
    `docs/backlog/debt-bare-reference-paths-do-not-resolve.md` are in `docs/backlog/closed/` with
-   `status: closed`, and `grep -rn '](references/' plugins/dev/skills/` returns zero.
+   `status: closed`, and ``grep -rn '`references/' plugins/dev/skills/ --include=SKILL.md`` returns
+   zero. **The backtick form is the load-bearing part:** the two stale paths are inline code spans,
+   not Markdown links, so the link-form grep `'](references/'` returns zero *today* and would pass
+   whether or not the fix landed. The debt item's own `**Done looks like:**` carries that same broken
+   grep and **must be corrected before the item is closed** — otherwise this cycle archives it against
+   a test that cannot fail.
 10. `docs/backlog/debt-primary-cd-failure-unchecked.md` still reads `status: open` with **12** entries
     in `files:` and body counts agreeing. `dev:security` carries a guarded derivation, so it is not a
     13th site.
-11. `/dev`, `/dev:autopilot`, and stages `shape`/`plan`/`build`/`spec`/`done` are byte-identical
-    except where a retired command is referenced. `dev:fix`, `dev:validate`, `dev:pr`, `dev:init` and
-    `dev:done` change as the Scope requires.
+12. `dev:validate` detects and runs a build where one exists, stops the stage before `dev:pr` if it
+    fails, and records the result in `validation.md`. Where no build system is detected it says so
+    rather than implying success. **This criterion exists because Scope §3 gives the build check to
+    two skills and the earlier criteria only test one** — and because the suite half of §3's rule does
+    not apply here, `dev:validate` running no suite.
+11. `/dev`, `/dev:autopilot`, and stages `shape`/`plan`/`build`/`spec`/`pr` are byte-identical
+    except where a retired command is referenced. `dev:fix` and `dev:validate` change as Scope §2–3
+    require. `dev:init` and `dev:done` change **only** by the `../../` reference-path fix in §5 —
+    nothing in Scope assigns either of them any other change, and `dev:pr` none at all.
 
 ## Happy Path
 
