@@ -275,11 +275,56 @@
 
   /* --- detail pane --- */
 
+  .detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .detail-id {
     font-family: var(--mono);
     font-size: 16px;
     font-weight: 600;
     word-break: break-all;
+  }
+
+  .copy-id {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--ink-mute);
+    font-family: var(--sans);
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .copy-id:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .copy-id svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+
+  .copy-id.copied {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .copy-id.failed {
+    border-color: var(--line);
+    color: var(--ink-soft);
   }
 
   .detail-chips {
@@ -514,6 +559,69 @@ function itemByKey(key) {
   return null;
 }
 
+// --- view state persistence ---
+
+// sessionStorage, not localStorage: filters survive a refresh and die with the
+// tab, which is what "remember while I'm looking, forget when I close it" means.
+// Keyed by repo so two viewers on the same port across restarts can't inherit
+// each other's filters.
+const VIEW_STATE_KEY = 'dev-backlog-view:' + STORE.repo_name;
+
+function saveViewState() {
+  const facets = {};
+  Object.keys(chosen).forEach(function (field) {
+    // Array.from, not slice.call: a Set has no length or index access, so
+    // slice.call would quietly yield [] and persist an empty filter.
+    if (chosen[field].size) facets[field] = Array.from(chosen[field]);
+  });
+  try {
+    sessionStorage.setItem(VIEW_STATE_KEY, JSON.stringify({
+      facets: facets,
+      query: el.search.value,
+      sort: el.sort.value
+    }));
+  } catch (err) {
+    // Storage disabled or full. Filtering still works; it just won't persist.
+  }
+}
+
+function restoreViewState() {
+  let saved = null;
+  try {
+    saved = JSON.parse(sessionStorage.getItem(VIEW_STATE_KEY) || 'null');
+  } catch (err) {
+    saved = null;
+  }
+  if (!saved || typeof saved !== 'object') return;
+
+  // Facet values come from disk and the store changes between visits, so a saved
+  // value may no longer exist. Restoring one that doesn't would filter every item
+  // out with no checkbox to untick — so accept only values still present.
+  const live = {};
+  Object.keys(STORE.facets).forEach(function (field) {
+    live[field] = new Set(STORE.facets[field].map(function (entry) {
+      return facetKey(entry.value);
+    }));
+  });
+  const facets = saved.facets;
+  if (facets && typeof facets === 'object') {
+    Object.keys(facets).forEach(function (field) {
+      if (!live[field] || !Array.isArray(facets[field])) return;
+      chosen[field] = chosen[field] || new Set();
+      facets[field].forEach(function (key) {
+        if (live[field].has(key)) chosen[field].add(key);
+      });
+    });
+  }
+
+  if (typeof saved.query === 'string') el.search.value = saved.query;
+  if (typeof saved.sort === 'string') {
+    const options = Array.prototype.slice.call(el.sort.options);
+    const match = options.some(function (option) { return option.value === saved.sort; });
+    if (match) el.sort.value = saved.sort;
+  }
+}
+
 // --- filter rail ---
 
 function renderRail() {
@@ -538,6 +646,7 @@ function renderRail() {
 
       const box = document.createElement('input');
       box.type = 'checkbox';
+      box.checked = chosen[field].has(key);   // restored state, when there is any
       box.addEventListener('change', function () {
         if (box.checked) chosen[field].add(key);
         else chosen[field].delete(key);
@@ -793,6 +902,86 @@ function relationshipBlock(item) {
   return block;
 }
 
+// --- copy the item id ---
+
+// Inline SVG, built with createElementNS rather than innerHTML — the page has no
+// external assets, which is the invariant the CSP's default-src 'none' depends on.
+function copyGlyph() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.5');
+  svg.setAttribute('aria-hidden', 'true');
+  const back = document.createElementNS(NS, 'rect');
+  back.setAttribute('x', '5.75');
+  back.setAttribute('y', '5.75');
+  back.setAttribute('width', '8.5');
+  back.setAttribute('height', '8.5');
+  back.setAttribute('rx', '1.5');
+  const front = document.createElementNS(NS, 'path');
+  front.setAttribute('d', 'M10.25 3.25v-.5a1.5 1.5 0 0 0-1.5-1.5h-6a1.5 1.5 0 0 0-1.5 1.5v6a1.5 1.5 0 0 0 1.5 1.5h.5');
+  svg.appendChild(back);
+  svg.appendChild(front);
+  return svg;
+}
+
+function writeClipboard(text) {
+  // 127.0.0.1 is a secure context, so the async API is the normal path. The
+  // fallback covers a browser that withholds it; a silent no-op would be worse
+  // than an ugly one.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise(function (resolve, reject) {
+    const pad = document.createElement('textarea');
+    pad.value = text;
+    pad.setAttribute('readonly', '');
+    pad.style.position = 'fixed';
+    pad.style.opacity = '0';
+    document.body.appendChild(pad);
+    pad.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    document.body.removeChild(pad);
+    ok ? resolve() : reject(new Error('copy unavailable'));
+  });
+}
+
+function copyButton(text) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'copy-id';
+  button.title = 'Copy id';
+  button.setAttribute('aria-label', 'Copy id');
+
+  const label = document.createElement('span');
+  label.textContent = 'copy';
+  button.appendChild(copyGlyph());
+  button.appendChild(label);
+
+  let timer = null;
+  const settle = function (state, word) {
+    button.classList.remove('copied', 'failed');
+    if (state) button.classList.add(state);
+    label.textContent = word;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function () {
+      button.classList.remove('copied', 'failed');
+      label.textContent = 'copy';
+    }, 1400);
+  };
+
+  button.addEventListener('click', function () {
+    writeClipboard(text).then(
+      function () { settle('copied', 'copied'); },
+      function () { settle('failed', "couldn't copy"); }
+    );
+  });
+  return button;
+}
+
 function clearDetail() {
   Array.prototype.slice.call(el.detail.children).forEach(function (node) {
     if (node !== el.resting) el.detail.removeChild(node);
@@ -808,10 +997,15 @@ function renderDetail() {
   }
   el.resting.hidden = true;
 
+  const head = document.createElement('div');
+  head.className = 'detail-head';
+
   const heading = document.createElement('div');
   heading.className = 'detail-id';
   heading.textContent = item.id;
-  el.detail.appendChild(heading);
+  head.appendChild(heading);
+  head.appendChild(copyButton(item.id));
+  el.detail.appendChild(head);
 
   if (item.parse_error) {
     const badge = document.createElement('div');
@@ -894,6 +1088,7 @@ function refresh() {
   el.restingCount.textContent = String(visible.length);
   renderList();
   renderEmptyStates(visible.length);
+  saveViewState();   // every filter/search/sort change funnels through here
 }
 
 document.title = 'dev backlog — ' + STORE.repo_name;
@@ -910,6 +1105,7 @@ el.clear.addEventListener('click', function () {
   refresh();   // sort and selection are deliberately untouched
 });
 
+restoreViewState();   // must precede renderRail, which reads `chosen` for checkbox state
 renderRail();
 refresh();
 renderDetail();
