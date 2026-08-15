@@ -170,6 +170,9 @@ Write to `docs/dev/<feature>/validation.md`:
 Loops run: N / N_max
 Final status: clean | proceeded with open issues | stopped
 
+## Build
+[passed (<command>) | FAILED (<command>) + output | no build system detected]
+
 ## Issues Resolved
 ### Loop 1
 - P1: [issue] → fixed by [what was done]
@@ -238,6 +241,58 @@ defect-class P3s. But Step 4 is now this buffer's main upstream rather than a fi
 every polish-class P3 the fix loop declines to touch arrives here, alongside whatever genuinely
 survives a defect-class fix attempt. A larger buffer is the intended trade — the alternative is
 paying for each polish edit with a regression the re-review reopens the loop for.
+
+## Step 5b: Build Check
+
+**Mirror of `dev:fix`'s `### Verify` build check, which is canonical.** The branch structure is
+restated in full below rather than referenced, because two independently-written implementations of
+one procedure drift, and the drift reads as correct in each file on its own. A change to either side
+should be reflected at the other.
+
+Placement is deliberate: **after** Step 5a so the carrying-cost buffer is already final, and
+**before** Step 6 so a failure stops the stage before the state advance and before `dev:pr`.
+
+**Detect the build rather than assuming it**, first match wins — same order as the canonical:
+
+- **B1.** `package.json` exists and has a `build` script → `npm run build`, using the package manager
+  the lockfile names (`pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, else `npm`)
+- **B2.** else `Makefile` exists and has a `build` target → `make build`
+- **B3.** else `Cargo.toml` exists → `cargo build`
+- **B4.** else `go.mod` exists → `go build ./...`
+- **B5.** else → no build system detected
+
+Run the build inside `$WORKDIR`, consistent with the rest of this stage's `-C "$WORKDIR"` discipline.
+
+Three outcomes:
+
+- **O1.** Detected, exits 0 → record `Build: passed (<command>)` in `validation.md`. Continue to
+  Step 6.
+- **O2.** Detected, exits non-zero → record `Build: FAILED (<command>)` and the output in
+  `validation.md`, then **stop the stage.** Do not add `"validate"` to `completed[]`, do not advance
+  `stage` to `"pr"`, and do not proceed to `dev:pr`. Commit `validation.md` so the failure is
+  durable, then report the failing command and its output.
+- **O3.** Not detected (B5) → record `Build: no build system detected` in `validation.md`. Continue
+  to Step 6. **Never render this as a pass.**
+
+**Two divergences from the canonical, named identically at both ends:**
+
+- **D1 — no suite half here.** `dev:validate` runs no test suite: Steps 1–6 of this file contain no
+  suite invocation, because `dev:build` runs tests per task during TDD and this stage reviews. So on
+  the pipeline route there is only a build to apply the rule to. Say that rather than implying a
+  symmetry that does not exist.
+- **D2 — O2's action shape.** The canonical commits the work and opens no PR; this mirror records to
+  `validation.md`, withholds the `completed[]`/`stage` writes, and commits `validation.md` — because
+  this route has a state file and a next stage, and the lane has neither.
+
+**Autopilot mode:** a failing build is a **genuine blocker**. Stop the run, surface the failing
+command and its output, and require human input. It is not routed into the fix loop and not
+auto-retried — the fix loop reviews a diff, and a broken build is not a review finding.
+
+This stop is named in `dev:autopilot`'s **"When autopilot stops" list**. Cite it by that name rather
+than as "Step 2": the list lives at `autopilot/SKILL.md:14`, inside `## Purpose`, while
+`## Step 2: Autopilot Behavioral Rules` begins at line 87 and holds no stop list. (`build/SKILL.md`
+carries the "Step 2" misnomer already; do not propagate it.) The two-way naming is the point — a
+blocker documented on one side only is a gap even when that side is correct.
 
 ## Step 6: Update State + Commit
 
