@@ -4,11 +4,12 @@
   "branch": "feature/entry-adapters",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -18,7 +19,7 @@
     "spec": "docs/dev/entry-adapters/spec.md",
     "design": null,
     "plan": "docs/dev/entry-adapters/plan.md",
-    "validation": null,
+    "validation": "docs/dev/entry-adapters/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -87,7 +88,9 @@
       "plan_start": "2026-08-15T12:55:21Z",
       "plan_end": "2026-08-15T13:04:10Z",
       "build_start": "2026-08-15T15:06:02Z",
-      "build_end": "2026-08-15T15:17:18Z"
+      "build_end": "2026-08-15T15:17:18Z",
+      "validate_start": "2026-08-15T15:40:14Z",
+      "validate_end": "2026-08-15T16:17:24Z"
     }
   }
 }

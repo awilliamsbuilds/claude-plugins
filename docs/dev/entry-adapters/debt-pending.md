@@ -115,6 +115,78 @@ knowledge-update document is still unwanted in repos with no Vercel surface,
 `vercel@claude-plugins-official` goes too — that is a preference call, not a defect.
 ````
 
+### cross-file-line-citations-go-stale-silently
+````markdown
+---
+type: debt
+scope: repo
+status: open
+severity: P3
+first_recorded: 2026-08-15
+cycles: [entry-adapters]
+recurrence: 1
+files:
+  - plugins/dev/skills/autopilot/SKILL.md
+  - plugins/dev/skills/fix/SKILL.md
+  - plugins/dev/skills/migrate-tracker/SKILL.md
+---
+
+**What's wrong:** `/dev` skills cite each other by `file:line`, and nothing keeps those citations
+true. Editing any cited file silently invalidates every pointer into it from every other file. This
+cycle broke **eight** such citations merely by inserting lines into `spec/SKILL.md`, `pr/SKILL.md`,
+and `debt/SKILL.md`; seven were repaired, one could not be. The repo treats these citations as
+load-bearing — the spec for this very cycle argued that leaving one pointing at a deleted file "turns
+a checkable claim into an unverifiable one" — so a silently-drifting pointer is the same defect the
+repo already says it cares about, arriving by a different route.
+
+**The one that could not be repaired is the useful part of this item.**
+`autopilot/SKILL.md:139` cites `spec/SKILL.md:478`, which this cycle shifted to roughly 533. Repairing
+it would edit `dev:autopilot`, and this cycle's SC10 requires that file byte-identical except for
+`dev:linear` rename references. So a **success criterion and a correctness fix were in direct
+conflict**, and the criterion won. That conflict is structural, not a one-off: any cycle that both
+edits a cited file and freezes a citing file will hit it again.
+
+**Why deferred:** The repair is mechanical but the *design* question is not, and it is the kind that
+wants its own cycle: either citations stop carrying line numbers (cite by step or section name, which
+is what this cycle's repairs in `migrate-tracker` actually did), or something checks them. Choosing
+between those is a contract decision across a dozen skills.
+
+**Done looks like:** Either `/dev` skills cite each other by stable anchor (step number, section
+heading) rather than by line number, and the remaining `file:line` forms are converted; or a check
+exists that resolves every `file:line` citation and fails when one no longer points at what it claims.
+Editing a cited file then cannot silently falsify a citation in a file the editing cycle never opened.
+````
+
+### bare-reference-paths-do-not-resolve
+````markdown
+---
+type: debt
+scope: repo
+status: open
+severity: Nit
+first_recorded: 2026-08-15
+cycles: [entry-adapters]
+recurrence: 1
+files:
+  - plugins/dev/skills/init/SKILL.md
+  - plugins/dev/skills/done/SKILL.md
+---
+
+**What's wrong:** Skills live at `plugins/dev/skills/<name>/SKILL.md` and shared references at
+`plugins/dev/references/`, so a reference must be cited as `../../references/<file>.md`. Several
+sites instead write a bare `references/<file>.md`, which resolves to nothing from a skill directory.
+This cycle found and fixed seven such paths (five in `migrate-tracker`, one in `done`, one in
+`debt`); two remain at `init/SKILL.md:162` and `done/SKILL.md:264`.
+
+**Why deferred:** Both remaining sites are pre-existing and neither file was otherwise in this
+cycle's scope — and `done/SKILL.md` carried an additional constraint, since SC10 limited this cycle's
+edits to that file to `dev:linear` rename references. Fixing them is a two-line change that belongs
+with whatever next opens those files, not a reason to widen this cycle.
+
+**Done looks like:** `grep -rn '](references/' plugins/dev/skills/` returns zero — every reference
+citation from a skill directory carries the `../../` prefix that actually resolves.
+````
+
 ## To Close
 
 - debt-fix-tail-guard-stale-when-offline — this cycle rewrites `skills/fix/SKILL.md`'s argument parse and is already in the merge tail; capturing the fetch exit status is a few lines with a pre-written fix
