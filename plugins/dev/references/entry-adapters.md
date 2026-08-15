@@ -243,17 +243,20 @@ from a bare-slug `<item>` double-prefixes to `debt-debt-foo`, and a path built f
 
 ### Resolve
 
-**Validate the *resolved* `<item>` before it reaches a path or a branch name.** After the resolution
-below — including the bare-slug normalization, which is what supplies the `<type>-` prefix when the
-user omitted it — the value must match `^(debt|backlog)-[a-z0-9][a-z0-9-]*$`. Order matters: applied
-*before* normalization this would reject the bare-slug form the next paragraph explicitly accepts.
-This is a real trust boundary, not a formality: `<item>` is
-user-typed CLI text, and it goes on to build a filesystem path *and* a git branch name. The store's
-P2 slug rule is enforced by the store's **writers**, which says nothing about what someone types
-here. Rejecting up front also closes traversal — `/dev:fix backlog ../dev/entry-adapters/spec` would
-otherwise resolve a real file outside the store, land on the `status`-less branch the refusal table
-has no case for, and yield the branch `fix/../dev/entry-adapters/spec`, stopped only by git's own ref
-rules. That is an accidental backstop, not a guard.
+**Validate the *resolved* `<item>` before it is used as a path or a branch name.** After the
+resolution below — including the bare-slug normalization, which is what supplies the `<type>-` prefix
+when the user omitted it — the value must match `^(debt|backlog)-[a-z0-9][a-z0-9-]*$`. **Order
+matters, in both directions:** applied *before* normalization this would reject the bare-slug form
+the next paragraph explicitly accepts; applied any *later* than the end of resolution, the value has
+already reached the refusal table and the branch name. A later reader must not "tidy" it to either
+side.
+
+This is a real trust boundary, not a formality: `<item>` is user-typed CLI text, and it goes on to
+build a filesystem path *and* a git branch name. The store's P2 slug rule is enforced by the store's
+**writers**, which says nothing about what someone types here. Rejecting before use also closes
+traversal — `/dev:fix backlog ../dev/entry-adapters/spec` would otherwise reach the `status`-less
+branch the refusal table has no case for, and yield the branch `fix/../dev/entry-adapters/spec`,
+stopped only by git's own ref rules. That is an accidental backstop, not a guard.
 
 Resolve `$PRIMARY/docs/backlog/<item>.md`. Not found → **STOP naming the path**; never fall back
 to treating the argument as free text.
