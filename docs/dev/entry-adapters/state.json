@@ -41,9 +41,9 @@
     "run": true,
     "blockers": 3,
     "concerns": 3,
-    "applied": 21,
+    "applied": 27,
     "dismissed": 0,
-    "loops_run": 3,
+    "loops_run": 4,
     "loops_max": 5
   },
   "confidence": {
