@@ -3,10 +3,11 @@
   "feature": "retire-legacy-commands",
   "branch": "feature/retire-legacy-commands",
   "mode": "autopilot",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -73,12 +74,14 @@
     "spec_questions_asked": 6,
     "spec_revisions": 3,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 4,
     "stage_timestamps": {
       "spec_start": "2026-08-15T18:07:02Z",
       "spec_end": "2026-08-15T22:45:47Z",
       "plan_start": "2026-08-15T22:26:07Z",
-      "plan_end": "2026-08-15T22:33:41Z"
+      "plan_end": "2026-08-15T22:33:41Z",
+      "build_start": "2026-08-15T22:56:19Z",
+      "build_end": "2026-08-15T23:02:54Z"
     }
   },
   "handoff_at": "spec"
