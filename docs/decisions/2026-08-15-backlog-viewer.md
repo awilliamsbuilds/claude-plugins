@@ -43,3 +43,24 @@ A `view` verb on `dev:debt` that serves the whole `docs/backlog/` store — acti
 ## Artifacts (archived)
 
 Spec, design, and plan committed at: `132278d` on branch `feature/backlog-viewer`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-15*
+
+**Spec:** 14 questions over 2h43m — the longest stage by 3× — and it earned the time: confidence 100, nothing auto-filled, zero user revisions at the gate. The cold review's single blocker was the one that mattered (enum values had been taken from the contract rather than from disk) and it redirected the entire facet design; all 5 findings applied, none dismissed.
+
+**Shape:** Design was followed closely — Option B's rail/list/detail survived into Build unchanged. Two post-draft corrections landed as separate commits (severity's role, facet ordering) that no counter records: `spec_revisions` has no Shape or Plan analogue, so churn after those stages' first drafts is invisible to this retrospective.
+
+**Plan:** Accurate — 4 files read in Build, no mid-build task additions, and Task 5 was honest up front about the layer it couldn't test. Plan challenger: 1 blocker, 3 concerns, all 4 applied, none dismissed.
+
+**Validate:** 3 loops / 3 max — the budget was exhausted, not comfortably cleared. Loops 2 and 3 were each opened by the previous loop's cold re-review, and three of the eight P2s were regressions the fix loop itself introduced, all in the page's body renderer — the one layer Plan had declared untestable. The run ended clean, but with no budget left had the final re-review found a fourth.
+
+**Flow:** Standard tier was right. No backtracks, no skipped stages, no stage that felt unnecessary.
+
+**Token efficiency:** `files_read_in_build` of 4 is low — the plan carried enough that Build didn't go looking. All 4 Shape screens were load-bearing. The real outlier is invisible to `stage_timestamps`: ~30 hours of wall clock between `plan_end` and `build_start`, 13 more between `validate_end` and the PR, and no `done` stamp at all.
+
+**Suggestions:**
+- When a Plan task declares a TDD deviation, `dev:validate`'s fix loop should require that task's manual verification be re-run on edits to those files, not just a diff review — three of eight P2s were regressions in exactly that layer, each caught only because a cold re-review happened to look. **Implemented:** `validate/SKILL.md` step 8a, PR #74.
+- Metrics have no per-stage revision counter beyond `spec_revisions` and no `done` timestamp; both were felt directly while writing this. Recorded rather than fixed here — it belongs to the contract Milestone 2's `telemetry-schema` cycle is chartered to design.
+
+**Deferred to tech debt:** `stage-metrics-blind-to-revisions-and-done`
