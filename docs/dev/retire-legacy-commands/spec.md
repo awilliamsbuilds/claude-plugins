@@ -21,14 +21,27 @@ it establishes is one sentence: **every route to a PR runs the same two checks.*
 
 ## Scope
 
-**1. A new `dev:security` skill — on-demand, outside the pipeline.**
+**1. A new `dev:secure` skill — on-demand, outside the pipeline.**
 
 Two verbs, sibling to `dev:debt` in shape (no stage gate, no `state.json`, no cycle artifacts):
 
 | Verb | Behavior |
 |---|---|
-| `/dev:security` | Whole-project audit — the replacement for `security-review.md` |
-| `/dev:security diff` | Current-diff audit — the replacement for `security-review-diff.md` |
+| `/dev:secure` | Whole-project audit — the replacement for `security-review.md` |
+| `/dev:secure diff` | Current-diff audit — the replacement for `security-review-diff.md` |
+
+**The name is a verb, and the skill must correct its own implication immediately.** `/dev:secure`
+reads as an imperative — *secure this project* — and the honest answer it returns is *here's what is
+stopping it.* That reading works, and it stays accurate if the skill later grows to fix rather than
+only report. But because "secure" names an action this version does not take, **the frontmatter
+description and the skill's own opening line must both state that it reports and modifies nothing.**
+The name may not be the only thing telling the user what happens.
+
+*Recorded because the alternative was argued and lost:* the spec author twice raised that `secure`
+names an outcome the skill does not deliver, and proposed `risk` (widest headroom, pairs with
+`dev:debt`) or `audit`. The user chose `secure` on the grounds that the namespace's convention is
+single-word and verb-shaped — `fix`, `validate`, `build`, `plan`, `shape`, `reflect` — and that a
+noun would sit apart from it. The requirement above is what carries the cost of that choice.
 
 **Report only. It writes nothing.** Findings are printed, severity-classified, and the skill stops.
 It does not write to `docs/backlog/`, does not prompt, and does not modify a single file. This keeps
@@ -42,7 +55,7 @@ a licence for its **caller** to drop findings: when the lane declines to fix a P
 surfaced, the lane captures it per the floor, exactly as it already captures any other deferred work.
 The skill reports; the lane decides and records.
 
-**2. `/dev:fix` gains a security review — by calling `/dev:security diff`, not by growing its own.**
+**2. `/dev:fix` gains a security review — by calling `/dev:secure diff`, not by growing its own.**
 
 The lane runs the diff audit before it opens a PR. It **calls the new skill's `diff` verb** rather
 than restating the checklist, so there is one canonical implementation and no mirror to drift. This is
@@ -96,8 +109,8 @@ escalation already does. This changes existing suite behavior, deliberately.
 |---|---|
 | `fix.md` | `/dev:fix linear <id>` (shipped by `entry-adapters`) |
 | `pr.md` | `dev:pr` + `dev:fix`'s PR segment, plus this cycle's build check |
-| `security-review.md` | `/dev:security` |
-| `security-review-diff.md` | `/dev:security diff` |
+| `security-review.md` | `/dev:secure` |
+| `security-review-diff.md` | `/dev:secure diff` |
 
 **No PR in this repo can delete them** — they live in the user's home directory. This cycle documents
 the exact removal step in a named home: a `## Retired commands` section in **`README.md`**, which
@@ -140,9 +153,30 @@ instruction to split.
   the spec says so rather than overclaiming.
 - **`branches.md`.** It restarts a launchd service for a personal app and has nothing to do with
   `/dev`. The product plan's command list never named it; it is excluded rather than swept up.
-- **Whole-project audit on every PR.** `/dev:security` is ad hoc. Running a full-project scan per PR
+- **Whole-project audit on every PR.** `/dev:secure` is ad hoc. Running a full-project scan per PR
   would re-report the same findings every cycle; the per-PR check is the diff audit.
 - **Writing audit findings to `docs/backlog/`.** Considered and declined — see Scope §1.
+- **Security vectors deliberately deferred — named rather than assumed, because the skill is expected
+  to grow into them.** This cycle ships the checklist `security-review.md` and `dev:validate` Step 2
+  already carry: injection, authn/authz gaps, data exposure, dependency and config issues, and a few
+  business-logic classes, plus the ecosystem scanners (`npm audit`, `pip-audit`, `govulncheck`) and
+  committed-secret greps. Out for now, each for a stated reason:
+  - **Threat modeling** — trust boundaries, attack trees, STRIDE. A different discipline requiring
+    system context this skill does not read, not a longer checklist.
+  - **Active testing / DAST** — the skill never executes an attack, only reads. Running one would need
+    a live target and a safety story neither this spec nor the lane has.
+  - **IaC and container configuration** — Terraform, Dockerfiles, k8s manifests. A distinct rule set
+    and distinct tooling; the natural second vector to add.
+  - **Supply-chain provenance** — lockfile integrity, dependency confusion, typosquatting. The
+    scanners cover *known-vulnerable versions*; they say nothing about whether the package is the one
+    you meant.
+  - **Secret liveness** — the greps find committed secrets but cannot tell a revoked key from an
+    active one, which is what determines urgency.
+  - **Compliance mapping** — SOC 2, OWASP ASVS coverage. Reporting against a framework is a different
+    output shape from reporting findings.
+
+  Adding any of these is a later cycle. They are listed so the growth path is a decision rather than
+  a rediscovery, and so the name's headroom is backed by a written scope.
 - **Retiring `~/.claude/commands/` as a mechanism.** Only these four files are addressed.
 - **Closing the remaining 12 unguarded `PRIMARY` derivations.** See Scope §5.
 - **A fix loop on the fast path beyond one round.** The single round is the bound; a second finding
@@ -150,13 +184,13 @@ instruction to split.
 
 ## Success Criteria
 
-1. `/dev:security` exists at `plugins/dev/skills/security/SKILL.md` and its whole-project verb prints
+1. `/dev:secure` exists at `plugins/dev/skills/secure/SKILL.md` and its whole-project verb prints
    a severity-classified report while creating, modifying, and deleting **zero** files —
    `git status --porcelain` is byte-identical before and after a run.
-2. `/dev:security diff` audits only the current diff against the default branch, and its findings use
+2. `/dev:secure diff` audits only the current diff against the default branch, and its findings use
    the same P1/P2/P3/Nit vocabulary `dev:validate` Step 3 already defines — not a second severity
    scheme.
-3. `/dev:fix` invokes `/dev:security diff` before opening a PR. **The lane does not restate the
+3. `/dev:fix` invokes `/dev:secure diff` before opening a PR. **The lane does not restate the
    security checklist** — `grep -c 'injection\|XSS\|CSRF' plugins/dev/skills/fix/SKILL.md` returns
    zero, proving the call is a call and not a copy.
 4. On a P1/P2 the lane fixes once, cold re-reviews **that fix's diff**, and opens the PR only on a
@@ -182,7 +216,7 @@ instruction to split.
    grep and **must be corrected before the item is closed** — otherwise this cycle archives it against
    a test that cannot fail.
 10. `docs/backlog/debt-primary-cd-failure-unchecked.md` still reads `status: open` with **12** entries
-    in `files:` and body counts agreeing. `dev:security` carries a guarded derivation, so it is not a
+    in `files:` and body counts agreeing. `dev:secure` carries a guarded derivation, so it is not a
     13th site.
 12. `dev:validate` detects and runs a build where one exists, stops the stage before `dev:pr` if it
     fails, and records the result in `validation.md`. Where no build system is detected it says so
@@ -199,7 +233,7 @@ instruction to split.
 1. `/dev:fix "drop the redundant prefix from the dev skill names"` in a repo with a build script.
 2. Preflight passes; the lane grounds, triages at 0 unresolved decisions, branches, and makes the edit.
 3. **Verify:** the build runs and passes; the test suite runs and passes. Both results recorded verbatim.
-4. **Security:** the lane calls `/dev:security diff`. One P2 is found — an unquoted variable reaching a
+4. **Security:** the lane calls `/dev:secure diff`. One P2 is found — an unquoted variable reaching a
    shell command.
 5. The lane fixes it, then cold re-reviews that fix's diff. The re-review is clean.
 6. PR opened. The body carries the build result, the suite result, and the security review's outcome
@@ -217,10 +251,10 @@ instruction to split.
   attempting a second round. This is the bound.
 - **The inline fix cannot be made** (the finding is a design problem, not a line). Stop, commit, report
   — do not open the PR with a known P1.
-- **`/dev:security` run in a repo with no git remote or on a detached HEAD.** The whole-project verb
+- **`/dev:secure` run in a repo with no git remote or on a detached HEAD.** The whole-project verb
   needs neither; the `diff` verb does need a base to diff against, and stops naming the reason when it
   cannot resolve one.
-- **`/dev:security diff` with an empty diff.** Say so and stop; do not report "no findings," which
+- **`/dev:secure diff` with an empty diff.** Say so and stop; do not report "no findings," which
   reads as an audit that ran.
 - **A retired command is still invoked** after this merges but before the user deletes the files. The
   command still exists on their machine and still runs — this cycle cannot prevent that, and the
@@ -248,8 +282,8 @@ language.
   security gate has been a dangling reference, which is worth stating in the retirement note.
 - **No build tooling in this repo.** The repo ships markdown skills; this cycle must not introduce a
   build step, and its own build check will correctly detect nothing here.
-- **Frontmatter `name:` must stay bare** (`security`, not `dev:security`) or autocomplete renders
-  `/dev:dev:security`.
+- **Frontmatter `name:` must stay bare** (`secure`, not `dev:secure`) or autocomplete renders
+  `/dev:dev:secure`.
 - **Severity vocabulary is already defined** at `dev:validate` Step 3 (P1/P2/P3/Nit). The new skill
   consumes it rather than defining a second scheme.
 

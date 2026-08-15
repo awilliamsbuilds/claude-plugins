@@ -68,12 +68,12 @@
   "worktreePath": ".dev-worktrees/retire-legacy-commands",
   "metrics": {
     "spec_questions_asked": 6,
-    "spec_revisions": 0,
+    "spec_revisions": 1,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-15T18:07:02Z",
-      "spec_end": "2026-08-15T20:26:32Z"
+      "spec_end": "2026-08-15T20:44:31Z"
     }
   }
 }
