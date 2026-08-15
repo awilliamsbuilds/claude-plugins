@@ -1,11 +1,11 @@
 ---
-name: fix
-description: "Linear-aware entry point into the full /dev workflow. Takes a Linear issue ID (e.g., /dev:fix ENG-123) or lists open issues to pick from. Pre-fills spec dimensions from the issue, starts confidence meter higher, names branch from issue ID. Continues into normal /dev spec flow."
+name: linear
+description: "Linear-aware entry point into the full seven-stage /dev workflow. Takes a Linear issue ID (e.g., /dev:linear ENG-123) or lists open issues to pick from. Pre-fills spec dimensions from the issue, starts confidence meter higher, names branch from issue ID. Continues into normal /dev spec flow. For a fast, artifact-free change use /dev:fix instead."
 ---
 
-# dev:fix — Linear Issue Entry Point
+# dev:linear — Linear Issue Entry Point
 
-**Announce:** "I'm using dev:fix to start a /dev cycle from a Linear issue."
+**Announce:** "I'm using dev:linear to start a /dev cycle from a Linear issue."
 
 ## Purpose
 
@@ -79,9 +79,9 @@ Where `short-title` is kebab-case derived from the issue title (2-4 words, strip
 
 Example: issue "ENG-123: Fix broken logout button on mobile" → `fix/ENG-123-fix-logout-button`
 
-**Normalize the cycle slug to a character allowlist by construction.** The `short-title` portion is kebab-cased and lowercased as today; the full cycle slug `ENG-123-<short-title>` is then normalized to match `^[A-Za-z0-9][A-Za-z0-9-]*$` — collapse every run of characters outside `[A-Za-z0-9-]` to a single `-` and strip any leading/trailing `-`. If normalization yields an empty string, STOP and ask for a valid slug rather than proceeding — in practice the alphanumeric `ENG-123` prefix makes this near-impossible, but the guard keeps parity with `dev:spec` Step 6. Uppercase is permitted **only** so the Linear issue-ID prefix (e.g. `ENG-123`) survives; the `short-title` itself stays strict-lowercase. This is injection-safe — no shell metacharacter can reach any downstream `<feature>` interpolation. The uppercase tolerance is scoped to `dev:fix`; `dev:spec` (Step 6) stays strict-lowercase `^[a-z0-9][a-z0-9-]*$`.
+**Normalize the cycle slug to a character allowlist by construction.** The `short-title` portion is kebab-cased and lowercased as today; the full cycle slug `ENG-123-<short-title>` is then normalized to match `^[A-Za-z0-9][A-Za-z0-9-]*$` — collapse every run of characters outside `[A-Za-z0-9-]` to a single `-` and strip any leading/trailing `-`. If normalization yields an empty string, STOP and ask for a valid slug rather than proceeding — in practice the alphanumeric `ENG-123` prefix makes this near-impossible, but the guard keeps parity with `dev:spec` Step 6. Uppercase is permitted **only** so the Linear issue-ID prefix (e.g. `ENG-123`) survives; the `short-title` itself stays strict-lowercase. This is injection-safe — no shell metacharacter can reach any downstream `<feature>` interpolation. The uppercase tolerance is scoped to `dev:linear`; `dev:spec` (Step 6) stays strict-lowercase `^[a-z0-9][a-z0-9-]*$`.
 
-**Note — bare-slug argument matchers stay lowercase-only.** `dev:done` and `dev:plan` accept a bare positional feature slug only when it matches `^[a-z0-9][a-z0-9-]*$`, and those matchers are intentionally left unchanged this cycle. Resolving an uppercase `dev:fix` slug (e.g. `ENG-123-fix-logout-button`) as a *bare* argument to those skills is a pre-existing lowercase-only limitation, out of scope here — the slug still resolves fine via its PR-URL and artifact-path forms.
+**Note — bare-slug argument matchers stay lowercase-only.** `dev:done` and `dev:plan` accept a bare positional feature slug only when it matches `^[a-z0-9][a-z0-9-]*$`, and those matchers are intentionally left unchanged this cycle. Resolving an uppercase `dev:linear` slug (e.g. `ENG-123-fix-logout-button`) as a *bare* argument to those skills is a pre-existing lowercase-only limitation, out of scope here — the slug still resolves fine via its PR-URL and artifact-path forms.
 
 ```bash
 GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }

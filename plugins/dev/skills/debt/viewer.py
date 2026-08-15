@@ -364,7 +364,7 @@ STORE_PLACEHOLDER = "__STORE_JSON__"
 # Escapes applied to the embedded JSON literal. The first three keep `</script>`
 # and `<!--` inert inside the script block; the last two are JS line terminators
 # that would otherwise break the literal. Store text can originate outside this
-# repo — dev:fix seeds items from Linear, P9 delivers them as GitHub issues — so
+# repo — dev:linear seeds items from Linear, P9 delivers them as GitHub issues — so
 # this is a real injection boundary. All five are \u escapes, which json.loads
 # reverses, so the data still round-trips.
 JSON_ESCAPES = (
