@@ -13,7 +13,6 @@ files:
   - plugins/dev/skills/debt/SKILL.md
   - plugins/dev/skills/dev/SKILL.md
   - plugins/dev/skills/done/SKILL.md
-  - plugins/dev/skills/linear/SKILL.md
   - plugins/dev/skills/migrate-tracker/SKILL.md
   - plugins/dev/skills/plan/SKILL.md
   - plugins/dev/skills/pr/SKILL.md
@@ -34,9 +33,9 @@ filesystem root.
 
 **Why deferred:** Not a regression — the pre-cycle one-liner was equally unchecked, and the
 autopilot-handoff cycle strictly improved it by adding the `||` branch to line 1. Closing it
-means a coordinated edit across 13 files, which is its own cycle rather than a Validate fix.
+means a coordinated edit across 12 files, which is its own cycle rather than a Validate fix.
 
-**Done looks like:** All 13 sites carry a non-empty check after the derivation — e.g.
+**Done looks like:** All 12 sites carry a non-empty check after the derivation — e.g.
 `if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 1; fi` —
 and `grep -rn 'PRIMARY=' plugins/dev/skills/*/SKILL.md` shows every hit followed by that guard.
 Keep the healthy path exiting 0 (`if`, not `[ … ] && …`).
