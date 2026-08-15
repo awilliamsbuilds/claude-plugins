@@ -51,6 +51,13 @@ making *for* the user — points where a reasonable person could choose differen
 Size is deliberately not the trigger. This session's 14-file frontmatter rename was trivially safe;
 a one-file change with two defensible answers is not.
 
+**Counting rule.** A decision is countable only if **all three** hold: (a) the request text does not
+determine it, (b) no existing repo convention determines it, and (c) reversing it later would
+require editing files this change touches. A choice already settled by an established convention
+counts as **zero** — that is what lets a large mechanical change proceed. When genuinely unsure
+whether something is countable, **count it**: the cost of a false escalation is one `/dev` command,
+and the cost of a false proceed is a decision made on the user's behalf that they never saw.
+
 **The rename.** Today's `dev:fix` — Linear issue → the full seven stages — becomes **`/dev:linear`**,
 a name that describes what it does. `/dev:fix` is the scarce good name and it goes to the common
 case. Linear support is retained, not dropped.
@@ -93,9 +100,15 @@ case. Linear support is retained, not dropped.
 5. The lane never opens a PR without having run the repo's test suite when one exists, and the PR
    body states the result.
 6. `/dev`, `/dev:autopilot`, and stages `spec`/`shape`/`plan`/`build`/`validate`/`pr`/`done` are
-   byte-identical after this cycle except for `dev:fix` → `dev:linear` rename references.
-7. Every reference to `dev:fix` across `plugins/dev/` resolves to the skill that actually does what
-   the reference claims — verified by sweeping all 8 sites, not by recall.
+   byte-identical after this cycle except for `dev:fix` → `dev:linear` rename references **and, in
+   `dev/SKILL.md` only, one added invocation-table row plus a description mention for the new
+   `/dev:fix` lane**. Without that carve-out the criterion forbids the discoverability edit the Scope
+   requires — the invocation table is where commands are advertised.
+7. Every reference to `dev:fix` resolves to the skill that actually does what the reference claims —
+   verified by sweeping **all 9 sites** in `plugins/dev/`, not by recall, **plus the three
+   out-of-plugin references** (`README.md`, `CLAUDE.md`, `plugins/plugin-manager/skills/add-plugin/SKILL.md`).
+   Historical records under `docs/decisions/` are **excluded**: they describe what was true when
+   written and must not be rewritten.
 8. `grep -rn '/Users/\|awilliamsbuilds\|adam' plugins/dev/` still returns zero.
 
 ## Happy Path
@@ -130,9 +143,12 @@ case. Linear support is retained, not dropped.
 - **`gh` unavailable or unauthenticated.** Fail before branching, with the reason.
 - **No `docs/backlog/` in the repo.** Deferred-work capture degrades silently rather than erroring —
   the same rule the tech-debt contract already applies (P7).
-- **Invoked while a `/dev` cycle is in flight.** The lane branches in the primary checkout; an
-  active cycle lives in its own worktree, so they do not contend. State this rather than leaving it
-  to chance.
+- **Invoked while a `/dev` cycle is in flight.** A modern cycle lives in its own worktree, so it does
+  not contend with the lane's use of the primary checkout. **A legacy in-place cycle
+  (`worktreePath: null`) does contend** — it occupies the primary checkout on its own feature branch,
+  and a clean-tree check will not catch it because a committed in-place cycle leaves the tree clean.
+  Detect that case explicitly — scan `$PRIMARY/docs/dev/*/state.json` for a cycle whose
+  `worktreePath` is null and whose `stage` is not `done` — and refuse rather than branching over it.
 
 ## Audience
 
@@ -152,8 +168,19 @@ hardcode a personal path, username, or machine-specific location.
   deliberately for this milestone and must be *named in the skill file* at both sites, so a future
   edit to one is not silently missed at the other. Extracting a shared reference is a candidate for
   a later cycle, not this one.
-- **`dev:fix` has 8 reference sites** in `plugins/dev/`: `validate`, `done`, `spec`, `start`, `plan`,
-  `dev`, `fix` itself, and `debt/viewer.py`. The rename must sweep all of them.
+- **`dev:fix` has 9 reference sites** in `plugins/dev/`: `skills/validate`, `skills/done`,
+  `skills/spec`, `skills/start`, `skills/plan`, `skills/dev`, `skills/fix` itself,
+  `skills/debt/viewer.py`, and **`references/tech-debt.md`** — the last of which a `skills/`-only
+  sweep misses. Three further references live outside the plugin and would go stale: `README.md:13`,
+  `CLAUDE.md:35` (the Component Registry row, owned by `dev:done` Step 4), and
+  `plugins/plugin-manager/skills/add-plugin/SKILL.md:25`. The rename must sweep all twelve.
+  `docs/decisions/*.md` also mention `dev:fix` and are **deliberately excluded** — a decision log
+  records what was true on its date, and editing one to match the present destroys the record.
+- **`PRIMARY` derivation must reuse the existing precedent**, not invent one. The lane runs "from
+  anywhere in the repo" while operating on the primary checkout, so it needs the derivation
+  `dev:build` Step 0 and `debt/viewer.py` already use (`git rev-parse --git-common-dir`, then
+  `dirname`, with a non-empty guard). `debt-primary-cd-failure-unchecked` records that 13 existing
+  sites lack the guard; this cycle writes a new site and must carry it rather than grow the count.
 - **Skills are auto-discovered** — `plugins/dev/.claude-plugin/plugin.json` has no skills array, so
   adding `dev:linear` and reshaping `dev:fix` touches no plugin.json and no marketplace entry.
 - **The installed plugin is a snapshot of `main`.** Nothing this cycle writes is live until the PR
@@ -185,9 +212,12 @@ reasoning stated rather than asked, and are subject to the approval gate.*
 *Grounding inventory: stage artifact gates read directly — `pr/SKILL.md:36` (STOP without
 validation.md), `done/SKILL.md:45` (STOP without pr_url), `validate/SKILL.md:40` (STOP without
 build), `build/SKILL.md:42` (STOP without plan unless micro); this is what rules out reusing the
-chain and is the spec's most load-bearing claim. Micro-tier reachability checked by grepping
-`dev/SKILL.md` and `autopilot/SKILL.md` for a micro invocation — none exists, tier is auto-detected
-only, so today's short path cannot be requested. Negative space swept for an existing fast lane
+chain and is the spec's most load-bearing claim. Micro-tier reachability: no *invocation* form exists
+(`dev/SKILL.md` and `autopilot/SKILL.md` carry no micro argument), but the tier **is** requestable
+interactively — `spec/SKILL.md:123` displays the detected tier and offers "Override?". The corrected
+claim is that micro cannot be reached without entering Spec, and that reaching it changes only the
+stage list, not the artifact set: a micro cycle still writes every artifact, which is what the
+Intent actually rests on. Negative space swept for an existing fast lane
 (`grep -rln "quick\|fast.path\|fast lane"` across `skills/`) → two hits, both incidental prose
 ("quick reference", "quick no"), confirming none exists. `dev:fix` consumers enumerated by sweep,
 not recall: validate, done, spec, start, plan, dev, fix, debt/viewer.py = 8 sites. Legacy commands
