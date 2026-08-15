@@ -4,9 +4,10 @@
   "branch": "feature/entry-adapters",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -39,9 +40,9 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 3,
+    "blockers": 0,
     "concerns": 3,
-    "applied": 27,
+    "applied": 30,
     "dismissed": 0,
     "loops_run": 4,
     "loops_max": 5
