@@ -3,12 +3,13 @@
   "feature": "retire-legacy-commands",
   "branch": "feature/retire-legacy-commands",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/retire-legacy-commands/plan.md",
     "validation": "docs/dev/retire-legacy-commands/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/82",
+    "pr_number": 82
   },
   "validate": {
     "loops_run": 3,
@@ -90,7 +91,8 @@
       "build_start": "2026-08-15T22:56:19Z",
       "build_end": "2026-08-15T23:02:54Z",
       "validate_start": "2026-08-15T23:03:16Z",
-      "validate_end": "2026-08-15T23:34:23Z"
+      "validate_end": "2026-08-15T23:34:23Z",
+      "pr_created": "2026-08-15T23:35:30Z"
     }
   },
   "handoff_at": "spec"
