@@ -1,6 +1,6 @@
 ---
 name: spec
-description: "Stage 1 of the /dev workflow. Builds a specification through guided questions with a confidence meter. Creates the feature branch, determines cycle tier, and produces spec.md committed to the branch."
+description: "Stage 1 of the /dev workflow. Builds a specification through guided questions with a confidence meter. Creates the feature branch, determines cycle tier, and produces spec.md committed to the branch. Also the Linear entry point for a full cycle: /dev:spec linear ENG-123 pre-fills confidence dimensions from the issue (start a cycle from a Linear issue, spec this ticket) — the form /dev:fix prints when it escalates a Linear-sourced request."
 ---
 
 # dev:spec — Specification Stage
@@ -20,9 +20,22 @@ Every feature goes through Spec. Simple features are where unexamined assumption
 
 ## Step 1: Read Context
 
+**Argument form — `/dev:spec linear <issue-id>`.** `linear` is an entry token **only** when followed
+by exactly one well-formed identifier; anything else is today's behavior, unchanged. (Same rule the
+lane's parse uses — see `../../references/entry-adapters.md` §A2.) This is the form `dev:fix` prints
+when triage escalates a Linear-sourced request, so the escalated cycle starts from the issue rather
+than from a blank spec.
+
+On that path, before anything else: run §A3's **availability check** and **fetch**. Both run *before*
+Step 6 creates the worktree, so a missing or unauthenticated MCP, or an issue ID that does not
+resolve, stops having created nothing — the same ordering `dev:fix` uses, for the same reason. An
+unresolvable issue is a STOP, never a fall back to treating the argument as a feature description.
+
 Read these files once at stage start. Work from this reading throughout — do not re-read mid-stage:
 - `docs/dev/config.json` — autopilot settings (`spec_max_questions` default `10`, `spec_min_confidence` default `85` when the key or file is absent)
 - `CLAUDE.md` — audience and technical constraints (pre-fills confidence dimensions)
+- `../../references/entry-adapters.md` — **Linear entry path only.** §A3's availability check and
+  fetch, §A5's issue→dimension mapping, §A6's uppercase-tolerant cycle slug.
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
@@ -132,6 +145,13 @@ The Standard/Deep value is provisional — whether Shape runs isn't known until 
 
 Create the branch before asking any questions. All artifacts commit to this branch.
 
+**On the Linear entry path, derive the slug per §A6 instead.** The cycle slug is
+`<ID>-<short-title>`, normalized to the uppercase-tolerant `^[A-Za-z0-9][A-Za-z0-9-]*$` — uppercase
+permitted **only** so the issue-ID prefix survives, with `<short-title>` itself staying
+strict-lowercase. `dev:done` cites that allowlist by name as the reason `<feature>` is safe to
+interpolate into a shell `-m`, so it is the contract, not a convenience. Everything else in this step
+proceeds identically. The non-Linear construction below is **untouched** and stays strict-lowercase.
+
 **Feature name (derive and normalize first).** Derive `<feature-name>` from the stated intent, kebab-case, 2-4 words. **Then normalize it to a character allowlist by construction:** lowercase the derived name, replace every run of characters outside `[a-z0-9]` with a single `-`, and strip any leading or trailing `-`, so the result matches `^[a-z0-9][a-z0-9-]*$`. If normalization yields an empty string, STOP and ask the user for a feature name rather than proceeding with an empty slug. Do this **before** the worktree-creation command below, so the normalized `<feature-name>` is the value that flows into the branch name, the worktree path, the artifact directory, and every `git commit -m "… <feature>"` site (including the ones in `dev:done`) — making `<feature>` safe by construction at every interpolation, with no later stage needing to re-guard it.
 
 **Create the cycle worktree (always).** Every cycle runs in its own git worktree so
@@ -227,6 +247,30 @@ Initialize `docs/dev/<feature-name>/state.json`:
 ```
 
 If CLAUDE.md was read in Step 1 and contains audience/technical info, pre-fill those confidence dimensions as true and set initial score accordingly (audience = 5%, technical_constraints = 5%).
+
+**Linear entry path — pre-fill from the issue, and set `linear_issue`.**
+
+Apply §A5's issue→dimension mapping to `confidence.dimensions`. Two requirements make that mapping
+observable rather than decorative:
+
+1. **`intent` and `success_criteria` are marked filled** whenever the issue supplies a
+   title/description and acceptance criteria respectively.
+2. **The opening confidence display names the issue as the source** of each issue-derived dimension.
+
+"Confidence above zero" is deliberately *not* the test. The `CLAUDE.md` pre-fill directly above
+already sets `audience` and `technical_constraints` on any repo that has one, so a nonzero opening
+score is satisfied by the repo having a `CLAUDE.md` — it would pass even if §A5's mapping were dropped
+entirely, which is the exact regression these two requirements exist to catch.
+
+Set `linear_issue` to the issue's three fields rather than leaving it `null`:
+
+```json
+"linear_issue": { "id": "<ID>", "title": "<title>", "url": "<url>" }
+```
+
+`(writes: both)` — part of this step's initial state.json commit, not gated, identical in standard and
+autopilot. `dev:pr` Step 4 is its reader, and writes the `Closes` line from it. On every non-Linear
+path `linear_issue` stays `null`, exactly as today.
 
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
@@ -356,6 +400,11 @@ The cap lifts only once every load-bearing as-is claim has an actual check recor
 Confidence: 58% — Sufficient ↑ from 43%
 Still needed for High: edge cases, out of scope, success criteria
 ```
+
+**On the Linear entry path, pre-filled dimensions are not re-asked.** Show only the unscored ones as
+questions, and render the confidence meter from the pre-filled score onward. Grounding (Step 7) still
+runs in full and is not shortened: an issue's as-is claims about the codebase are exactly the class
+that step exists to verify, and nobody verified them when the issue was written either.
 
 **Questioning rules:**
 - One question per message — never two questions in one turn
