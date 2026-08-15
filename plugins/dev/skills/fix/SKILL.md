@@ -581,7 +581,8 @@ BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
 ITEM=${BRANCH#fix/}   # backlog-adapter identity; resolves to no file on a free-text branch
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
-  git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+  FETCH_OK=1
+  git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || FETCH_OK=0
   SCAN_REF="origin/$DEFAULT_BRANCH"
   git -C "$PRIMARY" rev-parse --verify --quiet "$SCAN_REF" >/dev/null || SCAN_REF="$DEFAULT_BRANCH"
   LEFTOVER=$(git -C "$PRIMARY" for-each-ref --format='%(refname:short)' \
@@ -591,6 +592,9 @@ if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
     echo "$LEFTOVER"
     echo "If a tail was interrupted, resume it from the relevant one:"
     echo "  git -C \"$PRIMARY\" checkout <branch> && /dev:fix merge"
+  elif [ "$FETCH_OK" -eq 0 ]; then
+    echo "STOP: $PRIMARY is on $DEFAULT_BRANCH. Nothing merged is left behind, but origin/$DEFAULT_BRANCH"
+    echo "could not be refreshed, so this reading may be stale; re-run once connectivity returns."
   else
     echo "STOP: $PRIMARY is on $DEFAULT_BRANCH — nothing to merge (the tail already completed)."
   fi
@@ -607,6 +611,13 @@ if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; e
 ```
 
 If more than one **open** PR resolves for the branch, stop and report rather than guessing.
+
+**The empty scan is downgraded when the fetch failed, and that third branch is not decoration.** A
+failed fetch with a stale remote-tracking ref still present means `rev-parse` succeeds, the local-ref
+fallback does not fire, and the scan comes back empty over a branch that is merged server-side and
+still here. Printing the flat "the tail already completed" there would assert a state this code did
+not verify — exactly what the Report section below forbids. `FETCH_OK` is what lets the message say
+which of the two it actually knows.
 
 **The scan globs `refs/heads/fix/*`, so it does not cover a Linear-sourced branch.** That scoping is
 kept deliberately — see the `--merged` paragraph below, where it is what stops the scan listing
