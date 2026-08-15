@@ -37,9 +37,9 @@ if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 
 ```
 
 The first two lines are the derivation every `dev` stage header uses (`build/SKILL.md:26-27`). The
-third is the non-empty guard **none of those 13 shell sites carries** — the gap
+third is the non-empty guard **none of those 12 shell sites carries** — the gap
 `docs/backlog/debt-primary-cd-failure-unchecked.md` records. This site carries it, so adding the
-lane does not grow that item's count to 14. Do not "simplify" the guard away to match the others.
+lane does not grow that item's count to 13. Do not "simplify" the guard away to match the others.
 
 For the rest of this lane: run every git command as `git -C "$PRIMARY" …`, **and resolve every file
 path you read or edit against `$PRIMARY/`**. Never `cd`.
@@ -876,4 +876,6 @@ body above already uses with `dev:pr` Step 4.
 - `/dev:fix merge` — the tail: merge that PR, delete both branches, fast-forward, report, close the
   backlog item if the branch was sourced from one
 
-For a full seven-stage cycle with approval gates, use `/dev`. For a Linear issue, use `/dev:linear`.
+For a full seven-stage cycle with approval gates, use `/dev`. To start that cycle from a Linear
+issue instead of a blank spec, use `/dev:spec linear <issue-id>` — which is also what this lane
+prints when triage escalates a Linear-sourced request.
