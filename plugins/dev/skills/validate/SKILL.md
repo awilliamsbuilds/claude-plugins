@@ -89,7 +89,11 @@ Review the committed decision documents:
 - Do decisions contradict each other?
 - Is rationale present and non-trivial?
 
-Security review does not run for architecture cycles.
+Security review does not run for architecture cycles. **This is a decision, not an oversight.**
+Architecture cycles produce committed decision documents rather than code, so the diff has no attack
+surface to review. The consequence was weighed and accepted: these cycles still reach `dev:pr` and
+open PRs with no security review, so "every route to a PR runs the same two checks" carries this one
+named exception.
 
 **Architecture severity mapping:**
 | Level | Meaning |
@@ -119,6 +123,19 @@ Run up to `loops_max` iterations.
 2. Classify all issues found
 3. Fix all P1 and P2 issues
 3a. **Propagate each fix to its declared counterparts.** Before moving on, check the fix against `plan.md`'s `Interfaces:` blocks: a task marked `Shared procedure: … canonical` has mirror tasks that restate its procedure, and a verification task checks another task's rule. When a fix edits either side of such a pair, re-check and update the counterpart **in this same loop**, before step 7's commit. The plan already records these pairs — a rule fixed in one step and left unpropagated to the step that mirrors or verifies it is the regression class the fix-diff re-review most often catches, and catching it here costs one read instead of a whole loop.
+3b. **Measure any claim about observable command or tool behavior before committing the fix that
+   asserts it.** If a fix writes a factual statement about what a command, flag, or tool *does* —
+   what it outputs, what it returns, whether it succeeds, what path form it yields — run it and
+   record the observed result before the commit.
+   **In scope:** claims about observable behavior. **Out of scope:** claims about intent, design
+   rationale, or what a rule *should* mean. Those are not measurable by running anything, and
+   pretending otherwise is what turns this into a step the loop skips wholesale.
+   Step 8's cold re-review already catches these — but one loop later, and at the loop cap or on a
+   micro tier, not at all. In `reflect-pr-base-explicit-target` it fired in three consecutive loops:
+   "`$PRIMARY` is never `$WORKDIR`" (false on a legacy in-place cycle), "`gh` never resolves the repo
+   from the git remotes" (false without `--repo`), and a backwards rationale for
+   `git rev-parse --git-common-dir` that stood until loop 3 actually ran the command. Measuring costs
+   one command; the reviewer disproving it costs a loop.
 4. Attempt P3 fixes — **defect-class only.** Classify each open P3 before touching it: does it name a concrete defect (a statement that is wrong, self-contradictory, or ambiguous; a dangling reference; a rule that contradicts a sibling file), or does it propose better phrasing for prose that is already correct (wording, convention alignment, consistency of tone with a sibling)? Fix the first kind inline as before (commit if successful; skip if risky). **Leave the second kind to Step 5a's carrying-cost test — do not rewrite correct prose during the fix loop.** A polish edit carries the same regression risk as any other edit and none of the upside; step 8's re-review is good enough to catch what it breaks, which reopens the loop and invites the next polish edit. That compounding is what this rule exists to stop, and loop position is not the discriminator — a polish P3 is deferred whether or not the same loop is also fixing a P1/P2.
    **Circuit breaker:** if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes for the remainder of this cycle — buffer every one that remains. One such attribution is evidence that this diff's prose is more fragile than its open P3s are valuable.
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
@@ -130,6 +147,8 @@ Run up to `loops_max` iterations.
    - Any **P1/P2** it finds is a new open issue: add it to `p1_open[]`/`p2_open[]`, then persist it — write the updated `*_open[]` arrays back to state.json (step 6's open-list write only, not another `loops_run` increment) so this loop's committed state reflects the re-review rather than holding the addition only in memory. The loop cannot exit on this iteration; if `loops_max` budget remains it iterates again, otherwise step 10 routes to Step 4a.
    - Any **P3/Nit** it raises is recorded in `p3_open[]`/`nits_open[]` and remains eligible for Step 5a's carrying-cost buffer, exactly as the main Step 2 reviews' P3/Nits are.
    - The re-reviewer gates loop exit on **P1/P2 only**.
+   - **`dev:fix`'s `### Security` section carries a marked mirror of this re-review**, with
+     `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
 8a. **Re-run the manual verification for any declared-untested layer this loop touched.** If a fix in this loop edited a file belonging to a `plan.md` task that declared a **TDD deviation** — a task whose entry states its layer has no test runner and names manual verification as its check — step 8's diff review is not sufficient to exit. Re-run that task's stated verification against the fixed build and record the result in `validation.md`. A suite cannot regress a layer it does not cover, so on exactly those files a green suite plus a clean diff review is the evidence that is missing, not the evidence that it is safe.
 9. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
