@@ -601,6 +601,14 @@ if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
   exit 1
 fi
 
+OPEN_COUNT=$(gh pr list --repo "$SLUG" --head "$BRANCH" --state open --json number -q 'length')
+if [ "${OPEN_COUNT:-0}" -gt 1 ]; then
+  echo "STOP: $OPEN_COUNT open PRs for '$BRANCH' — resolve by hand:"
+  gh pr list --repo "$SLUG" --head "$BRANCH" --state open --json number,baseRefName \
+    -q '.[] | "  #\(.number) → \(.baseRefName)"'
+  exit 1
+fi
+
 PR_NUMBER=$(gh pr list --repo "$SLUG" --head "$BRANCH" --state open --json number -q '.[0].number')
 ALREADY_MERGED=0
 if [ -z "$PR_NUMBER" ]; then
@@ -610,7 +618,12 @@ fi
 if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; exit 1; fi
 ```
 
-If more than one **open** PR resolves for the branch, stop and report rather than guessing.
+**More than one open PR for the branch is a stop, and the count read above is what delivers it.**
+Reading `.[0].number` alone would silently take the first — a guard stated in prose but not
+implemented. The `${OPEN_COUNT:-0}` default is required rather than defensive: a failed `gh` yields an
+empty string, and `[ "" -gt 1 ]` errors instead of evaluating false. The check runs before the
+`PR_NUMBER` binding and only ever narrows the open case to exactly one, so the merged-state fallback
+and `ALREADY_MERGED` below are untouched by it.
 
 **The empty scan is downgraded when the fetch failed, and that third branch is not decoration.** A
 failed fetch with a stale remote-tracking ref still present means `rev-parse` succeeds, the local-ref
