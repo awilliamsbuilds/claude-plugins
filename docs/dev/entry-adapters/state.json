@@ -15,7 +15,7 @@
   "artifacts": {
     "spec": "docs/dev/entry-adapters/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/entry-adapters/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -77,7 +77,8 @@
     "stage_timestamps": {
       "spec_start": "2026-08-15T12:15:17Z",
       "spec_end": "2026-08-15T12:58:38Z",
-      "plan_start": "2026-08-15T12:55:21Z"
+      "plan_start": "2026-08-15T12:55:21Z",
+      "plan_end": "2026-08-15T13:04:10Z"
     }
   }
 }
