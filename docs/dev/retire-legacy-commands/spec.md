@@ -223,10 +223,27 @@ instruction to split.
     rather than implying success. **This criterion exists because Scope §3 gives the build check to
     two skills and the earlier criteria only test one** — and because the suite half of §3's rule does
     not apply here, `dev:validate` running no suite.
-11. `/dev`, `/dev:autopilot`, and stages `shape`/`plan`/`build`/`spec`/`pr` are byte-identical
-    except where a retired command is referenced. `dev:fix` and `dev:validate` change as Scope §2–3
-    require. `dev:init` and `dev:done` change **only** by the `../../` reference-path fix in §5 —
-    nothing in Scope assigns either of them any other change, and `dev:pr` none at all.
+11. `/dev` and stages `shape`/`plan`/`build`/`spec`/`pr` are byte-identical except where a retired
+    command is referenced. `dev:fix` and `dev:validate` change as Scope §2–3 require. `dev:init` and
+    `dev:done` change **only** by the `../../` reference-path fix in §5 — nothing in Scope assigns
+    either of them any other change, and `dev:pr` none at all.
+
+    **`dev:autopilot` is the one exception, and it changes by exactly one line.** Scope §3 gives
+    `dev:validate` a new stop — a failing build halts the stage before `dev:pr` — and in autopilot
+    that is a genuine blocker, so Step 2's "When autopilot stops" list must name it. Behavior
+    recorded in only one place is a gap even when that place is correct; this is the same two-way
+    pattern `dev:build`'s 3-hypotheses stop already uses (`build/SKILL.md:77` names
+    `dev:autopilot` Step 2, and `autopilot/SKILL.md:14` names it back). *Amended during Plan: the
+    original criterion listed `dev:autopilot` as byte-identical, which would have left the new stop
+    documented in one place only.*
+
+13. **`dev:secure` is discoverable from the two surfaces that enumerate skills.** `dev:start`
+    Step 4's FYI list and its missing-registry fallback name it, and `README.md`'s Plugins table
+    lists it among `dev`'s skills. Neither surface is covered by SC11, and neither is reached by
+    `dev:done`: Step 4 owns only the `CLAUDE.md` Component Registry table, and Step 4a **records
+    rather than applies** prose edits in autopilot mode — so a new skill left out here stays out.
+    Shipping a skill no reference mentions is an incomplete delivery of Scope §1, not a separate
+    feature.
 
 ## Happy Path
 
