@@ -130,6 +130,7 @@ Run up to `loops_max` iterations.
    - Any **P1/P2** it finds is a new open issue: add it to `p1_open[]`/`p2_open[]`, then persist it — write the updated `*_open[]` arrays back to state.json (step 6's open-list write only, not another `loops_run` increment) so this loop's committed state reflects the re-review rather than holding the addition only in memory. The loop cannot exit on this iteration; if `loops_max` budget remains it iterates again, otherwise step 10 routes to Step 4a.
    - Any **P3/Nit** it raises is recorded in `p3_open[]`/`nits_open[]` and remains eligible for Step 5a's carrying-cost buffer, exactly as the main Step 2 reviews' P3/Nits are.
    - The re-reviewer gates loop exit on **P1/P2 only**.
+   - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
 9. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
 10. If `loops_run == loops_max` and P1/P2 still open: go to Step 4a.
 
@@ -137,7 +138,7 @@ Run up to `loops_max` iterations.
 
 **Healthy-path shell exit-code rule:** any shell snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard blocks don't read as failure to a harness that checks exit codes. Prefer `if [ … ]; then …; fi` over `[ … ] && …` for guards. (This is the same rationale already inline at `validate/SKILL.md:231` and `done/SKILL.md:322/369/467`; stated here once as the general rule a fix author reads.)
 
-**Step 4a — Loop limit reached with open P1/P2:**
+**Step 4a — Loop limit reached with open P1/P2, or same-region recurrence:**
 
 ```
 Validate: {N} loops complete (tier: {micro|standard|deep}). Issues remaining:
@@ -151,6 +152,8 @@ Choose:
 ```
 
 Wait for user choice. Execute accordingly.
+
+When entered by the **same-region recurrence** rule rather than the loop limit, list the circling region's open findings whatever their severity, and state the unsettled decision above the choices — option A ("keep looping") is rarely the right answer there, because the loop has already demonstrated it cannot settle the question on its own.
 
 **Autopilot mode:** The fix-diff cold re-review (step 8) runs identically in autopilot — a re-review P1/P2 surviving to `loops_max` funnels into this same path. After loop limit, attempt one additional auto-fix pass; if that pass commits any fixes, cold re-review its diff too (step 8's dispatch and checklist, against the tip captured before the pass) — a re-review P1/P2 on this pass counts as still-remaining. If P1/P2 still remain after that: stop the autopilot, surface the issues, require human input.
 
