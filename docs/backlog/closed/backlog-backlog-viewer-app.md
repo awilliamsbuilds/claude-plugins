@@ -1,13 +1,15 @@
 ---
 type: backlog
 scope: repo
-status: promoted
+status: closed
 promoted_to: docs/dev/product-plans/dev-observability.md
 first_recorded: 2026-08-12
 cycles: [manual]
 recurrence: 1
 files:
   - plugins/dev/skills/debt/SKILL.md
+closed: 2026-08-15
+closed_by: backlog-viewer
 ---
 
 **What:** Ship a lightweight app with `/dev` that renders a repo's `docs/backlog/` store — active
