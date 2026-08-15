@@ -36,8 +36,12 @@ This cycle builds that lane and the rule that refuses it.
 
 Then it **stops**. The PR is the checkpoint.
 
-**`/dev:fix merge` — the tail.** Merges the PR, deletes the remote and local branch, fast-forwards
-the primary checkout, reports. Nothing irreversible happens without this second invocation.
+**`/dev:fix merge` — the tail.** The argument is the bare token `merge` and nothing else; any longer
+argument, including one whose first word is `merge`, is a free-text request for the lane. It operates
+on the open PR for the branch currently checked out in the primary checkout; if that branch has no
+open PR, or more than one resolves, stop and report rather than guessing. Merges the PR, deletes the
+remote and local branch, fast-forwards the primary checkout, reports. Nothing irreversible happens
+without this second invocation.
 
 **The escalation rule.** After grounding, before changing, count the decisions the lane would be
 making *for* the user — points where a reasonable person could choose differently:
@@ -110,6 +114,11 @@ case. Linear support is retained, not dropped.
    Historical records under `docs/decisions/` are **excluded**: they describe what was true when
    written and must not be rewritten.
 8. `grep -rn '/Users/\|awilliamsbuilds\|adam' plugins/dev/` still returns zero.
+9. The new `/dev:fix` lane is discoverable everywhere the repo advertises `dev` skills: its own
+   Component Registry row in `CLAUDE.md` beside the renamed `dev:linear` row, an entry in
+   `README.md:13`'s skill list, in `add-plugin/SKILL.md:25`'s table, and in both `dev:start` lists
+   (`start/SKILL.md:52` and `:68`) beside `dev:linear`. The twelve sites are swept for the rename
+   **and** for the addition — a pure rename that leaves the lane unlisted fails this criterion.
 
 ## Happy Path
 
@@ -173,7 +182,8 @@ hardcode a personal path, username, or machine-specific location.
   `skills/debt/viewer.py`, and **`references/tech-debt.md`** — the last of which a `skills/`-only
   sweep misses. Three further references live outside the plugin and would go stale: `README.md:13`,
   `CLAUDE.md:35` (the Component Registry row, owned by `dev:done` Step 4), and
-  `plugins/plugin-manager/skills/add-plugin/SKILL.md:25`. The rename must sweep all twelve.
+  `plugins/plugin-manager/skills/add-plugin/SKILL.md:25`. The rename must sweep all twelve; the same
+  twelve are the addition surface for the new lane (Success Criterion 9).
   `docs/decisions/*.md` also mention `dev:fix` and are **deliberately excluded** — a decision log
   records what was true on its date, and editing one to match the present destroys the record.
 - **`PRIMARY` derivation must reuse the existing precedent**, not invent one. The lane runs "from
@@ -220,7 +230,10 @@ stage list, not the artifact set: a micro cycle still writes every artifact, whi
 Intent actually rests on. Negative space swept for an existing fast lane
 (`grep -rln "quick\|fast.path\|fast lane"` across `skills/`) → two hits, both incidental prose
 ("quick reference", "quick no"), confirming none exists. `dev:fix` consumers enumerated by sweep,
-not recall: validate, done, spec, start, plan, dev, fix, debt/viewer.py = 8 sites. Legacy commands
+not recall: `skills/{validate,done,spec,start,plan,dev,fix}`, `skills/debt/viewer.py`, and
+`references/tech-debt.md` = **9 sites** in `plugins/dev/`. A first pass scoped to `skills/` found
+only 8 and missed `references/tech-debt.md`; the corrected sweep is 9, plus the three out-of-plugin
+sites (`README.md:13`, `CLAUDE.md:35`, `add-plugin/SKILL.md:25`) = 12 total. Legacy commands
 located and read at `~/.claude/commands/{fix,merge,pr,security-review,security-review-diff}.md` —
 confirmed outside this repo and therefore outside any PR's reach. Autopilot's weight confirmed from
 its own description and Step 2 stop list: it removes gates, not artifacts. Open-debt cross-check run
