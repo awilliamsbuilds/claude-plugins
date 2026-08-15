@@ -34,9 +34,9 @@ May be invoked with an artifact-path argument (`validation.md` path). If given, 
 Read `docs/dev/<feature>/state.json`. Confirm `"validate"` is in `completed[]`.
 
 **`linear_issue` is read from that same state file here.** Naming it explicitly matters: until this
-stage existed as its reader, the key had **zero readers** — `dev:spec` initialized it and the retired
-`dev:linear` wrote it, and nothing ever consumed either write, so the Linear round trip was inert in
-both directions. This stage is its first consumer, and the escalated cycle's half of that round trip.
+stage existed as its reader, the key had **zero readers** — every hit in the repo was a writer, and
+nothing ever consumed any of them, so the Linear round trip was inert in both directions. This stage
+is its first consumer, and the escalated cycle's half of that round trip.
 
 If validation is not complete: STOP — "PR requires validation.md. Run /dev:validate first."
 

@@ -123,6 +123,13 @@ review — then write the resolved **IDs** back:
 }
 ```
 
+**These two questions are the lane's one sanctioned user turn, and they are per-team, not per-run.**
+The lane's promise is that a 0-decision request runs unattended from invocation to open PR — which
+holds on every run *after* the cache is populated. The first run against a given team pays two
+questions once, because the alternative is inferring a mapping that cannot be inferred (below). Do
+not read the unattended promise as forbidding them, and do not skip them to preserve it: an
+unprompted guess here silently moves the wrong status on every future run.
+
 **Why asked-and-cached rather than inferred.** Linear's semantic `type` cannot identify the two
 transitions: `In Progress` and `In Review` are **both** `type: "started"`, so a type-based mapping
 can tell "started" from "completed" but cannot tell "work began" from "PR opened" — exactly the pair
