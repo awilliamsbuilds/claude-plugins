@@ -22,5 +22,9 @@ cycle's scope — and `done/SKILL.md` carried an additional constraint, since SC
 edits to that file to `dev:linear` rename references. Fixing them is a two-line change that belongs
 with whatever next opens those files, not a reason to widen this cycle.
 
-**Done looks like:** `grep -rn '](references/' plugins/dev/skills/` returns zero — every reference
-citation from a skill directory carries the `../../` prefix that actually resolves.
+**Done looks like:** ``grep -rn '`references/' plugins/dev/skills/ --include=SKILL.md`` returns zero
+— every reference citation from a skill directory carries the `../../` prefix that actually resolves.
+
+*Corrected by `retire-legacy-commands`:* this line previously tested the **Markdown-link** form
+`'](references/'`. Both real sites are inline **code spans**, so that grep returned zero before any
+fix — a test that could not fail. The backtick form above is the one that actually detects them.

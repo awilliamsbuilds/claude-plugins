@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "feature": "retire-legacy-commands",
+  "branch": "feature/retire-legacy-commands",
+  "mode": "autopilot",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-08-15T18:07:02Z",
+  "artifacts": {
+    "spec": "docs/dev/retire-legacy-commands/spec.md",
+    "design": null,
+    "plan": "docs/dev/retire-legacy-commands/plan.md",
+    "validation": "docs/dev/retire-legacy-commands/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/82",
+    "pr_number": 82
+  },
+  "validate": {
+    "loops_run": 3,
+    "loops_max": 5,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [
+      "AUDIT_BRANCH not printed on the healthy path \u2014 report field from recall",
+      "notice remediation line unactionable for a /dev worktree",
+      "whole-project verb has same wrong-tree exposure, no disclosure"
+    ],
+    "nits_open": [
+      "BASE=\"$2\" is the only positional-parameter notation in any dev skill"
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 3,
+    "concerns": 6,
+    "applied": 9,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 5
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 3,
+    "applied": 26,
+    "dismissed": 0,
+    "loops_run": 4,
+    "loops_max": 5
+  },
+  "confidence": {
+    "final_score": 88,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "deep",
+  "product_plan": "docs/dev/product-plans/dev-fast-path.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/retire-legacy-commands",
+  "metrics": {
+    "spec_questions_asked": 6,
+    "spec_revisions": 3,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 4,
+    "stage_timestamps": {
+      "spec_start": "2026-08-15T18:07:02Z",
+      "spec_end": "2026-08-15T22:45:47Z",
+      "plan_start": "2026-08-15T22:26:07Z",
+      "plan_end": "2026-08-15T22:33:41Z",
+      "build_start": "2026-08-15T22:56:19Z",
+      "build_end": "2026-08-15T23:02:54Z",
+      "validate_start": "2026-08-15T23:03:16Z",
+      "validate_end": "2026-08-15T23:34:23Z",
+      "pr_created": "2026-08-15T23:35:30Z"
+    }
+  },
+  "handoff_at": "spec"
+}

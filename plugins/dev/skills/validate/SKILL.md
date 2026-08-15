@@ -89,7 +89,11 @@ Review the committed decision documents:
 - Do decisions contradict each other?
 - Is rationale present and non-trivial?
 
-Security review does not run for architecture cycles.
+Security review does not run for architecture cycles. **This is a decision, not an oversight.**
+Architecture cycles produce committed decision documents rather than code, so the diff has no attack
+surface to review. The consequence was weighed and accepted: these cycles still reach `dev:pr` and
+open PRs with no security review, so "every route to a PR runs the same two checks" carries this one
+named exception.
 
 **Architecture severity mapping:**
 | Level | Meaning |
@@ -119,6 +123,19 @@ Run up to `loops_max` iterations.
 2. Classify all issues found
 3. Fix all P1 and P2 issues
 3a. **Propagate each fix to its declared counterparts.** Before moving on, check the fix against `plan.md`'s `Interfaces:` blocks: a task marked `Shared procedure: … canonical` has mirror tasks that restate its procedure, and a verification task checks another task's rule. When a fix edits either side of such a pair, re-check and update the counterpart **in this same loop**, before step 7's commit. The plan already records these pairs — a rule fixed in one step and left unpropagated to the step that mirrors or verifies it is the regression class the fix-diff re-review most often catches, and catching it here costs one read instead of a whole loop.
+3b. **Measure any claim about observable command or tool behavior before committing the fix that
+   asserts it.** If a fix writes a factual statement about what a command, flag, or tool *does* —
+   what it outputs, what it returns, whether it succeeds, what path form it yields — run it and
+   record the observed result before the commit.
+   **In scope:** claims about observable behavior. **Out of scope:** claims about intent, design
+   rationale, or what a rule *should* mean. Those are not measurable by running anything, and
+   pretending otherwise is what turns this into a step the loop skips wholesale.
+   Step 8's cold re-review already catches these — but one loop later, and at the loop cap or on a
+   micro tier, not at all. In `reflect-pr-base-explicit-target` it fired in three consecutive loops:
+   "`$PRIMARY` is never `$WORKDIR`" (false on a legacy in-place cycle), "`gh` never resolves the repo
+   from the git remotes" (false without `--repo`), and a backwards rationale for
+   `git rev-parse --git-common-dir` that stood until loop 3 actually ran the command. Measuring costs
+   one command; the reviewer disproving it costs a loop.
 4. Attempt P3 fixes — **defect-class only.** Classify each open P3 before touching it: does it name a concrete defect (a statement that is wrong, self-contradictory, or ambiguous; a dangling reference; a rule that contradicts a sibling file), or does it propose better phrasing for prose that is already correct (wording, convention alignment, consistency of tone with a sibling)? Fix the first kind inline as before (commit if successful; skip if risky). **Leave the second kind to Step 5a's carrying-cost test — do not rewrite correct prose during the fix loop.** A polish edit carries the same regression risk as any other edit and none of the upside; step 8's re-review is good enough to catch what it breaks, which reopens the loop and invites the next polish edit. That compounding is what this rule exists to stop, and loop position is not the discriminator — a polish P3 is deferred whether or not the same loop is also fixing a P1/P2.
    **Circuit breaker:** if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes for the remainder of this cycle — buffer every one that remains. One such attribution is evidence that this diff's prose is more fragile than its open P3s are valuable.
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
@@ -130,6 +147,8 @@ Run up to `loops_max` iterations.
    - Any **P1/P2** it finds is a new open issue: add it to `p1_open[]`/`p2_open[]`, then persist it — write the updated `*_open[]` arrays back to state.json (step 6's open-list write only, not another `loops_run` increment) so this loop's committed state reflects the re-review rather than holding the addition only in memory. The loop cannot exit on this iteration; if `loops_max` budget remains it iterates again, otherwise step 10 routes to Step 4a.
    - Any **P3/Nit** it raises is recorded in `p3_open[]`/`nits_open[]` and remains eligible for Step 5a's carrying-cost buffer, exactly as the main Step 2 reviews' P3/Nits are.
    - The re-reviewer gates loop exit on **P1/P2 only**.
+   - **`dev:fix`'s `### Security` section carries a marked mirror of this re-review**, with
+     `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
 8a. **Re-run the manual verification for any declared-untested layer this loop touched.** If a fix in this loop edited a file belonging to a `plan.md` task that declared a **TDD deviation** — a task whose entry states its layer has no test runner and names manual verification as its check — step 8's diff review is not sufficient to exit. Re-run that task's stated verification against the fixed build and record the result in `validation.md`. A suite cannot regress a layer it does not cover, so on exactly those files a green suite plus a clean diff review is the evidence that is missing, not the evidence that it is safe.
 9. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
@@ -169,6 +188,9 @@ Write to `docs/dev/<feature>/validation.md`:
 ## Summary
 Loops run: N / N_max
 Final status: clean | proceeded with open issues | stopped
+
+## Build
+[passed (<command>) | FAILED (<command>) + output | no build system detected]
 
 ## Issues Resolved
 ### Loop 1
@@ -238,6 +260,58 @@ defect-class P3s. But Step 4 is now this buffer's main upstream rather than a fi
 every polish-class P3 the fix loop declines to touch arrives here, alongside whatever genuinely
 survives a defect-class fix attempt. A larger buffer is the intended trade — the alternative is
 paying for each polish edit with a regression the re-review reopens the loop for.
+
+## Step 5b: Build Check
+
+**Mirror of `dev:fix`'s `### Verify` build check, which is canonical.** The branch structure is
+restated in full below rather than referenced, because two independently-written implementations of
+one procedure drift, and the drift reads as correct in each file on its own. A change to either side
+should be reflected at the other.
+
+Placement is deliberate: **after** Step 5a so the carrying-cost buffer is already final, and
+**before** Step 6 so a failure stops the stage before the state advance and before `dev:pr`.
+
+**Detect the build rather than assuming it**, first match wins — same order as the canonical:
+
+- **B1.** `package.json` exists and has a `build` script → `npm run build`, using the package manager
+  the lockfile names (`pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, else `npm`)
+- **B2.** else `Makefile` exists and has a `build` target → `make build`
+- **B3.** else `Cargo.toml` exists → `cargo build`
+- **B4.** else `go.mod` exists → `go build ./...`
+- **B5.** else → no build system detected
+
+Run the build inside `$WORKDIR`, consistent with the rest of this stage's `-C "$WORKDIR"` discipline.
+
+Three outcomes:
+
+- **O1.** Detected, exits 0 → record `Build: passed (<command>)` in `validation.md`. Continue to
+  Step 6.
+- **O2.** Detected, exits non-zero → record `Build: FAILED (<command>)` and the output in
+  `validation.md`, then **stop the stage.** Do not add `"validate"` to `completed[]`, do not advance
+  `stage` to `"pr"`, and do not proceed to `dev:pr`. Commit `validation.md` so the failure is
+  durable, then report the failing command and its output.
+- **O3.** Not detected (B5) → record `Build: no build system detected` in `validation.md`. Continue
+  to Step 6. **Never render this as a pass.**
+
+**Two divergences from the canonical, named identically at both ends:**
+
+- **D1 — no suite half here.** `dev:validate` runs no test suite: Steps 1–6 of this file contain no
+  suite invocation, because `dev:build` runs tests per task during TDD and this stage reviews. So on
+  the pipeline route there is only a build to apply the rule to. Say that rather than implying a
+  symmetry that does not exist.
+- **D2 — O2's action shape.** The canonical commits the work and opens no PR; this mirror records to
+  `validation.md`, withholds the `completed[]`/`stage` writes, and commits `validation.md` — because
+  this route has a state file and a next stage, and the lane has neither.
+
+**Autopilot mode:** a failing build is a **genuine blocker**. Stop the run, surface the failing
+command and its output, and require human input. It is not routed into the fix loop and not
+auto-retried — the fix loop reviews a diff, and a broken build is not a review finding.
+
+This stop is named in `dev:autopilot`'s **"When autopilot stops" list**. Cite it by that name rather
+than as "Step 2": the list lives at `autopilot/SKILL.md:14`, inside `## Purpose`, while
+`## Step 2: Autopilot Behavioral Rules` begins at line 87 and holds no stop list. (`build/SKILL.md`
+carries the "Step 2" misnomer already; do not propagate it.) The two-way naming is the point — a
+blocker documented on one side only is a gap even when that side is correct.
 
 ## Step 6: Update State + Commit
 
