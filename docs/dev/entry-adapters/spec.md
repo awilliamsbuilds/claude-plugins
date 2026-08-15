@@ -49,7 +49,7 @@ unchanged — 0 decisions proceed, 1 is asked inline, 2+ stops. The *source* no 
 whether work is heavy or light; the *work* does.
 
 **Escalation carries context.** When triage stops a Linear-sourced request, it prints
-`/dev spec linear <issue-id>`, and `dev:spec` pre-fills confidence dimensions from the issue —
+`/dev:spec linear <issue-id>`, and `dev:spec` pre-fills confidence dimensions from the issue —
 absorbing `dev:linear`'s existing issue→dimension mapping rather than deleting it. Without this, the
 lane declining a ticket would silently destroy the pre-fill capability that both `dev:linear` and the
 legacy `fix.md` had.
@@ -63,6 +63,16 @@ No status name, team name, team ID, user, or project identifier is ever hardcode
 **`dev:linear` is deleted.** Its Linear-fetch and dimension-mapping logic moves onto the escalation
 path; the skill file and all its references go.
 
+**Deleting it moves two things besides the mapping, and both are load-bearing.** `dev:linear` Step 3
+also owns the **uppercase-tolerant cycle-slug allowlist** `^[A-Za-z0-9][A-Za-z0-9-]*$`, which exists
+so a Linear issue-ID prefix (`ENG-123`) survives slug normalization — `dev:spec`'s own rule is
+strict-lowercase. That tolerance moves to `dev:spec`'s Linear entry path, or the escalated cycle
+silently lowercases the issue prefix. More importantly, `done/SKILL.md:260` **cites that allowlist by
+name** as the reason `<feature>` is safe to interpolate into a shell `-m`. Deleting the skill without
+re-pointing that citation leaves a live injection-safety argument referring to a file that no longer
+exists — a checkable claim that stops being checkable. The citation must be updated in the same
+change, not left for a later reader to notice.
+
 **Three tracked debt items are paid here**, all in files this cycle already opens:
 
 - `debt-fix-tail-guard-stale-when-offline` — capture the fetch exit status in the merge tail's
@@ -74,6 +84,16 @@ path; the skill file and all its references go.
   cycle deletes. Its `files:` list and its "all 13 sites" wording must drop to 12 or the item becomes
   a false record the moment this merges. This is a bookkeeping correction, not a fix — the remaining
   12 sites stay unguarded and the item stays open.
+
+**Note for Plan — this is at the top of one deep cycle's range.** In scope: the seam, two adapters,
+live-MCP status resolution plus a new config key, the `dev:spec` escalation pre-fill, the `dev:pr`
+reader, deletion of `dev:linear` with its reference sweep, and three debt items. It was deliberately
+kept as one cycle because a seam shaped by a single consumer is a guess — two real consumers are what
+validate it. **If the task list comes back oversized, the split seam is source-shaped, not
+layer-shaped:** (1) the seam + the backlog adapter + the two `debt-fix-tail-*` items — no external
+dependency, fully testable offline; then (2) the Linear adapter + the `dev:linear` deletion + the
+`debt-primary-cd-failure-unchecked` bookkeeping correction, which is forced by that deletion and must
+ride with it. This is a fallback ordering, not an instruction to split.
 
 ## Out of Scope
 
@@ -98,18 +118,27 @@ path; the skill file and all its references go.
 1. `/dev:fix linear <id>` on a 0-decision issue reaches an open PR with **no user turn** between
    invocation and the PR report, and the PR body contains `Closes [<ID>](<url>)`.
 2. The same command on an issue carrying 2+ unresolved decisions **stops before changing any file**,
-   lists the decisions, and prints `/dev spec linear <id>`. Running that command produces a spec whose
-   starting confidence is above zero because dimensions were pre-filled from the issue.
+   lists the decisions, and prints `/dev:spec linear <id>`. Running that command marks the
+   **issue-derived** dimensions filled — at minimum `intent` and `success_criteria`, from the issue's
+   title/description and its acceptance criteria — and the opening confidence reading names the issue
+   as their source. **"Confidence above zero" is deliberately not the test:** `dev:spec` already
+   pre-fills `audience` and `technical_constraints` from `CLAUDE.md` on any repo that has one, so a
+   nonzero opening score is satisfied by a repo having a `CLAUDE.md` and would pass even if the
+   issue→dimension mapping were dropped entirely — the exact regression this criterion exists to catch.
 3. `/dev:fix backlog <slug>` resolves the item, runs the lane, and after `/dev:fix merge` the item
    file is in `docs/backlog/closed/` with `status: closed` — closed via the existing close path, not a
    second implementation.
 4. On a repo with no `linear` key in `docs/dev/config.json`, the first `/dev:fix linear` asks exactly
-   two status questions, writes the resolved IDs to config, and asks nothing on subsequent runs.
+   two status questions, writes the resolved IDs to config, and asks nothing on subsequent runs
+   **against the same team**. A first issue from a *different* team asks its own two questions, since
+   status IDs are per-team (see Edge Cases).
 5. **Status resolution reads the live workspace.** The skill calls `list_issue_statuses` and offers
    the returned statuses as the choices — it never presents a hardcoded list and never matches on a
    display name.
-6. `grep -rn '/Users/\|awilliamsbuilds\|adam\|FORGE\|Cash Flow' plugins/` returns zero, and no Linear
-   team ID, status ID, user ID, or project ID appears anywhere in `plugins/`.
+6. `grep -rn '/Users/\|awilliamsbuilds\|adam\|FORGE\|Cash Flow' plugins/dev/` returns zero — the same
+   sweep the grounding footer ran. The scope is `plugins/dev/` deliberately: `plugins/plugin-manager/`
+   and `plugins/writing/` legitimately name the repo owner (9 hits today) and are outside this cycle.
+   Additionally, no Linear team ID, status ID, user ID, or project ID appears anywhere in `plugins/`.
 7. With the Linear MCP unavailable or unauthenticated, `/dev:fix linear` fails **before** creating a
    branch, naming the reason. `/dev:fix backlog` and free-text `/dev:fix` are unaffected — a missing
    Linear does not degrade the rest of the skill.
@@ -165,7 +194,7 @@ path; the skill file and all its references go.
   so a second team asks its own two questions rather than reusing the first team's IDs.
 - **`gitBranchName` fails the branch-name allowlist.** It is external input reaching git commands.
   Validate it; on failure fall back to the lane's own derived name rather than refusing the work.
-- **Escalation on a backlog-sourced request.** Symmetric with Linear: print `/dev spec` and name the
+- **Escalation on a backlog-sourced request.** Symmetric with Linear: print `/dev:spec` and name the
   item, leaving the item `open`.
 
 ## Audience
@@ -187,8 +216,13 @@ cosmetic.
 - **`list_issue_statuses` requires a team argument** and returns `{id, type, name}`. The team must be
   resolved before statuses can be listed — from the issue itself on the `<issue-id>` path.
 - **`state.json.linear_issue` currently has no readers.** Written by `dev:linear`, initialized to
-  `null` by `dev:spec`, read by nothing. `dev:pr` must become its first reader for the `Closes` line;
-  this is a new cross-skill coupling, not a rewiring of an existing one.
+  `null` by `dev:spec`, read by nothing. Two writers of the `Closes` line follow, on **different
+  transports** — this is the cycle's easiest thing to build backwards. On the **lane**, `dev:fix`
+  holds the issue ID and URL in-turn and writes `Closes [<ID>](<url>)` directly into the PR body it
+  creates itself; the lane persists no `state.json` (`fix/SKILL.md:16`, `:577`) and never enters
+  `dev:pr`, so `linear_issue` is not involved at all. On the **escalated cycle**, `dev:spec` writes
+  `linear_issue` into `state.json` and `dev:pr` becomes its first reader. What the two share is the
+  line's format, not its plumbing.
 - **The lane's argument parse is currently binary** — the bare token `merge` versus free text. Adding
   two adapter tokens makes it four-way, and free text remains the catch-all. The `merge` token's
   exact-match rule is the precedent to follow.
