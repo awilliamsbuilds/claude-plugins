@@ -135,6 +135,82 @@ provenance (lockfile integrity, dependency confusion, typosquatting), secret *li
 find committed secrets but cannot tell a revoked key from an active one), and compliance mapping
 (SOC 2, OWASP ASVS). Each is a later addition, not an omission.
 
+## Step 2a: Diff audit
+
+The `diff` verb audits **only what changed** against a base branch.
+
+### Resolve the base
+
+**An explicit base wins outright.** When the invocation supplied a second token
+(`/dev:secure diff main`), use it verbatim and run no resolution at all — the derivation below is the
+no-argument path only. This is what lets a caller that has already resolved a default branch hand it
+in rather than have this skill independently re-derive it, which is how the two can disagree.
+
+With no second token, never assume `main`:
+
+```bash
+BASE=$(git -C "$PRIMARY" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+if [ -z "$BASE" ]; then
+  BASE=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null) || BASE=""
+fi
+if [ -z "$BASE" ]; then
+  echo "STOP: could not resolve a base branch to diff against."
+  echo "  Tried: git symbolic-ref refs/remotes/origin/HEAD, then gh repo view."
+  echo "  A repo with no remote, or a detached HEAD with no origin/HEAD, hits this."
+  echo "  The whole-project audit needs neither — run /dev:secure instead."
+  exit 1
+fi
+```
+
+The two rungs are ordered **local-first** because this verb needs no network and is called from an
+unattended lane. Guards use `if … fi` rather than `[ … ] && …` so the healthy path exits 0 — the rule
+stated at `validate/SKILL.md:140`.
+
+**The stop message names which resolution failed**, and points at the verb that still works. A bare
+"cannot diff" would leave the user with no next move.
+
+### Scope the audit
+
+```bash
+git -C "$PRIMARY" diff "$BASE"...HEAD
+git -C "$PRIMARY" diff "$BASE"...HEAD --name-only
+```
+
+**Empty diff → say the diff is empty and stop.** Do **not** report "no findings" — that phrasing
+reads as an audit that ran and came back clean, which is a different claim from one that had nothing
+to examine. The distinction matters most to an unattended caller, which would otherwise record a
+clean review that never happened.
+
+Otherwise run the audit against the diff only:
+
+- **Pass B's secret scan** runs against **the diff**, not the tracked corpus.
+- **Pass C's five categories** run against **the changed files only**. Read them in full for context,
+  but report only on what the diff introduces or touches. **Do not review code outside the diff.**
+- **Pass A's ecosystem scanners are skipped.** They audit the dependency tree rather than the diff,
+  and running them per-PR would re-report the same findings on every change. Whole-project scanning
+  is the other verb's job, on demand.
+
+### Report
+
+Same section names as Step 3, with two changes: the title carries the base, and the dependency line
+records the deliberate skip rather than going silent.
+
+```
+## Security Review — diff vs <BASE>
+**Files changed:** <count>
+
+### P1 — blockers
+### P2 — significant
+### P3 — improvements
+### Nit
+### Dependency audit
+skipped — diff scope. Run /dev:secure for a dependency audit.
+### Secret scan
+### Passed checks
+```
+
+Then Step 4 applies unchanged: print, stop, write nothing.
+
 ## Step 3: Report
 
 **Classify every finding as P1 / P2 / P3 / Nit.** This skill **consumes** the severity vocabulary
