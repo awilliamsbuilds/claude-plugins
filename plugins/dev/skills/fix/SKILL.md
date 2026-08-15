@@ -445,6 +445,57 @@ a browser. Record each result verbatim for the PR body.
 **No suite in the repo?** Say so explicitly in the PR body rather than implying tests passed. An
 absent suite **raises** the bar on other verification; it does not lower the bar overall.
 
+**Bind the suite's two values**, so the PR body has a status to branch on and text to quote rather
+than one conflated result:
+
+- `SUITE_RESULT` — the status, exactly one of `passed`, `failed`, `no test suite in this repo`
+- `SUITE_OUTPUT` — the verbatim output, free text
+
+#### Build check
+
+Run the repo's build if one exists. **Detect it rather than assuming**, first match wins — the order
+matters, and it is stated so the mirror in `dev:validate` Step 5b cannot reorder it silently:
+
+- **B1.** `package.json` exists and has a `build` script → `npm run build`, using the package manager
+  the lockfile names (`pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, else `npm`)
+- **B2.** else `Makefile` exists and has a `build` target → `make build`
+- **B3.** else `Cargo.toml` exists → `cargo build`
+- **B4.** else `go.mod` exists → `go build ./...`
+- **B5.** else → no build system detected
+
+Three outcomes:
+
+- **O1.** Detected, exits 0 → `BUILD_RESULT=passed`. Continue.
+- **O2.** Detected, exits non-zero → `BUILD_RESULT=failed`. **Stop before the PR** (see the rule
+  below).
+- **O3.** Not detected (B5) → `BUILD_RESULT=no build system detected`. Continue, and say so wherever
+  the result is reported. **Never let this render as "the build passed"** — it is the same
+  distinction the no-suite rule above draws, drawn for the same reason.
+
+#### A failing build or a failing suite stops the lane
+
+**Commit the work, report which one failed and its output, open nothing.** Neither outranks the
+other: there is no "build blocks, suite merely reports" asymmetry, which would read as an oversight
+rather than a design. Do not leave the tree dirty and do not revert — the same shape the mid-flight
+escalation above already uses.
+
+*This changes what a failing suite does.* Previously this section said only "Record each result
+verbatim for the PR body" and never stated what a failure meant, so a failing suite was reported and
+shipped. One rule now covers both.
+
+**This build check is `dev:fix`'s canonical implementation**, mirrored by `dev:validate` **Step 5b**
+— cited by section name rather than line number, since line numbers across files go stale silently.
+Two divergences, named identically at both ends:
+
+- **D1 — the mirror has no suite half.** `dev:validate` runs no test suite: its Steps 1–6 contain no
+  suite invocation, because `dev:build` runs tests per task during TDD and `dev:validate` reviews. So
+  on the pipeline route there is only a build to apply the rule to. That asymmetry is real and is
+  stated rather than papered over.
+- **D2 — O2's action shape differs.** Here the failure commits the work and opens no PR. In the
+  mirror it records the failure to `validation.md`, withholds `"validate"` from `completed[]`, leaves
+  `stage` un-advanced, and commits `validation.md` — because that route has a state file and a next
+  stage, and this one has neither.
+
 ### The rigor floor
 
 The lane may never skip these, and the PR body says which applied:
