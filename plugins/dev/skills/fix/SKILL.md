@@ -1,6 +1,6 @@
 ---
 name: fix
-description: "The fast path — a grounded change from request to open PR in one unattended run, with no cycle artifacts. Use when the user wants something done rather than specified: fix this, change this, rename that, drop the redundant prefix, update the frontmatter, make this consistent, just do this, small change, quick fix, one-line fix, tweak, open a PR for this. Also handles the merge tail: /dev:fix merge merges that PR and cleans up. Escalates to /dev when the request carries 2+ unresolved decisions. For a full seven-stage cycle with approval gates use /dev; for a Linear issue use /dev:linear."
+description: "The fast path — a grounded change from request to open PR in one unattended run, with no cycle artifacts. Use when the user wants something done rather than specified: fix this, change this, rename that, drop the redundant prefix, update the frontmatter, make this consistent, just do this, small change, quick fix, one-line fix, tweak, open a PR for this. Also starts from an identifier instead of free text: /dev:fix linear ENG-123 works a Linear issue (start from a Linear issue, work this ticket, pick up an assigned issue), and /dev:fix backlog <item> works a docs/backlog/ item (work a backlog item, pay this tech debt, do that deferred item). Also handles the merge tail: /dev:fix merge merges that PR and cleans up. Escalates to /dev when the request carries 2+ unresolved decisions. For a full seven-stage cycle with approval gates use /dev."
 ---
 
 # dev:fix — The Fast Path
@@ -111,12 +111,34 @@ work in that order keeps the stated rationale true. If both rungs come back empt
 
 ## Step 1: Parse the argument
 
-**The argument is the bare token `merge` and nothing else → tail mode** (Step 7).
+**Reads.** Read these once at the start of the run and work from that reading:
 
-Any longer argument — **including one whose first word is `merge`** — is a free-text lane request.
-`/dev:fix merge the two config loaders` is a request to merge two config loaders, not a request to
-merge a PR. Merging is the one irreversible step in this skill, so the token that triggers it is
-exact rather than prefix-matched.
+- `../../references/entry-adapters.md` — the adapter seam contract (§A1 hooks, §A2 argument tokens,
+  §A3 Linear, §A4 backlog). Only the adapter dispatches consume §A3/§A4; the parse below is §A2.
+
+**The parse is four-way**, and the order matters:
+
+| Argument | Dispatch |
+|---|---|
+| the bare token `merge`, and nothing else | **tail mode** (Step 7) |
+| `linear`, alone or followed by one identifier | **Linear adapter** (Step 2a) |
+| `backlog` followed by exactly one identifier | **backlog adapter** (Step 2a) |
+| anything else | **free text** — the lane's catch-all |
+
+**The bare `merge` token is exact, never prefix-matched.** Any longer argument — including one whose
+first word is `merge` — is a free-text lane request. `/dev:fix merge the two config loaders` is a
+request to merge two config loaders, not a request to merge a PR. Merging is the one irreversible step
+in this skill, so the token that triggers it is exact rather than prefix-matched.
+
+**The adapter tokens inherit that discipline** (§A2). `linear` and `backlog` are adapter tokens **only**
+when followed by nothing or by a single well-formed identifier. Anything longer is free text:
+`/dev:fix linear auth is broken` is a request about Linear auth, not an adapter invocation.
+Prefix-matching here would silently swallow a real request whose first word happens to be `linear` or
+`backlog`.
+
+**The two no-identifier forms differ, deliberately.** `linear` with no identifier opens the issue
+picker (§A3). `backlog` with no identifier is an **error** — resolution in the store is by *existence*
+of a named file, and there is no picker over it. Say which is missing rather than guessing.
 
 No argument at all → ask what the user wants done. Do not guess.
 
