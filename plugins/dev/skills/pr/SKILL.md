@@ -33,6 +33,11 @@ May be invoked with an artifact-path argument (`validation.md` path). If given, 
 
 Read `docs/dev/<feature>/state.json`. Confirm `"validate"` is in `completed[]`.
 
+**`linear_issue` is read from that same state file here.** Naming it explicitly matters: until this
+stage existed as its reader, the key had **zero readers** — every hit in the repo was a writer, and
+nothing ever consumed any of them, so the Linear round trip was inert in both directions. This stage
+is its first consumer, and the escalated cycle's half of that round trip.
+
 If validation is not complete: STOP — "PR requires validation.md. Run /dev:validate first."
 
 Read once at stage start:
@@ -48,6 +53,12 @@ Read once at stage start:
 Generate a PR description from the artifact chain. Do not repeat information verbatim — synthesize into a readable narrative.
 
 **PR description format:**
+
+**When `state.json.linear_issue` is non-null**, the body opens with the `Closes` line from
+`../../references/entry-adapters.md` §A3, exactly `Closes [<ID>](<url>)`, read from that object's
+`id` and `url` fields. It is the **first line**, above `## What this does`, so Linear's parser sees it
+regardless of body length. **Omit the line entirely when `linear_issue` is null** — never emit an
+empty or placeholder `Closes`.
 
 ```markdown
 ## What this does
@@ -116,7 +127,15 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 **Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s PR segment mirrors it for the
 artifact-free fast path, which produces no `validation.md` and so cannot enter this stage. A change
-here should be reflected there.
+here should be reflected there. **The `Closes` lead line is part of what is mirrored** — both sides
+emit the identical `Closes [<ID>](<url>)` format, but on different transports: this stage reads it
+from `state.json.linear_issue`, while the lane holds the values in-turn and never writes a state file
+at all. Keep the format in step; do not try to unify the plumbing.
+
+**The body's quoting discipline now matches the mirror's.** `dev:fix` binds its body through a
+single-quoted heredoc because the body carries untrusted input; this cycle makes issue-derived text a
+first-class input to *this* stage as well, so the same discipline applies here and is implemented
+below rather than deferred.
 
 Push the branch if not already pushed:
 ```bash
@@ -131,14 +150,50 @@ git -C "$WORKDIR" push origin <parent-branch>   # no-op if already up to date re
 ```
 A nested cycle's PR happens before its parent's own `dev:pr` stage runs (the parent hasn't pushed yet at that point), so this step cannot be skipped — assume the parent branch needs pushing rather than checking first.
 
-Open the PR using the `gh` CLI (run inside the worktree with explicit head):
+Open the PR using the `gh` CLI (run inside the worktree with explicit head). **Bind the title and
+body through single-quoted heredocs — never interpolate either into a double-quoted flag:**
 ```bash
+BODY_FILE="$PRIMARY/.git/dev-pr-body.md"   # NOT "$WORKDIR/.git/…" — see below
+cat > "$BODY_FILE" <<'PRBODY'
+[PR description from Step 2 — a single-quoted heredoc, so nothing in it expands]
+PRBODY
+
+TITLE=$(cat <<'PRTITLE'
+<feature-name>: [one-sentence summary from spec Intent]
+PRTITLE
+)
+
 ( cd "$WORKDIR" && gh pr create \
-    --title "<feature-name>: [one-sentence summary from spec Intent]" \
-    --body "[PR description from Step 2]" \
+    --title "$TITLE" \
+    --body-file "$BODY_FILE" \
     --base "<target-branch>" \
-    --head "<branch-name>" )
+    --head "<branch-name>" ) && rm -f "$BODY_FILE"
 ```
+
+**`$PRIMARY/.git`, not `$WORKDIR/.git` — and not `$GIT_COMMON` either.** Two separate traps here:
+
+- **`$WORKDIR/.git` is a regular file** in a worktree cycle — which is every modern cycle — holding a
+  `gitdir:` pointer rather than being a directory. Redirecting into it fails with `Not a directory`,
+  `gh pr create --body-file` then errors on a missing file, and the stage opens no PR at all.
+- **`$GIT_COMMON` is only absolute from a worktree.** From the primary checkout `git rev-parse
+  --git-common-dir` returns `.git`, or `../.git` from a subdirectory. On the legacy in-place lane
+  (`worktreePath` null, so `WORKDIR == PRIMARY`) the `cat >` would write the relative path from the
+  agent's cwd, and the `( cd "$WORKDIR" && … )` subshell would then re-resolve the *same* relative
+  string from the repo root — a different file, one level up. `gh` errors on the missing body.
+
+`$PRIMARY` is absolutized by the preamble's `cd … && pwd`, and `$PRIMARY/.git` is the common git
+directory on both lanes, so it is correct everywhere without a second derivation. This is also why
+`dev:fix`'s mirror writes to `$PRIMARY/.git/…`: that lane is explicitly allowed to be invoked from
+inside a worktree, and anchoring on `$PRIMARY` is what makes it safe there.
+
+**Why this is not optional.** Inside double quotes the shell still expands `$…`, `` `…` ``, and
+`$(…)`, and this body's inputs are outside the author's control at the moment of the call: `spec.md`'s
+Intent and Scope, which on a Linear-sourced cycle are pre-filled from an issue description fetched
+over MCP; `validation.md`'s findings, which quote the diff under review; and the `Closes` line's own
+`id`/`url`. A single `$(…)` in an issue description would execute here, and `dev:done` can drive this
+stage unattended. The `rm -f` is chained to success so a failed `gh pr create` leaves the body intact
+for the retry. This mirrors the discipline `dev:fix`'s PR segment already carries, and the two are
+now consistent rather than divergent.
 `gh` has no `-C` flag; running it inside `$WORKDIR` with an explicit `--head` avoids the wrong-head bug where `gh` infers the head from whatever branch the shared tree happens to be on.
 
 Capture the PR URL from the output.

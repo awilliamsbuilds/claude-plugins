@@ -18,7 +18,7 @@ forward except hand-transcription.
 The store's format, naming, lifecycle, merge, and routing rules all live in
 `../../references/tech-debt.md` (P1, P2, P3, P5, P6, P7, P9). They are **cited here, never copied**.
 The one exception is § The Legacy Format below — the *source* format, which the contract retired when
-the store moved to front-matter (`references/tech-debt.md:417`) and which this skill is now the last
+the store moved to front-matter (`../../references/tech-debt.md:417`) and which this skill is now the last
 consumer of.
 
 ## Standing Rules
@@ -40,7 +40,7 @@ defended **in transport** instead — never interpolated into a shell string, al
 its own content (Step 8). Sanitize what you may rewrite; transport safely what you may not.
 
 **NEVER-COMMIT.** Nothing is `git add`ed and nothing is committed, ever. Same rule and same reason as
-`dev:init` and `dev:debt` (`debt/SKILL.md:266-268`): this runs outside a cycle, usually with the
+`dev:init` and `dev:debt` (`debt/SKILL.md` Step 7): this runs outside a cycle, usually with the
 checkout sitting on `main`, and staging files the user didn't ask for means their next unrelated
 commit silently carries them. Do not "fix" this by adding a commit.
 
@@ -136,7 +136,7 @@ which, and note that re-running and answering **keep** backfills the store witho
 These rules are **recovered, not invented** — from `git show
 ab054df:plugins/dev/references/tech-debt.md` (the retired *§ Where a field ends* and its rules list)
 and from the real example at `git show 7ebe89a^:docs/dev/tech-debt.md`. The live contract retains
-only a one-line retirement note (`references/tech-debt.md:417`). This section is **CITE-DONT-COPY**'s
+only a one-line retirement note (`../../references/tech-debt.md:417`). This section is **CITE-DONT-COPY**'s
 one stated exception: there is no live document left to cite.
 
 **L1-structure.** The file has a prose preamble, then `## Open`, then `## Closed`. Each entry is a
@@ -253,7 +253,7 @@ not a licence to write `files: []` anywhere else.
 **Missing `**Why deferred:**` or `**Done looks like:**`.** Same disposition as a missing `**Files:**`:
 write the item with that body section empty, flag it `missing-<field>`, keep `parse_ok: true`. An
 empty `**Done looks like:**` costs the item its `/dev:debt list` summary
-(`references/tech-debt.md:408-415` keys on it), which is worth a flag and not worth a lost entry.
+(`../../references/tech-debt.md:408-415` keys on it), which is worth a flag and not worth a lost entry.
 Only a missing `**What's wrong:**` is fatal — it is the item.
 
 **`parse_ok: false` handling.** The entry goes to **`BUCKET_E`**. Do **not** guess, do **not** skip
@@ -402,7 +402,7 @@ the fixture (`7ebe89a^:docs/dev/tech-debt.md:110`, `Recurrence: 2`), and the ear
 got it wrong — `closed/debt-gate-path-state-writes.md` carries one cycle name against
 `recurrence: 2`. **Rule:** seed `cycles: [<closed_by>]`, then pad with the synthetic marker
 `migrated` until `len(cycles) == N`, and write `recurrence: N`. This is the same device
-`dev:debt add` uses with `manual` (`debt/SKILL.md:217-221`). A missing or unparseable `N` → treat
+`dev:debt add` uses with `manual` (`debt/SKILL.md` Step 7). A missing or unparseable `N` → treat
 as `1`.
 
 **This inverts the precedence stated for open entries, deliberately.** On an open entry `cycles`
@@ -452,7 +452,7 @@ unresolved on the `ITEM`.
 The reason, stated so nobody "optimizes" the resolution back into this step: the slug proposed here
 is **not** the final slug. Step 6 lets the user rewrite one, and Step 7's P2 collision branch can
 rename the file to `debt-<slug>-<first-cycle>` — and P2 makes the **basename** the thing a
-`possibly_related_to:` pointer targets (`references/tech-debt.md:142-150`). Resolving against
+`possibly_related_to:` pointer targets (`../../references/tech-debt.md:142-150`). Resolving against
 proposed slugs would therefore write a dangling pointer on any confirmed slug edit or any collision.
 Resolution happens in Step 7, against final basenames.
 
@@ -612,7 +612,7 @@ The result is `CONFIRMED_ITEMS` — every `ITEM` with `scope` and `slug` final.
 plugin repo is **not** in this set and **skips local recurrence-merge entirely**. The local corpus
 belongs to a different repo and structurally cannot hold an item bound for another; **P9.intake-dedup**
 (Step 8) is its cross-repo equivalent. This is `dev:debt add` Step 7 §4's rule verbatim in effect
-(`debt/SKILL.md:234-241`) — merging locally anyway would leave a stray file in the wrong repo's store,
+(`debt/SKILL.md` Step 7) — merging locally anyway would leave a stray file in the wrong repo's store,
 contradicting P9.delivery's "nothing written locally."
 
 **1. P6 recurrence-merge — for `status: open` items only** — against the **active corpus (P5)**,
@@ -645,7 +645,7 @@ already in the mixed state. That is expected, not exotic. (Success Criterion 7.)
 > `BUCKET_A`.**
 >
 > P5 is by definition the *active* corpus — it holds **open** items and excludes `closed/`
-> (`references/tech-debt.md:270-276`). P6 has only ever been called on newly-deferred, open items from
+> (`../../references/tech-debt.md:270-276`). P6 has only ever been called on newly-deferred, open items from
 > a flush buffer; this skill is its first caller holding closed ones. Letting a closed entry
 > clear-match an open active item would append it into that file and produce **no file in `closed/`
 > at all** — silently discarding `closed:` and `closed_by:`, and resurrecting resolved work as open.
@@ -761,7 +761,7 @@ Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
 >
 >    Keep the info tag exactly `markdown` whatever the fence width — that tag is what `dev:debt inbox`
 >    identifies the authoritative block by. `inbox` describes the block as three-backtick
->    (`debt/SKILL.md:302`) because nothing had yet needed a wider one; matching on the tag rather than
+>    (`debt/SKILL.md` Step 8) because nothing had yet needed a wider one; matching on the tag rather than
 >    the delimiter width is what keeps a 4- or 5-backtick body convertible. This cycle does not modify
 >    `dev:debt` (Success Criterion 11), so note it here for whoever next touches `inbox`.
 

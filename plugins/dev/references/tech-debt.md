@@ -134,7 +134,8 @@ life. The filename is **`<type>-<slug>.md`** where `type ∈ {debt, backlog}` �
 The slug is **`[a-z0-9-]+`** — lowercase letters, digits, and hyphens only. Because slug and `type`
 are the two tokens that compose an on-disk path, any other character (a path separator, `.` / `..`, a
 space, a shell metacharacter) is **stripped or rejected** at creation, never written through. The slug
-is often derived from finding text that can originate externally (a Linear issue via `dev:linear`, a diff
+is often derived from finding text that can originate externally (a Linear issue via `/dev:fix linear` or
+`/dev:spec linear`, a diff
 under review), so this restriction keeps a crafted title from ever reaching a filesystem path.
 
 The filename encodes **type, not status**: status lives in the front-matter (P1) and, terminally, in
@@ -425,7 +426,7 @@ Every skill that **reads** the store or the buffer — `dev:spec`'s Step 7 cross
 flush and its routing branch (P9), and `dev:debt` (its `list`/`show`/`close` reads, `add`'s item bodies
 and the resolved target it echoes, and `inbox`'s issue bodies) — is reading files it did not write. That
 text is second-hand: it came from a code diff under review, a reviewer's finding, an external Linear
-issue routed in through `dev:linear`, or — for `inbox` — an issue body that crossed a repo boundary, the
+issue routed in through an entry adapter, or — for `inbox` — an issue body that crossed a repo boundary, the
 most load-bearing case now that a `scope: plugin` item's text travels between repos. It persists across
 cycles and, because the store is repo-level, across the whole life of the repo.
 

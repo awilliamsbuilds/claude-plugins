@@ -49,8 +49,7 @@ Using the same registry lookup, print the non-pathway skills:
 FYI — other skills (not part of the linear pathway):
 
 - dev:init      — [registry description] — run once per repo, before the first /dev session (auto-triggered if missing)
-- dev:fix       — [registry description] — the fast path: skips the pathway entirely, going straight to an open PR with no cycle artifacts; escalates to /dev when the request carries 2+ unresolved decisions
-- dev:linear       — [registry description] — entry point when starting from a Linear issue instead of a blank spec
+- dev:fix       — [registry description] — the fast path: skips the pathway entirely, going straight to an open PR with no cycle artifacts; escalates to /dev when the request carries 2+ unresolved decisions. Also starts from an identifier: /dev:fix linear <id> and /dev:fix backlog <item>
 - dev:autopilot — [registry description] — alternative to the gated flow above, and also its continuation: printed as an option at the Spec and Shape gates once definition is settled; runs all stages without stopping for approval
 - dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
 - dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
@@ -66,8 +65,7 @@ FYI — other skills (not part of the linear pathway):
 - `dev:pr` — opens the pull request
 - `dev:done` — merges and closes out
 - `dev:init` — sets up /dev in a repo
-- `dev:fix` — the fast path: request to open PR, no cycle artifacts
-- `dev:linear` — Linear issue entry point
+- `dev:fix` — the fast path: request to open PR, no cycle artifacts; also `linear` / `backlog` entry forms
 - `dev:autopilot` — no-gate full-cycle runner; also accepts an artifact path to take over a gated cycle mid-flight
 - `dev:reflect` — cycle retrospective
 - `dev:debt` — view and close tracked tech debt
