@@ -1,11 +1,12 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 severity: P3
 first_recorded: 2026-08-11
 cycles: [autopilot-handoff]
 recurrence: 1
+closed: 2026-08-15
 files:
   - plugins/dev/skills/dev/SKILL.md
   - plugins/dev/skills/autopilot/SKILL.md

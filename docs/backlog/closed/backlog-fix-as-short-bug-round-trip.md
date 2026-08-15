@@ -1,11 +1,12 @@
 ---
 type: backlog
 scope: repo
-status: promoted
+status: closed
 promoted_to: docs/dev/product-plans/dev-fast-path.md
 first_recorded: 2026-08-12
 cycles: [manual]
 recurrence: 1
+closed: 2026-08-15
 files:
   - plugins/dev/skills/fix/SKILL.md
 ---

@@ -1,10 +1,11 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 first_recorded: 2026-07-28
 cycles: [tech-debt-migration]
 recurrence: 1
+closed: 2026-08-15
 files:
   - plugins/dev/skills/spec/SKILL.md
   - plugins/dev/skills/plan/SKILL.md

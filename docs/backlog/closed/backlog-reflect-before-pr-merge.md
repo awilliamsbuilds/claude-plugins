@@ -1,10 +1,11 @@
 ---
 type: backlog
 scope: repo
-status: open
+status: closed
 first_recorded: 2026-08-12
 cycles: [manual]
 recurrence: 1
+closed: 2026-08-15
 files:
   - plugins/dev/skills/done/SKILL.md
   - plugins/dev/skills/reflect/SKILL.md
