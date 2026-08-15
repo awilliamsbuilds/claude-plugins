@@ -96,9 +96,10 @@ unattended run auditing the right thing.
 
 **A scanner that is absent, or that exits non-zero without a parsable report, is missing evidence —
 never clean.** Report it as "scanner not available" or "scanner failed (exit N)" and include stderr.
-Both halves are load-bearing. The second is the easier one to lose: `npm audit --json` in a repo with
-a `package.json` and no lockfile exits non-zero and prints nothing, which is indistinguishable from a
-clean audit unless the exit code is checked. Saying "no vulnerabilities found" when nothing ran is
+Both halves are load-bearing. The second is the easier one to lose: measured, `npm audit --json` in a
+repo with a `package.json` and no lockfile exits **1** and prints an `ENOLOCK` error object — valid
+JSON carrying no vulnerability data. A consumer that parses stdout and does not check the exit code
+reads that as an audit with nothing to report. Saying "no vulnerabilities found" when nothing ran is
 the single most misleading line this skill could print.
 
 Where no manifest matches, say that no ecosystem scanner applies to this project.
@@ -155,13 +156,17 @@ The `diff` verb audits **only what changed** against a base branch.
 only. This is what lets a caller that has already resolved a default branch hand it in instead of
 having this skill independently re-derive it, which is how the two come to disagree.
 
+```bash
+BASE="<the second token, verbatim>"
+```
+
 **Validate it before use — "explicit" is not "trusted."** The token reaches `git diff` as an
 argument, so a value beginning with `-` is parsed as an *option*, not a ref:
 `/dev:secure diff --output=/tmp/x` becomes `git diff --output=/tmp/x...HEAD`, which **writes a file**
 and returns an empty diff — breaking this skill's zero-write invariant while reporting that it
 examined nothing. Quoting stops shell injection; it does not stop argument injection. `dev:fix`
 anchors the first character of its `owner/name` slug for exactly this reason
-(`fix/SKILL.md:70-84`); this is the same class from the same trust level.
+(`dev:fix`'s **Resolve the target repo**); this is the same class from the same trust level.
 
 ```bash
 if ! printf '%s' "$BASE" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
@@ -200,7 +205,7 @@ stated in `dev:validate` Step 4's **healthy-path shell exit-code rule**.
 and its rule for a fork is to resolve the fork's *parent* — so a fork clone missing
 `refs/remotes/origin/HEAD` (exactly the case rung 2 exists for) would otherwise audit against the
 upstream's default branch. `dev:fix` carries the same anchored `owner/name` allowlist for the same
-reason (`fix/SKILL.md:70-84`). A slug that fails the allowlist means rung 2 is skipped, not guessed.
+reason (`dev:fix`'s **Resolve the target repo**). A slug that fails the allowlist means rung 2 is skipped, not guessed.
 
 **The stop message names which resolution failed**, and points at the verb that still works. A bare
 "cannot diff" would leave the user with no next move.
@@ -209,12 +214,18 @@ reason (`fix/SKILL.md:70-84`). A slug that fails the allowlist means rung 2 is s
 
 ```bash
 git -C "$PRIMARY" diff --end-of-options "$BASE"...HEAD
-git -C "$PRIMARY" diff --end-of-options "$BASE"...HEAD --name-only
+git -C "$PRIMARY" diff --name-only --end-of-options "$BASE"...HEAD
 ```
 
 `--end-of-options` is the second half of the guard above: the allowlist rejects a `-`-leading value,
 and this makes `git` treat what follows as operands regardless. Belt and braces, because the failure
 mode is a silent write plus an empty diff rather than an error.
+
+**Every other option must come *before* `--end-of-options`** — hence `--name-only` first. Measured:
+`git diff --end-of-options "$BASE"...HEAD --name-only` fatals with
+`option '--name-only' must come before non-option arguments` (exit 128), while
+`git diff --name-only --end-of-options "$BASE"...HEAD` exits 0. Getting this backwards costs the
+changed-file list on every run, which for a caller reads as a review that could not run.
 
 **Empty diff → say the diff is empty and stop.** Do **not** report "no findings" — that phrasing
 reads as an audit that ran and came back clean, which is a different claim from one that had nothing
