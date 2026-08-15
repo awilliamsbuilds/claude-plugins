@@ -495,6 +495,22 @@ class TestRenderPage(unittest.TestCase):
         literal = store_literal(viewer.render_page(store))
         self.assertEqual(json.loads(literal), store)
 
+    def test_template_holds_the_invariants_the_csp_depends_on(self):
+        # default-src 'none' is only correct while the document fetches nothing and
+        # carries no inline handlers. Both are template properties, so an edit can
+        # break the policy without any test noticing: CSP failures surface in the
+        # browser console, never in this suite. Assert the properties, not the header.
+        html = viewer.render_page(viewer.load_store(self.fixture.root))
+        external = [
+            ref
+            for ref in re.findall(r'(?:src|href)\s*=\s*["\']([^"\']*)["\']', html)
+            if not ref.startswith("#")
+        ]
+        self.assertEqual(external, [], "template fetches an external asset")
+        self.assertEqual(
+            re.findall(r"\son[a-z]+\s*=", html), [], "template carries an inline handler"
+        )
+
     def test_primary_path_never_reaches_the_page(self):
         html = viewer.render_page(viewer.load_store(self.fixture.root))
         self.assertNotIn(self.fixture.root, html)
