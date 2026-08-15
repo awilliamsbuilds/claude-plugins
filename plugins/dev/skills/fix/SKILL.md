@@ -630,8 +630,9 @@ retry rather than destroying what would have to be regenerated.
 
 **Never interpolate the body into a double-quoted `--body`.** Inside double quotes the shell still
 expands `$…`, `` `…` ``, and `$(…)`, and three of this body's inputs are outside the author's control
-at the moment of the call: the user's free-text request, **verbatim** test-suite output, and quoted
-repo file content from Step 3's grounding. Skill prose in this very repo is thick with `$WORKDIR`,
+at the moment of the call: the user's free-text request, **verbatim** build and test-suite output,
+and quoted repo file content from Step 3's grounding. A build log carrying `$(…)` or a backtick is
+ordinary, not exotic — compiler diagnostics quote source. Skill prose in this very repo is thick with `$WORKDIR`,
 `$PRIMARY`, and `$(git rev-parse …)` — so a grounding quote silently losing a variable is close to
 certain, and a backticked payload executing is reachable. The lane is unattended, so nobody sees the
 command before it runs. `dev:reflect` states this same rule for the same reason
@@ -670,12 +671,30 @@ are external input from Linear, and the rule below — never interpolate the bod
 [the request, and what grounding confirmed]
 
 ## What was verified
-[suite result verbatim, or "no test suite in this repo"; plus whatever else was checked
- and how — and anything that could NOT be verified, stated plainly]
+[build: `<command>` → passed | failed | "no build system detected in this repo"
+ suite: <SUITE_RESULT> — <SUITE_OUTPUT verbatim> | "no test suite in this repo"
+ security: `/dev:secure diff` → clean | "<N> finding(s) fixed, re-review clean —
+   <one line per finding: severity, what it was, how it was fixed>"
+ plus whatever else was checked and how — and anything that could NOT be verified,
+ stated plainly]
 
 ## Decisions made for you
 [the 1-decision question and its answer, or "none"]
 ```
+
+**Three rules govern that section.**
+
+**Name the findings, not just the count.** A body reading "1 finding fixed" tells the reviewer
+nothing about what shipped. The stop path already names the finding that stopped it; the
+fixed-and-shipped path owes the same — one line per finding: severity, what it was, how it was fixed.
+
+**`no build system detected` and `passed` must stay distinguishable.** Never collapse the former into
+silence or a checkmark. This is the same rule that already governs the suite line; it now governs
+both, and it is the whole reason `BUILD_RESULT` has three values rather than a boolean.
+
+**`not run — <reason>` never reaches this body.** The lane stops on that value, so there is no PR to
+render it into — **Stop** below reports it instead. A `not run` arm here would be a template for a
+document that cannot exist.
 
 **This mirrors `dev:pr` Step 4 (`pr/SKILL.md:126-183`), which is canonical.** It is duplicated
 because the lane produces no `validation.md` and so cannot enter that stage — every `/dev` stage
@@ -704,6 +723,16 @@ On every other dispatch this hook is a **no-op, not an error** (§A1).
 ### Stop
 
 Report the PR URL and end the turn. **The PR is the checkpoint — the lane never merges.**
+
+**The report names the security outcome alongside the URL** — `clean`, or the findings that were
+fixed and re-reviewed. A PR opened without saying what the review found is a PR whose review might as
+well not have run.
+
+**On a stop without a PR** — a failing build or suite (Verify's O2), a review that could not run
+(`not run — <reason>`), or a re-review that came back P1/P2 (`stopped — <finding>`) — report the
+branch name, what is committed on it, **which check failed and why**, and that no PR was opened.
+Reuse the mid-flight escalation's report shape rather than inventing a second one; these are the same
+event arriving from a different check.
 
 **On an adapter-sourced run, the report also names the source and what moved.** For `linear`: the
 issue ID, the status it now holds, and — when either status write was skipped or failed — which one
