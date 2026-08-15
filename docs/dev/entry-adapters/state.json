@@ -2,9 +2,12 @@
   "version": "1.0",
   "feature": "entry-adapters",
   "branch": "feature/entry-adapters",
-  "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "mode": "autopilot",
+  "handoff_at": "spec",
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
@@ -68,12 +71,13 @@
   "worktreePath": ".dev-worktrees/entry-adapters",
   "metrics": {
     "spec_questions_asked": 6,
-    "spec_revisions": 0,
+    "spec_revisions": 1,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-15T12:15:17Z",
-      "spec_end": "2026-08-15T12:48:51Z"
+      "spec_end": "2026-08-15T12:58:38Z",
+      "plan_start": "2026-08-15T12:55:21Z"
     }
   }
 }

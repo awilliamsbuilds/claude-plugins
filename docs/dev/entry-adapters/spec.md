@@ -22,14 +22,19 @@ builds that shape **once**, with two sources on it, and retires `dev:linear`.
 
 ## Scope
 
-**One adapter seam, three hook points.** An adapter is not a workflow — it is a resolver that runs
-*before* the lane and a closeout that runs *after* it:
+**One adapter seam, four hook points.** An adapter is not a workflow — it is a resolver that runs
+*before* the lane and side effects that fire at fixed points around it:
 
 | Hook | What the adapter supplies |
 |---|---|
 | **Resolve** | identifier → request text + grounding hints + a display label |
-| **Pre-lane** | optional side effect when work starts (Linear: set status) |
+| **Pre-lane** | optional side effect when work starts (Linear: set the "started" status) |
+| **Post-PR** | optional side effect once the PR is open (Linear: set the "in review" status) |
 | **Closeout** | optional side effect after merge (Linear: nothing — the `Closes` line does it; backlog: close the item) |
+
+Post-PR is a distinct hook rather than a variant of Pre-lane because the lane's two irreversible
+boundaries are *work started* and *PR opened*, and the two statuses SC4 caches map one to each. Folding
+them into a single hook would set "in review" before the change exists.
 
 The lane itself is unchanged: ground → triage → branch → change → verify → PR → stop. An adapter
 feeds it and cleans up after it; it never alters what happens in between.
