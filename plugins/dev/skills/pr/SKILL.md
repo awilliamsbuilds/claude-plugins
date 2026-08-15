@@ -33,6 +33,11 @@ May be invoked with an artifact-path argument (`validation.md` path). If given, 
 
 Read `docs/dev/<feature>/state.json`. Confirm `"validate"` is in `completed[]`.
 
+**`linear_issue` is read from that same state file here.** Naming it explicitly matters: until this
+stage existed as its reader, the key had **zero readers** — `dev:spec` initialized it and the retired
+`dev:linear` wrote it, and nothing ever consumed either write, so the Linear round trip was inert in
+both directions. This stage is its first consumer, and the escalated cycle's half of that round trip.
+
 If validation is not complete: STOP — "PR requires validation.md. Run /dev:validate first."
 
 Read once at stage start:
@@ -48,6 +53,12 @@ Read once at stage start:
 Generate a PR description from the artifact chain. Do not repeat information verbatim — synthesize into a readable narrative.
 
 **PR description format:**
+
+**When `state.json.linear_issue` is non-null**, the body opens with the `Closes` line from
+`../../references/entry-adapters.md` §A3, exactly `Closes [<id>](<url>)`, read from that object's
+`id` and `url` fields. It is the **first line**, above `## What this does`, so Linear's parser sees it
+regardless of body length. **Omit the line entirely when `linear_issue` is null** — never emit an
+empty or placeholder `Closes`.
 
 ```markdown
 ## What this does
@@ -116,7 +127,16 @@ Do **not** include: bug fixes, invisible performance improvements, copy or label
 
 **Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s PR segment mirrors it for the
 artifact-free fast path, which produces no `validation.md` and so cannot enter this stage. A change
-here should be reflected there.
+here should be reflected there. **The `Closes` lead line is part of what is mirrored** — both sides
+emit the identical `Closes [<id>](<url>)` format, but on different transports: this stage reads it
+from `state.json.linear_issue`, while the lane holds the values in-turn and never writes a state file
+at all. Keep the format in step; do not try to unify the plumbing.
+
+**The `--body` below is a double-quoted interpolation, and this cycle deliberately leaves it that
+way.** `dev:fix`'s mirror binds its body through a single-quoted heredoc precisely because the body
+carries untrusted input, and that reasoning applies here too. Changing it is out of this cycle's
+scope — recorded here so the divergence is visible to whoever picks it up, rather than looking like
+an oversight on one side.
 
 Push the branch if not already pushed:
 ```bash
