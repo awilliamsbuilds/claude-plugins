@@ -469,6 +469,10 @@ is a **consumer** of that schema and must not fork it.
 ### PR
 
 ```bash
+# Re-derive the branch name rather than assuming Step 5's shell survived — exact after `checkout -b`.
+BRANCH_NAME=$(git -C "$PRIMARY" branch --show-current)
+if [ -z "$BRANCH_NAME" ]; then echo "STOP: $PRIMARY is detached — cannot resolve the branch to push."; exit 1; fi
+
 git -C "$PRIMARY" push -u origin "$BRANCH_NAME"
 
 BODY_FILE="$PRIMARY/.git/dev-fix-pr-body.md"
@@ -495,15 +499,8 @@ gone. Unlike `$PRIMARY`, `$SLUG`, and `$DEFAULT_BRANCH`, which all have re-runna
 above, `BRANCH_NAME` had none: it existed only in prose. An empty value here is not a loud failure —
 `git push -u origin ""` errors, but Step 5's collision check would already have read `refs/heads/`
 and found nothing, silently missing a real collision on the way through. So re-derive it, which is
-exact after Step 5's `checkout -b`:
-
-```bash
-BRANCH_NAME=$(git -C "$PRIMARY" branch --show-current)
-if [ -z "$BRANCH_NAME" ]; then echo "STOP: $PRIMARY is detached — cannot resolve the branch to push."; exit 1; fi
-```
-
-Run this immediately before the push. It is correct on all three dispatches, because whatever Step 5
-resolved is what is checked out.
+exact after Step 5's `checkout -b`, so it opens the fence above rather than being described here. It
+is correct on all three dispatches, because whatever Step 5 resolved is what is checked out.
 
 **The title gets the same treatment as the body, and for the same reason.** It is the agent's summary
 of the user's free-text request — the identical untrusted input class. `/dev:fix rename the

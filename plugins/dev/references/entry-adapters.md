@@ -243,8 +243,11 @@ from a bare-slug `<item>` double-prefixes to `debt-debt-foo`, and a path built f
 
 ### Resolve
 
-**Validate `<item>` before it reaches a path or a branch name.** It must match
-`^(debt|backlog)-[a-z0-9][a-z0-9-]*$`. This is a real trust boundary, not a formality: `<item>` is
+**Validate the *resolved* `<item>` before it reaches a path or a branch name.** After the resolution
+below — including the bare-slug normalization, which is what supplies the `<type>-` prefix when the
+user omitted it — the value must match `^(debt|backlog)-[a-z0-9][a-z0-9-]*$`. Order matters: applied
+*before* normalization this would reject the bare-slug form the next paragraph explicitly accepts.
+This is a real trust boundary, not a formality: `<item>` is
 user-typed CLI text, and it goes on to build a filesystem path *and* a git branch name. The store's
 P2 slug rule is enforced by the store's **writers**, which says nothing about what someone types
 here. Rejecting up front also closes traversal — `/dev:fix backlog ../dev/entry-adapters/spec` would
@@ -252,14 +255,15 @@ otherwise resolve a real file outside the store, land on the `status`-less branc
 has no case for, and yield the branch `fix/../dev/entry-adapters/spec`, stopped only by git's own ref
 rules. That is an accidental backstop, not a guard.
 
-Then resolve `$PRIMARY/docs/backlog/<item>.md`. Not found → **STOP naming the path**; never fall back
+Resolve `$PRIMARY/docs/backlog/<item>.md`. Not found → **STOP naming the path**; never fall back
 to treating the argument as free text.
 
 **A bare slug with no `<type>-` prefix is accepted** — matching the two forms `dev:debt` Step 6 step 1
 accepts — but only when it resolves to exactly one `docs/backlog/{debt,backlog}-<slug>.md`, and it is
 **normalized to that file's basename before anything else uses it**, so the branch name and the tail's
 derivation both carry the full `<item>`. More than one match, or none: STOP and list the candidates.
-Never fuzzy-match.
+Never fuzzy-match. **Apply the allowlist above to the normalized result**, which by then always
+carries its `<type>-` prefix.
 
 ### Refusals, read from front-matter `status`
 

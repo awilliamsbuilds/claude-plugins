@@ -153,7 +153,7 @@ A nested cycle's PR happens before its parent's own `dev:pr` stage runs (the par
 Open the PR using the `gh` CLI (run inside the worktree with explicit head). **Bind the title and
 body through single-quoted heredocs — never interpolate either into a double-quoted flag:**
 ```bash
-BODY_FILE="$WORKDIR/.git/dev-pr-body.md"
+BODY_FILE="$GIT_COMMON/dev-pr-body.md"   # NOT "$WORKDIR/.git/…" — see below
 cat > "$BODY_FILE" <<'PRBODY'
 [PR description from Step 2 — a single-quoted heredoc, so nothing in it expands]
 PRBODY
@@ -169,6 +169,13 @@ PRTITLE
     --base "<target-branch>" \
     --head "<branch-name>" ) && rm -f "$BODY_FILE"
 ```
+
+**`$GIT_COMMON`, not `$WORKDIR/.git`.** In a worktree cycle — which is every cycle — `$WORKDIR/.git`
+is a regular **file** containing a `gitdir:` pointer, not a directory, so redirecting into it fails
+with `Not a directory` and `gh pr create --body-file` then errors on a missing file, opening no PR at
+all. `$GIT_COMMON` is already computed at the top of this stage and resolves to the real common git
+directory from either a worktree or the primary checkout. (`dev:fix`'s mirror writes to
+`$PRIMARY/.git/…`, which is correct *there* only because that lane never runs in a worktree.)
 
 **Why this is not optional.** Inside double quotes the shell still expands `$…`, `` `…` ``, and
 `$(…)`, and this body's inputs are outside the author's control at the moment of the call: `spec.md`'s
