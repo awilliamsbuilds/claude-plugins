@@ -56,7 +56,10 @@ Implementation steps:
    `dev:3`, `dev:179`, `start:52`, `start:68`, `spec:301`, `spec:509`, `plan:212`, `validate:64`,
    `done:256`, `tech-debt.md:137`, `tech-debt.md:428`, `viewer.py:367`, `README.md:13`,
    `CLAUDE.md:35`, `add-plugin/SKILL.md:25`. Every one of these describes the *Linear* behavior, so
-   every one becomes `dev:linear`.
+   every one becomes `dev:linear`. **One of them needs more than a token swap:** `done:256` also says
+   "(or `^[A-Za-z0-9][A-Za-z0-9-]*$` **for a fix cycle**)". A token-level sweep leaves that reading
+   "`dev:linear` Step 3's allowlist … for a fix cycle", pointing at the new lane — which runs no cycle
+   and has no such allowlist. Reword it to "for a Linear cycle".
 5. **Two further references are *path* strings, not `dev:fix` strings — the `dev:fix` grep will not
    surface them**, because the path contains `skills/fix`:
    - `CLAUDE.md:35`'s Path column becomes `plugins/dev/skills/linear/SKILL.md`. Without this, Task 7's
@@ -349,7 +352,10 @@ Interfaces:
 Implementation steps:
 1. **SC7/SC8:** `grep -rn 'dev:fix' plugins/ README.md CLAUDE.md` — every hit must refer to the *new*
    lane, and `grep -rn 'dev:linear' …` must cover every Linear reference. Then the path sweep
-   `grep -rn 'skills/fix' .` — every surviving hit must name the *new* lane or sit in the exclusion
+   `grep -rn 'skills/fix' . --exclude-dir=docs/dev` — the exclusion is required, not cosmetic: this
+   cycle's own `spec.md` and `plan.md` quote both the old and new paths throughout, so an unscoped
+   sweep returns ~18 self-hits and can never come back clean. Every surviving hit must name the *new*
+   lane or sit in the exclusion
    set of Task 1 **steps 5–6** (the two `closed/` items, `backlog-fix-as-short-bug-round-trip.md`, and
    `product-plans/dev-fast-path.md`), since the `dev:fix` grep structurally cannot see path strings.
    Also confirm `fix/SKILL.md` carries both mirror-pointer lines (Task 4 step 9, Task 5 step 6), so

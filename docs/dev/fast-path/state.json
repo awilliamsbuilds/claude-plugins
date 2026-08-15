@@ -4,9 +4,10 @@
   "branch": "feature/fast-path",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -39,9 +40,9 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 1,
-    "concerns": 6,
-    "applied": 11,
+    "blockers": 0,
+    "concerns": 4,
+    "applied": 13,
     "dismissed": 0,
     "loops_run": 2,
     "loops_max": 3
