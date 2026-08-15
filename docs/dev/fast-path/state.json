@@ -28,11 +28,11 @@
   },
   "challenge": {
     "run": true,
-    "blockers": 3,
-    "concerns": 3,
-    "applied": 9,
+    "blockers": 2,
+    "concerns": 4,
+    "applied": 11,
     "dismissed": 0,
-    "loops_run": 1,
+    "loops_run": 2,
     "loops_max": 3
   },
   "challenge_plan": {
@@ -74,7 +74,7 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-15T03:14:00Z",
-      "spec_end": "2026-08-15T03:51:51Z"
+      "spec_end": "2026-08-15T03:56:52Z"
     }
   }
 }

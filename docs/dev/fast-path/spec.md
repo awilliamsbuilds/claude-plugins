@@ -104,10 +104,11 @@ case. Linear support is retained, not dropped.
 5. The lane never opens a PR without having run the repo's test suite when one exists, and the PR
    body states the result.
 6. `/dev`, `/dev:autopilot`, and stages `spec`/`shape`/`plan`/`build`/`validate`/`pr`/`done` are
-   byte-identical after this cycle except for `dev:fix` → `dev:linear` rename references **and, in
-   `dev/SKILL.md` only, one added invocation-table row plus a description mention for the new
-   `/dev:fix` lane**. Without that carve-out the criterion forbids the discoverability edit the Scope
-   requires — the invocation table is where commands are advertised.
+   byte-identical after this cycle except for (a) `dev:fix` → `dev:linear` rename references, (b) in
+   `dev/SKILL.md`, one added invocation-table row plus a description mention for the new `/dev:fix`
+   lane, and (c) in `pr/SKILL.md` and `done/SKILL.md`, the one-line duplication pointer Technical
+   Constraints requires. Without those carve-outs the criterion forbids edits the Scope and Technical
+   Constraints themselves require.
 7. Every reference to `dev:fix` resolves to the skill that actually does what the reference claims —
    verified by sweeping **all 9 sites** in `plugins/dev/`, not by recall, **plus the three
    out-of-plugin references** (`README.md`, `CLAUDE.md`, `plugins/plugin-manager/skills/add-plugin/SKILL.md`).
@@ -174,9 +175,10 @@ hardcode a personal path, username, or machine-specific location.
   a lane that produces no artifacts cannot enter the chain anywhere. **This is the cycle's central
   design tension:** the lane must therefore implement its own PR and merge segments, which
   duplicates logic that `dev:pr` and `dev:done` already hold. The duplication is accepted
-  deliberately for this milestone and must be *named in the skill file* at both sites, so a future
-  edit to one is not silently missed at the other. Extracting a shared reference is a candidate for
-  a later cycle, not this one.
+  deliberately for this milestone and must be named at **both ends**: in the lane's skill file at its
+  PR and merge segments, and as a one-line pointer in `dev:pr` Step 4 and `dev:done` Step 2 / Step 7,
+  so a future edit to either side is not silently missed at the other. Extracting a shared reference
+  is a candidate for a later cycle, not this one.
 - **`dev:fix` has 9 reference sites** in `plugins/dev/`: `skills/validate`, `skills/done`,
   `skills/spec`, `skills/start`, `skills/plan`, `skills/dev`, `skills/fix` itself,
   `skills/debt/viewer.py`, and **`references/tech-debt.md`** — the last of which a `skills/`-only
@@ -187,10 +189,14 @@ hardcode a personal path, username, or machine-specific location.
   `docs/decisions/*.md` also mention `dev:fix` and are **deliberately excluded** — a decision log
   records what was true on its date, and editing one to match the present destroys the record.
 - **`PRIMARY` derivation must reuse the existing precedent**, not invent one. The lane runs "from
-  anywhere in the repo" while operating on the primary checkout, so it needs the derivation
-  `dev:build` Step 0 and `debt/viewer.py` already use (`git rev-parse --git-common-dir`, then
-  `dirname`, with a non-empty guard). `debt-primary-cd-failure-unchecked` records that 13 existing
-  sites lack the guard; this cycle writes a new site and must carry it rather than grow the count.
+  anywhere in the repo" while operating on the primary checkout, so it needs the two-line derivation
+  every `dev` stage header uses (`git rev-parse --git-common-dir`, then `cd "$(dirname …)" && pwd`)
+  — see `build/SKILL.md:26-27`. Those shell sites carry a failure branch on line 1 only; the
+  non-empty check on `PRIMARY` itself is missing at all 13, which
+  `debt-primary-cd-failure-unchecked` records, and `debt/viewer.py`'s `resolve_primary`
+  (`viewer.py:150-176`) is the repo's only guarded derivation. The lane copies the shape from the
+  shell sites **and adds the guard** — `if [ -z "$PRIMARY" ]; then echo "Could not resolve the
+  primary checkout."; exit 1; fi` — so this cycle writes a 14th site that does not grow the count.
 - **Skills are auto-discovered** — `plugins/dev/.claude-plugin/plugin.json` has no skills array, so
   adding `dev:linear` and reshaping `dev:fix` touches no plugin.json and no marketplace entry.
 - **The installed plugin is a snapshot of `main`.** Nothing this cycle writes is live until the PR
