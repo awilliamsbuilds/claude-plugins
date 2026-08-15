@@ -23,12 +23,16 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 5,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
-    "nits_open": []
+    "p3_open": [
+      "autopilot/SKILL.md:139 cites spec/SKILL.md:478, now stale; repairing it would violate SC10 byte-identical"
+    ],
+    "nits_open": [
+      "pr/SKILL.md pre-existing unquoted <placeholder> args in 3 shell blocks (not introduced by this diff)"
+    ]
   },
   "challenge": {
     "run": true,

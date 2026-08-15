@@ -207,7 +207,7 @@ Accept either a Step 3 index or an item slug.
    "fix" this by adding a commit. (The mirror named below *does* commit — that is a declared
    divergence with its own grounding, not the thing this rule warns against.)
 
-**Mirrored at `references/entry-adapters.md` §A4.** That section restates **step 4** of this
+**Mirrored at `../../references/entry-adapters.md` §A4.** That section restates **step 4** of this
 procedure — the front-matter write and the P3 move — for the `/dev:fix backlog` merge tail, which
 cannot invoke this skill directly. **This step is canonical**; a change here should be reflected
 there. Three divergences are deliberate, and both ends name the same three:

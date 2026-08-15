@@ -40,7 +40,7 @@ defended **in transport** instead — never interpolated into a shell string, al
 its own content (Step 8). Sanitize what you may rewrite; transport safely what you may not.
 
 **NEVER-COMMIT.** Nothing is `git add`ed and nothing is committed, ever. Same rule and same reason as
-`dev:init` and `dev:debt` (`debt/SKILL.md:266-268`): this runs outside a cycle, usually with the
+`dev:init` and `dev:debt` (`debt/SKILL.md` Step 7): this runs outside a cycle, usually with the
 checkout sitting on `main`, and staging files the user didn't ask for means their next unrelated
 commit silently carries them. Do not "fix" this by adding a commit.
 
@@ -402,7 +402,7 @@ the fixture (`7ebe89a^:docs/dev/tech-debt.md:110`, `Recurrence: 2`), and the ear
 got it wrong — `closed/debt-gate-path-state-writes.md` carries one cycle name against
 `recurrence: 2`. **Rule:** seed `cycles: [<closed_by>]`, then pad with the synthetic marker
 `migrated` until `len(cycles) == N`, and write `recurrence: N`. This is the same device
-`dev:debt add` uses with `manual` (`debt/SKILL.md:217-221`). A missing or unparseable `N` → treat
+`dev:debt add` uses with `manual` (`debt/SKILL.md` Step 7). A missing or unparseable `N` → treat
 as `1`.
 
 **This inverts the precedence stated for open entries, deliberately.** On an open entry `cycles`
@@ -612,7 +612,7 @@ The result is `CONFIRMED_ITEMS` — every `ITEM` with `scope` and `slug` final.
 plugin repo is **not** in this set and **skips local recurrence-merge entirely**. The local corpus
 belongs to a different repo and structurally cannot hold an item bound for another; **P9.intake-dedup**
 (Step 8) is its cross-repo equivalent. This is `dev:debt add` Step 7 §4's rule verbatim in effect
-(`debt/SKILL.md:234-241`) — merging locally anyway would leave a stray file in the wrong repo's store,
+(`debt/SKILL.md` Step 7) — merging locally anyway would leave a stray file in the wrong repo's store,
 contradicting P9.delivery's "nothing written locally."
 
 **1. P6 recurrence-merge — for `status: open` items only** — against the **active corpus (P5)**,
@@ -761,7 +761,7 @@ Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
 >
 >    Keep the info tag exactly `markdown` whatever the fence width — that tag is what `dev:debt inbox`
 >    identifies the authoritative block by. `inbox` describes the block as three-backtick
->    (`debt/SKILL.md:302`) because nothing had yet needed a wider one; matching on the tag rather than
+>    (`debt/SKILL.md` Step 8) because nothing had yet needed a wider one; matching on the tag rather than
 >    the delimiter width is what keeps a 4- or 5-backtick body convertible. This cycle does not modify
 >    `dev:debt` (Success Criterion 11), so note it here for whoever next touches `inbox`.
 

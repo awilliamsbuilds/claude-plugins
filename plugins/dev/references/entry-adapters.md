@@ -146,9 +146,21 @@ pathspec:
 
 ```bash
 git -C "$PRIMARY" add docs/dev/config.json
-git -C "$PRIMARY" commit -F - -- docs/dev/config.json   # single-quoted heredoc, per the lane's rule
-# message: chore: cache linear status ids for team <teamId>
+git -C "$PRIMARY" commit -F - -- docs/dev/config.json <<'CACHEMSG'
+chore: cache linear status ids for this team
+CACHEMSG
 ```
+
+The heredoc is shown inline because `commit -F -` reads stdin: as a bare command with the message in
+a trailing comment it hits EOF, aborts with "empty commit message", and leaves `config.json` staged
+for the next commit to sweep up — the outcome the own-pathspec design exists to prevent.
+
+**The cache is consuming-repo state, and it carries workspace identifiers.** `docs/dev/config.json`
+is tracked, so the resolved `<teamId>` and status IDs enter git history. That is fine in a private
+product repo and wrong in a public one — including the plugin repo itself, where dogfooding
+`/dev:fix linear` would publish real Linear identifiers to a marketplace repo. Keep the team ID out
+of the commit message (above), and in a public checkout either skip the cache write or gitignore the
+config.
 
 Writing it at Resolve time would leave `docs/dev/config.json` modified in a tree with no branch to
 commit it to, and the lane's own Step 2 check 2 ("clean working tree … if anything is modified,
@@ -231,8 +243,17 @@ from a bare-slug `<item>` double-prefixes to `debt-debt-foo`, and a path built f
 
 ### Resolve
 
-Resolve `$PRIMARY/docs/backlog/<item>.md`. Not found → **STOP naming the path**; never fall back to
-treating the argument as free text.
+**Validate `<item>` before it reaches a path or a branch name.** It must match
+`^(debt|backlog)-[a-z0-9][a-z0-9-]*$`. This is a real trust boundary, not a formality: `<item>` is
+user-typed CLI text, and it goes on to build a filesystem path *and* a git branch name. The store's
+P2 slug rule is enforced by the store's **writers**, which says nothing about what someone types
+here. Rejecting up front also closes traversal — `/dev:fix backlog ../dev/entry-adapters/spec` would
+otherwise resolve a real file outside the store, land on the `status`-less branch the refusal table
+has no case for, and yield the branch `fix/../dev/entry-adapters/spec`, stopped only by git's own ref
+rules. That is an accidental backstop, not a guard.
+
+Then resolve `$PRIMARY/docs/backlog/<item>.md`. Not found → **STOP naming the path**; never fall back
+to treating the argument as free text.
 
 **A bare slug with no `<type>-` prefix is accepted** — matching the two forms `dev:debt` Step 6 step 1
 accepts — but only when it resolves to exactly one `docs/backlog/{debt,backlog}-<slug>.md`, and it is
@@ -282,10 +303,13 @@ exactly how two implementations of one procedure drift apart.
   did not apply — **skip the closeout entirely**, leave the item open, and say so in the tail's Report.
   A close committed on a detached HEAD or a stale default branch reaches no branch.
 
-  (ii) The resolved `$PRIMARY/docs/backlog/$ITEM.md` has front-matter `status: open`. A coincidental
-  basename match must never archive an unrelated or already-closed item. The realistic route to one is
-  a Linear `gitBranchName` that happens to begin `fix/` — the `..` and `//` rejections in §A3 already
-  close the path-traversal case — which is why this check is cheap insurance rather than paranoia.
+  (ii) The resolved `$PRIMARY/docs/backlog/$ITEM.md` has front-matter `status: open`. **This guard
+  and the basename allowlist above are both required, and neither is redundant.** `status: open`
+  catches an *already-closed* item; it does nothing about an *unrelated but open* one. `fix/` is not
+  exclusive to this dispatch, so a Linear `gitBranchName` beginning `fix/`, or a free-text
+  `<kebab-summary>` that kebabs into an item's basename, could otherwise reach a real item file and
+  archive it — committed and pushed, reported as a legitimate close, for a merge that never paid it.
+  The allowlist is what makes those runs exit 0 as the no-ops they are.
 
 **Guard what the resolution block binds; re-derive what the merge fence binds.** This block is
 separated from the merge fence by a front-matter edit, which forces an agent turn and so almost
@@ -294,15 +318,33 @@ variable set: an unbound numeric makes `[ "$X" -eq 1 ]` error and evaluate false
 the guarded action, and `git -C ""` silently operates on the current directory rather than failing.
 The same hazard applies here — but the two variable classes need opposite treatment:
 
-- `PRIMARY`, `DEFAULT_BRANCH`, `BRANCH`, `ITEM` are all bound by the tail's **resolution block** and
-  re-derivable by re-running it. Assert them with `:?`. **`ITEM` must be derived there, alongside
-  `BRANCH`** — deriving it inside the block that guards it would abort the closeout on every run.
+- `ITEM` and `BRANCH_MERGED` are **substituted literals**, not variables. By the time this block
+  runs, the merge fence has deleted the feature branch and moved the checkout to `$DEFAULT_BRANCH`,
+  so nothing in the checkout still carries them — and a `:?` assertion would abort with advice that
+  cannot be followed, since re-running the resolution block would bind `BRANCH` to `$DEFAULT_BRANCH`
+  and stop on its own guard. Substitution is the idiom the skill already uses throughout.
+- `PRIMARY` and `DEFAULT_BRANCH` are **`:?`-asserted**, because both have re-runnable derivations at
+  the top of the skill. There the assertion's advice is real.
 - `RECONCILED` is bound **inside the merge fence**, which is precisely the invocation this block is
-  *not* in. Asserting it with `:?` would abort every run. Re-derive it from observable state instead:
+  *not* in. Asserting it would abort every run; inheriting it would trust a variable this invocation
+  never set. Re-derive it from observable state instead:
 
 ```bash
-: "${PRIMARY:?run the tail's resolution block first, in this same invocation}" \
-  "${DEFAULT_BRANCH:?}" "${BRANCH:?}" "${ITEM:?}"
+# Substituted by the agent from this run's own resolution — NOT inherited shell state. The merge
+# fence has already moved the checkout and deleted the feature branch, so neither can be re-derived.
+ITEM='<item>'
+BRANCH_MERGED='<branch that was just merged>'
+
+# These two have re-runnable derivations at the top of the skill, so asserting them is real advice.
+: "${PRIMARY:?re-run the skill's PRIMARY derivation}" \
+  "${DEFAULT_BRANCH:?re-run the skill's default-branch derivation}"
+
+printf '%s' "$ITEM" | grep -Eq '^(debt|backlog)-[a-z0-9][a-z0-9-]*$' || {
+  echo "Closeout skipped: '$ITEM' is not a store-item basename — this branch was not backlog-sourced."
+  exit 0
+}
+
+[ -f "$PRIMARY/docs/backlog/$ITEM.md" ] || exit 0   # no matching item — no-op, not an error
 
 RECONCILED=0
 CMP_REF="origin/$DEFAULT_BRANCH"
@@ -327,7 +369,7 @@ in a clone with no `origin/$DEFAULT_BRANCH` ref, `merge-base` would error and sk
 which the `rev-parse --verify` fallback above closes, mirroring the same fallback the tail's leftover
 scan already carries.
 
-**2. Edit the front-matter.** Set `status: closed`, `closed: <YYYY-MM-DD>`, `closed_by: <branch-name>`.
+**2. Edit the front-matter.** Set `status: closed`, `closed: <YYYY-MM-DD>`, `closed_by:` set to the merged branch name, **quoted** — git permits YAML-significant characters such as `{`, `#`, and `&` in a branch name.
 Run `date -u +%Y-%m-%d` for the date — never infer it, since `/dev:debt closed` sorts on it and the
 store is meant to still be readable years from now.
 
