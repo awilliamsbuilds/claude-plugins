@@ -3,8 +3,8 @@ type: debt
 scope: repo
 status: open
 first_recorded: 2026-08-15
-cycles: [backlog-viewer]
-recurrence: 1
+cycles: [backlog-viewer, entry-adapters]
+recurrence: 2
 files:
   - plugins/dev/skills/reflect/SKILL.md
   - plugins/dev/skills/done/SKILL.md
@@ -26,3 +26,14 @@ name.
 **Done looks like:** The `telemetry-schema` cycle's contract either covers per-stage revision
 counts and a `done` timestamp, or records a deliberate decision to exclude them — and
 `dev:reflect`'s reading guidance matches whichever it chose.
+
+**Recurrence — `entry-adapters` (2026-08-15): the challenger counters have the same blindness, by a
+different mechanism.** `challenge.*` and `challenge_plan.*` overwrite `run`/`blockers`/`concerns` on
+every dispatch, so they report only the **last** verdict. This cycle's plan challenger ran 4 loops and
+found **13 blockers cumulatively** (4 → 3 → 3 → 3 → 0), two of which would have shipped broken
+behavior; because the final dispatch was clean, `state.json` ends with `challenge_plan.blockers: 0`.
+The cycle reads as though the plan challenger found nothing. Only `applied: 30` survives as evidence,
+and it does not separate blocker fixes from concern fixes. `dev:reflect`'s own guidance treats
+`challenge.blockers` as one axis of its diagnostic table, so the table is being read against a value
+that is structurally incapable of showing the loop's work. Whatever the metrics contract decides for
+revision counts should cover cumulative-vs-last-write semantics for these counters too.

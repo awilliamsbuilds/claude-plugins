@@ -72,3 +72,74 @@ that already stated a request had to be retyped by hand.
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: `08cc248` on branch `feature/entry-adapters`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-15*
+
+*Cycle: ~101 min wall clock · handed off to autopilot at Spec · 6 spec questions, 1 spec revision*
+
+| Stage | Duration | Budget used |
+|---|---|---|
+| Spec | 43 min | challenger 3 blockers / 7 applied |
+| Plan | 9 min | **challenger 4/5 loops, 13 blockers cumulative, 30 applied** |
+| Build | 11 min | 13 tasks, 17 files |
+| Validate | 37 min | 3/5 loops, clean |
+
+**The finding that matters most came from the user, not the metrics.**
+
+In the previous cycle (`fast-path`) the user proposed deleting the `dev:linear` skill — which is
+exactly what this cycle then did. It was declined on the ground that it was not needed, and the
+`fast-path` decision log records only the outcome ("Linear support retained") with no rationale and
+**no mention that removal was proposed at all**. The same log's Consequences section already stated
+that the cycle "Enables Milestone 2 (`fast-path-backlog`, an entry adapter onto this lane)" — so the
+cycle that declined removal had already written down that a superseding adapter was coming. The
+decline was wrong on that cycle's own terms.
+
+A dedicated cycle was probably still the right sequencing: this one found three load-bearing things
+inside `dev:linear` that a rushed removal would have broken (the uppercase slug allowlist, `dev:done`
+citing it by name as a shell-safety argument, and the issue→dimension mapping). But **sequencing is
+the rationale the user never received.** The failure is not the call; it is that a user's proposal was
+refused with an unargued assertion and left no trace in any artifact. Recorded as
+`declined-user-proposals-leave-no-record`.
+
+**Spec:** Confidence 88%/Ready with 1 revision — the score matched actual clarity. The revision is
+the tell: the Scope table named three adapter hooks while the Happy Path required four, and the spec
+challenger missed a table-vs-narrative contradiction sitting inside its own consistency lens. Plan
+caught it.
+
+**Shape:** Skipped (no UI) — correctly.
+
+**Plan:** The challenger earned its budget. 4 of 5 loops, 13 blockers cumulative. Two would have
+shipped broken behavior: the merge tail had no way to identify which backlog item to close (SC3 would
+have failed on the ordinary path), and Linear's `gitBranchName` was validated against an allowlist
+that structurally rejects it, so the fallback would have fired every time — silently. The Step 6
+self-review caught neither, which is the stated reason the cold review exists.
+
+**Validate:** 3/5 loops, clean. Both P1s were the same class — shell variables whose lifetime does not
+survive an agent-turn boundary. One was in the build diff; one was introduced by loop 1's own fix and
+caught by the fix-diff re-review, which is now 4-for-4 across two cycles at catching fixes that broke
+things.
+
+**Flow:** Tier `deep` correct. Handoff at Spec worked cleanly.
+
+**Token efficiency:** Spec and Validate dominated, both subagent-bound. `files_read_in_build: 9` is
+under-counted — the inline tracking competes with the work, the same failure `dev:spec` already
+documents for `spec_questions_asked`.
+
+**Process errors this cycle (mine):** the two Validate reviews were dispatched **sequentially**, which
+Step 2 says to run in parallel — cost wall-clock, not correctness. And one buffered-item write was
+attempted with an anchor matching twice, committing before the failure was noticed.
+
+**Suggestions:**
+1. Spec challenger's consistency lens should cross-check enumerations (tables, hook lists, counts)
+   against the narrative that consumes them — this cycle's miss was exactly that shape.
+2. Add "does any variable in this snippet have to survive an agent-turn boundary?" to the fix-diff
+   re-review checklist — 2 for 2 on P1s here.
+3. Record declined user proposals with attribution and reasoning (see debt item below).
+
+**Deferred to tech debt:** `declined-user-proposals-leave-no-record`,
+`cross-file-line-citations-go-stale-silently`, `bare-reference-paths-do-not-resolve`,
+`p6-overlap-test-unsatisfiable-for-fileless-items`, `vercel-plugin-injects-into-unrelated-work`;
+recurrence merged into `debt-stage-metrics-blind-to-revisions-and-done` (challenger counters
+overwrite, so a 13-blocker cycle reports 0) and `backlog-dev-skill-test-harness` (7 of 11 success
+criteria unexecutable).
