@@ -4,10 +4,11 @@
   "branch": "feature/fast-path",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -74,12 +75,14 @@
     "spec_questions_asked": 6,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 14,
     "stage_timestamps": {
       "spec_start": "2026-08-15T03:14:00Z",
       "spec_end": "2026-08-15T03:56:52Z",
       "plan_start": "2026-08-15T04:00:33Z",
-      "plan_end": "2026-08-15T04:04:02Z"
+      "plan_end": "2026-08-15T04:04:02Z",
+      "build_start": "2026-08-15T04:20:07Z",
+      "build_end": "2026-08-15T04:25:08Z"
     }
   }
 }
