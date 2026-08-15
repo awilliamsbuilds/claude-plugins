@@ -1,0 +1,198 @@
+# Fast Path
+*Branch: feature/fast-path · Confidence: 92% — Ready · 2026-08-15*
+*Cycle type: feature · Tier: standard*
+*Milestone 1 of `docs/dev/product-plans/dev-fast-path.md`*
+
+## Intent
+
+`/dev`'s seven stages are correctly weighted for a feature like `backlog-viewer` — 2h43m of spec,
+three validate loops, a decision log — and absurdly heavy for a one-line frontmatter fix.
+
+`dev:autopilot` does not close that gap. It removes the **gates**, not the **ceremony**: a micro
+cycle run unattended still creates a worktree, writes `spec.md` and `state.json`, dispatches two
+challengers, runs a validate fix loop, writes `validation.md`, generates a decision log, and runs a
+retrospective. For a typo that is the wrong trade in both directions — slow, and the artifacts it
+produces are not worth reading.
+
+The session that produced this spec is the worked example of the target: six PRs merged in one
+sitting with **zero** `/dev` artifacts, where rigor came from grounding before acting, running the
+suite, verifying in a browser where the suite could not reach, capturing deferred work to
+`docs/backlog/`, and reporting honestly. That is not a lower standard — it is the same standard
+carried by judgment instead of by paperwork.
+
+This cycle builds that lane and the rule that refuses it.
+
+## Scope
+
+**`/dev:fix "<what you want done>"` — the lane.** Runs unattended through:
+
+1. **Ground** — read the actual files; verify every as-is claim the request makes.
+2. **Triage** — count unresolved decisions (see below). Escalate, ask, or proceed.
+3. **Branch** — from `origin/<default>`, named for the change.
+4. **Change** — the minimal edit that does the job.
+5. **Verify** — run the repo's test suite if one exists; verify by whatever means the change
+   actually requires, including means the suite cannot reach.
+6. **PR** — open it with a real description: what changed, why, what was verified.
+
+Then it **stops**. The PR is the checkpoint.
+
+**`/dev:fix merge` — the tail.** Merges the PR, deletes the remote and local branch, fast-forwards
+the primary checkout, reports. Nothing irreversible happens without this second invocation.
+
+**The escalation rule.** After grounding, before changing, count the decisions the lane would be
+making *for* the user — points where a reasonable person could choose differently:
+
+| Decisions | Behavior |
+|---|---|
+| 0 | Proceed, **regardless of size**. A mechanical 14-file rename qualifies. |
+| 1 | Ask it inline, then proceed. One question is cheaper than a whole cycle. |
+| 2+ | **Stop.** List the decisions, print the `/dev` command, and offer to proceed if the user answers them here. |
+
+Size is deliberately not the trigger. This session's 14-file frontmatter rename was trivially safe;
+a one-file change with two defensible answers is not.
+
+**The rename.** Today's `dev:fix` — Linear issue → the full seven stages — becomes **`/dev:linear`**,
+a name that describes what it does. `/dev:fix` is the scarce good name and it goes to the common
+case. Linear support is retained, not dropped.
+
+**The rigor floor.** The lane may never skip these, and says which it did in the PR body:
+- Ground before acting — no edit from a remembered mental model of the code.
+- Run the project's test suite when one exists.
+- Never claim unverified success; if something could not be verified, say so.
+- Capture anything deferred to `docs/backlog/` rather than dropping it.
+- Report what it decided on the user's behalf.
+
+## Out of Scope
+
+- **Backlog-item entry.** `/dev:fix <backlog-slug>` is Milestone 2. This cycle takes a free-text
+  request only.
+- **Retiring `~/.claude/commands/`.** Milestone 3. Those files are outside this repo; no PR here can
+  delete them.
+- **Any behavior change to the seven-stage pipeline.** `/dev`, `/dev:autopilot`, and every stage
+  skill keep working exactly as they do now. The only edit to an existing stage skill is the
+  `dev:fix` → `dev:linear` rename and its reference sites.
+- **A second checkpoint before changing.** Considered and rejected: the pre-change approval is where
+  most of the wall-clock time goes, and the escalation rule already covers the case where stopping
+  is warranted.
+- **Auto-merge.** Rejected for this milestone — merging is the one irreversible step, and it stays
+  behind a human yes. Milestone 2 may revisit it for backlog runs, where "as little interaction as
+  possible" is the explicit goal.
+- **A shared-logic refactor of `dev:pr` / `dev:done`.** See Technical Constraints — the duplication
+  is real and is managed by explicit divergence, not by extracting a shared module this cycle.
+
+## Success Criteria
+
+1. A 0-decision request reaches an open PR with **no user turn** between invocation and the PR
+   report.
+2. A request carrying 2+ unresolved decisions **stops before changing any file**, lists the
+   decisions, and prints the `/dev` command. It never proceeds silently.
+3. A mechanical multi-file change — the shape of this session's 14-file rename — **proceeds without
+   escalating**. Size alone never triggers escalation.
+4. `/dev:fix merge` leaves: PR merged, remote branch gone, local branch gone, primary checkout on
+   the default branch and fast-forwarded, working tree clean.
+5. The lane never opens a PR without having run the repo's test suite when one exists, and the PR
+   body states the result.
+6. `/dev`, `/dev:autopilot`, and stages `spec`/`shape`/`plan`/`build`/`validate`/`pr`/`done` are
+   byte-identical after this cycle except for `dev:fix` → `dev:linear` rename references.
+7. Every reference to `dev:fix` across `plugins/dev/` resolves to the skill that actually does what
+   the reference claims — verified by sweeping all 8 sites, not by recall.
+8. `grep -rn '/Users/\|awilliamsbuilds\|adam' plugins/dev/` still returns zero.
+
+## Happy Path
+
+1. Run `/dev:fix "drop the redundant plugin prefix from the dev skill names"` from anywhere in the
+   repo.
+2. The lane reads the frontmatter of every `dev` skill and of one other plugin's skills, confirming
+   the prefix claim against real files.
+3. Triage: 0 unresolved decisions — the fix is mechanical and the convention is already established
+   elsewhere in the repo. Proceed.
+4. Branch, edit 14 files, run the suite.
+5. PR opened. The lane reports what it changed, what it verified, and stops.
+6. User reviews, runs `/dev:fix merge`. Merged, cleaned up, main fast-forwarded.
+
+## Edge Cases
+
+- **Dirty working tree.** The lane operates in the primary checkout, not a worktree. Refuse before
+  branching, naming the modified files — never stash, never branch over uncommitted work.
+- **No test suite in the repo.** Say so explicitly in the PR body rather than implying tests passed.
+  An absent suite raises the bar on other verification, it does not lower the bar overall.
+- **Mid-flight discovery.** Grounding said 0 decisions; implementation reveals a real fork. **Stop
+  and escalate at that point** rather than deciding to keep momentum. The count is a prediction, and
+  a prediction that turns out wrong is a reason to stop, not a commitment to honor.
+- **Nothing to change.** The request is already satisfied. Say so and open no PR — an empty PR is
+  worse than no PR.
+- **Default branch is not `main`.** Detect it; never assume.
+- **Branch name already exists** locally or on the remote. Disambiguate rather than reusing or
+  force-pushing.
+- **PR is not mergeable at `/dev:fix merge`** — conflicts, failing checks, or a mergeability the API
+  still reports as `UNKNOWN`. Stop and report; never force, and never delete a branch whose PR did
+  not merge.
+- **`gh` unavailable or unauthenticated.** Fail before branching, with the reason.
+- **No `docs/backlog/` in the repo.** Deferred-work capture degrades silently rather than erroring —
+  the same rule the tech-debt contract already applies (P7).
+- **Invoked while a `/dev` cycle is in flight.** The lane branches in the primary checkout; an
+  active cycle lives in its own worktree, so they do not contend. State this rather than leaving it
+  to chance.
+
+## Audience
+
+Single operator — the repo owner, running this many times a day across several repos. The plugin is
+distributed via the `local-plugins` marketplace and must stay installable by anyone, so nothing may
+hardcode a personal path, username, or machine-specific location.
+
+## Technical Constraints
+
+- **No build tooling.** The repo ships markdown skills. This cycle must not introduce a build step.
+- **The lane cannot reuse `dev:pr` or `dev:done`.** Verified: `dev:pr` STOPs without `validation.md`,
+  `dev:done` STOPs without `pr_url` in `state.json`, `dev:validate` STOPs without a completed build,
+  `dev:build` STOPs without a plan unless tier is micro. Every stage gates on the prior artifact, so
+  a lane that produces no artifacts cannot enter the chain anywhere. **This is the cycle's central
+  design tension:** the lane must therefore implement its own PR and merge segments, which
+  duplicates logic that `dev:pr` and `dev:done` already hold. The duplication is accepted
+  deliberately for this milestone and must be *named in the skill file* at both sites, so a future
+  edit to one is not silently missed at the other. Extracting a shared reference is a candidate for
+  a later cycle, not this one.
+- **`dev:fix` has 8 reference sites** in `plugins/dev/`: `validate`, `done`, `spec`, `start`, `plan`,
+  `dev`, `fix` itself, and `debt/viewer.py`. The rename must sweep all of them.
+- **Skills are auto-discovered** — `plugins/dev/.claude-plugin/plugin.json` has no skills array, so
+  adding `dev:linear` and reshaping `dev:fix` touches no plugin.json and no marketplace entry.
+- **The installed plugin is a snapshot of `main`.** Nothing this cycle writes is live until the PR
+  merges and `/plugin update` runs — so the lane cannot be verified end-to-end through its own
+  invocation during Build. Verify at the file level and by walking the procedure manually, and say
+  which is which.
+- **Frontmatter `name:` must stay bare** (`fix`, not `dev:fix`) or slash-command autocomplete renders
+  `/dev:dev:fix`. Established this session.
+
+## Dependencies
+
+- Depends on nothing external — no new runtime, no new tool.
+- **Blocks Milestone 2** (`fast-path-backlog`), which is an entry adapter onto this lane, and
+  **Milestone 3** (`retire-legacy-commands`), which cannot decide what to retire until the
+  replacement exists.
+- Consumes the `docs/backlog/` contract in `plugins/dev/references/tech-debt.md` for deferred-work
+  capture. The lane is a consumer of that schema and must not fork it.
+
+## UI Needed
+
+**No.** Terminal output only; no visual surface. The lane's copy — the PR-stop report, the
+escalation message, the merge confirmation — is short enough to settle in this spec and the plan.
+Shape would add a stage for little gain, which would be a poor advertisement for a cycle about not
+spending time on ceremony.
+
+---
+*Auto-filled dimensions: none — `ui_needed` and `dependencies` were decided by the author with
+reasoning stated rather than asked, and are subject to the approval gate.*
+*Grounding inventory: stage artifact gates read directly — `pr/SKILL.md:36` (STOP without
+validation.md), `done/SKILL.md:45` (STOP without pr_url), `validate/SKILL.md:40` (STOP without
+build), `build/SKILL.md:42` (STOP without plan unless micro); this is what rules out reusing the
+chain and is the spec's most load-bearing claim. Micro-tier reachability checked by grepping
+`dev/SKILL.md` and `autopilot/SKILL.md` for a micro invocation — none exists, tier is auto-detected
+only, so today's short path cannot be requested. Negative space swept for an existing fast lane
+(`grep -rln "quick\|fast.path\|fast lane"` across `skills/`) → two hits, both incidental prose
+("quick reference", "quick no"), confirming none exists. `dev:fix` consumers enumerated by sweep,
+not recall: validate, done, spec, start, plan, dev, fix, debt/viewer.py = 8 sites. Legacy commands
+located and read at `~/.claude/commands/{fix,merge,pr,security-review,security-review-diff}.md` —
+confirmed outside this repo and therefore outside any PR's reach. Autopilot's weight confirmed from
+its own description and Step 2 stop list: it removes gates, not artifacts. Open-debt cross-check run
+against the P5 corpus intersected with this cycle's surface — 16 nominal matches, narrowed to 4
+genuinely coupled, 3 folded into scope (see debt-pending.md).*
