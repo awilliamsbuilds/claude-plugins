@@ -76,7 +76,8 @@ anchored**, and it is validation rather than decoration. §P9's own form is
 with `-` — an argument-injection vector into `gh --repo`. It does not: `-` is inside the character
 class, so `-foo/bar` passes it. The anchored first character above is what actually delivers the
 property §P9 claims. §P9 is the shared contract and this cycle does not rewrite it; the discrepancy is
-recorded in `docs/backlog/`. A slug that fails this check is a stop, never something to pass to `gh`.
+recorded as `docs/backlog/debt-p9-slug-regex-allows-leading-dash.md`. A slug that fails this check is
+a stop, never something to pass to `gh`.
 
 The `sed` handles all four remote forms in use — `git@host:owner/name[.git]`,
 `https://host/owner/name[.git]`, `ssh://git@host/owner/name.git`, and a credential-bearing
@@ -391,11 +392,12 @@ must be captured here or they will be re-derived later against a checkout that h
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
-  LEFTOVER=$(git -C "$PRIMARY" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*')
+  LEFTOVER=$(git -C "$PRIMARY" for-each-ref --format='%(refname:short)' \
+    --merged "$DEFAULT_BRANCH" 'refs/heads/fix/*')
   if [ -n "$LEFTOVER" ]; then
-    echo "STOP: $PRIMARY is on $DEFAULT_BRANCH, but a fix branch is still present:"
+    echo "STOP: $PRIMARY is on $DEFAULT_BRANCH, but these already-merged fix branches remain:"
     echo "$LEFTOVER"
-    echo "If a tail was interrupted, resume it from that branch:"
+    echo "If a tail was interrupted, resume it from the relevant one:"
     echo "  git -C \"$PRIMARY\" checkout <branch> && /dev:fix merge"
   else
     echo "STOP: $PRIMARY is on $DEFAULT_BRANCH — nothing to merge (the tail already completed)."
@@ -427,6 +429,15 @@ is designed to fail closed on. In that state `$PRIMARY` is on `$DEFAULT_BRANCH` 
 branch still present, and a flat "the tail already completed" would push the user into exactly the
 hand-finishing this section forbids. So the guard looks for a leftover `fix/*` branch and, when it
 finds one, names it and prints the command to resume from it.
+
+**`--merged "$DEFAULT_BRANCH"` is the load-bearing part of that scan, not a refinement.** An
+interrupted tail always leaves its branch merged — the `gh pr merge` succeeded, so the feature tip is
+an ancestor of the default branch. An unrelated branch with a still-open PR never is. Without the
+filter, any repo that uses `fix/` as a team branch convention — and the lane runs across several
+repos — would list colleagues' branches under a heading saying to resume from one, and resuming from
+a branch whose PR is still **open** would bind `ALREADY_MERGED=0` and merge that unrelated PR.
+Nothing downstream would catch it. The listed branches are candidates; a branch whose PR is still
+open is by construction not among them.
 
 **Why the merged-PR fallback exists.** Once `gh pr merge` succeeds the PR is no longer open, so a
 failure anywhere downstream — a `checkout` blocked by another worktree holding `$DEFAULT_BRANCH`, a
@@ -534,9 +545,15 @@ re-add `--delete-branch`.
 When `RECONCILED=1`, state all four end states plainly: PR merged, remote branch gone, local branch
 gone, primary checkout on `$DEFAULT_BRANCH` at the merged tip with a clean tree.
 
-**When `RECONCILED=0`, report three** — plus "primary checkout left detached; reconciliation skipped
-(another worktree holds `$DEFAULT_BRANCH`)" or "…`pull --ff-only` did not fast-forward", whichever
-applies. The fourth state is genuinely unmet, and saying so is the whole point.
+**When `RECONCILED=0`, report three** — plus whichever of these two actually applies, spelled out in
+full, because they leave the checkout in different places:
+
+- checkout failed → "primary checkout left **detached**; reconciliation skipped (another worktree
+  holds `$DEFAULT_BRANCH`)"
+- checkout succeeded, pull failed → "primary checkout is **on `$DEFAULT_BRANCH`** but was not
+  fast-forwarded (`pull --ff-only` did not apply)"
+
+The fourth state is genuinely unmet either way, and saying so is the whole point.
 
 **Read each state from the command that produced it — do not assert them.** Most of the sequence exits
 on failure, but the reconciliation path deliberately does not, so "we got here" is not by itself proof
