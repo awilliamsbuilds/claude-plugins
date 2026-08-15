@@ -263,8 +263,10 @@ edit the same file and must land in file order.
   (`fix/SKILL.md:28-51`, `fix/SKILL.md:89-110`).
 - Produces: `BUILD_RESULT` — exactly one of the three strings `passed`, `failed`,
   `no build system detected`; and `SUITE_RESULT` — exactly one of `passed`, `failed`,
-  `no test suite in this repo`. Task 5 consumes both under those exact names and those exact value
-  domains.
+  `no test suite in this repo`. **`SUITE_RESULT` is the status, not the output:** the suite's verbatim
+  output is carried alongside it as `SUITE_OUTPUT` (free text, unconstrained), because the existing
+  rule already requires recording results verbatim (`fix/SKILL.md:443`). Task 5 renders the status and
+  the verbatim output together and consumes all three names exactly as declared.
 - State keys: none — the lane writes no `state.json` at all.
 - Shared procedure: **build-system detection and its outcome branches. This task is the
   canonical implementation.** Task 6 is a marked mirror of it in `dev:validate` and restates the
@@ -298,7 +300,12 @@ edit the same file and must land in file order.
      (SC6) — it is the same distinction the existing no-suite rule draws
      (`fix/SKILL.md:445-446`), and it is drawn for the same reason.
 
-3. **Settle the suite rule in the same paragraph, deliberately changing existing behavior.** The
+3. **Bind the suite's two values explicitly.** The existing Verify prose runs the suite and records
+   results verbatim but names nothing. Bind `SUITE_RESULT` to the status — `passed` / `failed` /
+   `no test suite in this repo` — and `SUITE_OUTPUT` to the verbatim output, so Task 5 has a status to
+   branch on and text to quote rather than one conflated value.
+
+4. **Settle the suite rule in the same paragraph, deliberately changing existing behavior.** The
    lane today runs the suite and says only "Record each result verbatim for the PR body" — it never
    states what a *failing* suite does. Write the single covering rule:
 
@@ -310,7 +317,7 @@ edit the same file and must land in file order.
    Mark the change explicitly in the prose (*this changes what a failing suite does; previously the
    result was only recorded*) so a reader diffing against the old behavior sees a decision.
 
-4. Add the note that this build check is **`dev:fix`'s canonical implementation**, mirrored by
+5. Add the note that this build check is **`dev:fix`'s canonical implementation**, mirrored by
    `dev:validate` **Step 5b** — cite it **by section name, never by line number**, which is both
    satisfiable before Task 6 exists and avoids the staleness class
    `docs/backlog/debt-cross-file-line-citations-go-stale-silently.md` records.
@@ -446,12 +453,19 @@ report, including the "no build system" case that must not read as success.
 
 **Depends on:** Task 3 (`BUILD_RESULT`, `SUITE_RESULT`) and Task 4 (`SECURITY_RESULT`).
 
-**Files:** modify `plugins/dev/skills/fix/SKILL.md` (the PR body template at `fix/SKILL.md:548-561`
-and `### Stop` at `fix/SKILL.md:587-594`)
+**Files:** modify `plugins/dev/skills/fix/SKILL.md` — the PR body template inside `### PR`, and
+`### Stop`
+
+**Cite by section name in this task, never by line number.** Tasks 3 and 4 both edit `fix/SKILL.md`
+*above* these regions — Task 4 inserts a whole new `### Security` section — so every line number
+measured against today's file is shifted by the time this task runs. That is the staleness class
+`docs/backlog/debt-cross-file-line-citations-go-stale-silently.md` records, and the line numbers
+below are given only as today's anchors for locating the regions, not as citations to write into the
+file.
 
 **Interfaces:**
 - Consumes: `BUILD_RESULT` (`passed` | `failed` | `no build system detected`) from Task 3;
-  `SUITE_RESULT` (`passed` | `failed` | `no test suite in this repo`) from Task 3;
+  `SUITE_RESULT` (`passed` | `failed` | `no test suite in this repo`) plus `SUITE_OUTPUT` (verbatim, free text) from Task 3;
   `SECURITY_RESULT` (`clean` | `<N> finding(s) fixed, re-review clean` | `stopped — <finding>` |
   `not run — <reason>`) from Task 4. **These are the semantic values; the PR body renders them into
   fuller sentences** (`no build system detected` → "no build system detected in this repo"). The
@@ -459,7 +473,7 @@ and `### Stop` at `fix/SKILL.md:587-594`)
 - Produces: nothing — terminal task for the `dev:fix` chain.
 - State keys: none.
 - Shared procedure: the PR body is a **mirror** of `dev:pr` Step 4, which stays **canonical**
-  (`fix/SKILL.md:563-571`). This task edits only the `## What was verified` section's *contents*
+  (the "This mirrors `dev:pr` Step 4" paragraph in `### PR`). This task edits only the `## What was verified` section's *contents*
   and adds no fifth section, so the existing four-section count and the pointer paragraph both hold
   unchanged. `dev:pr` gains nothing here: SC11 assigns it no change, and the build check is
   `dev:validate`'s on the pipeline route, recorded in `validation.md` rather than in the PR body.
@@ -472,11 +486,15 @@ and `### Stop` at `fix/SKILL.md:587-594`)
    ```markdown
    ## What was verified
    [build: `<command>` → passed | failed | "no build system detected in this repo"
-    suite: <result verbatim> | "no test suite in this repo"
+    suite: <SUITE_RESULT> — <SUITE_OUTPUT verbatim> | "no test suite in this repo"
     security: `/dev:secure diff` → clean | "<N> finding(s) fixed, re-review clean — <one line per
-      finding: severity, what it was, how it was fixed>" | not run: <reason>
+      finding: severity, what it was, how it was fixed>"
     plus whatever else was checked and how — and anything that could NOT be verified, stated plainly]
    ```
+
+   **`not run — <reason>` never reaches the PR body.** Task 4 step 2 stops the lane on that value, so
+   there is no PR to render it into; `### Stop` reports it instead. A `not run` arm here would be a
+   template for a document that cannot exist.
 
 2. **Name the findings that were fixed, not just how many.** Happy Path step 6 requires the body to
    carry the security outcome "including the P2 that was found and fixed" — a count alone does not
@@ -490,11 +508,12 @@ and `### Stop` at `fix/SKILL.md:587-594`)
 4. Keep every one of these values **inside the single-quoted heredoc** the body is already written
    through. Add the one-line reason: build and suite output is verbatim tool output — the identical
    untrusted-input class the existing rule names alongside the user's free-text request and
-   grounding quotes (`fix/SKILL.md:514-522`). A build log containing `$(…)` or a backtick is
-   ordinary, not exotic.
+   grounding quotes (the "Never interpolate the body into a double-quoted `--body`" paragraph in
+   `### PR`). A build log containing `$(…)` or a backtick is ordinary, not exotic.
 
 5. Extend `### Stop` so the closing report names the security outcome alongside the PR URL. On a
-   stop-without-PR (Task 3's O2, or Task 4's step 4.5 / step 5), the report states the branch, what
+   stop-without-PR (Task 3's O2, Task 4's step 2 `not run` stop, or Task 4's step 4.5 / step 5), the
+   report states the branch, what
    is committed on it, which check failed, and that no PR was opened — reusing the existing
    mid-flight escalation report shape rather than inventing a second one.
 
@@ -549,7 +568,7 @@ its autopilot consequence.
    Run every command as `git`-independent work inside `$WORKDIR`, consistent with the rest of this
    stage's `-C "$WORKDIR"` discipline.
 
-3. Restate the outcome branches in full, with the one divergence named:
+3. Restate the outcome branches in full, with **both** divergences named:
 
    - **O1.** Detected, exits 0 → record `Build: passed (<command>)` in `validation.md`. Continue to
      Step 6.
@@ -592,8 +611,11 @@ its autopilot consequence.
 
 ### Task 7: `dev:autopilot` — name the new Validate stop in the stop list
 
-**What:** Add the `dev:validate` build failure to Step 2's "When autopilot stops" enumeration, so the
-blocker is documented on both sides.
+**What:** Add the `dev:validate` build failure to the **"When autopilot stops" enumeration in
+`## Purpose`** (`autopilot/SKILL.md:14`), so the blocker is documented on both sides. **Not "Step 2"**
+— measured, `## Step 2: Autopilot Behavioral Rules` begins at line 87 and holds no stop list. This is
+the same misnomer Task 6 step 5 forbids propagating, and this file's edit is capped at one line, so
+the narrative must not invite a second.
 
 **Used by:** Anyone reading `dev:autopilot` to learn what halts an unattended run — and by autopilot
 itself, which reads that list as its own contract.
@@ -601,7 +623,7 @@ itself, which reads that list as its own contract.
 **Depends on:** Task 6 (the stop it names must exist).
 
 **Files:** modify `plugins/dev/skills/autopilot/SKILL.md` (line 14, the `**When autopilot stops:**`
-sentence)
+sentence inside `## Purpose`)
 
 **Interfaces:**
 - Consumes: the stop condition produced by Task 6.
@@ -729,7 +751,7 @@ debt item's `**Done looks like:**` grep, which cannot fail as written.
 
 1. `plugins/dev/skills/init/SKILL.md:162` — change `` the `/dev` plugin's `references/tech-debt.md` ``
    to `` the `/dev` plugin's `../../references/tech-debt.md` ``. **This line sits inside a heredoc**
-   that writes `docs/backlog/README.md` (the `EOF` is two lines below it) — verified. Confirm before
+   that writes `docs/backlog/README.md` — verified; the closing `EOF` is at line 163, one line below. Confirm before
    editing whether the heredoc is single- or double-quoted; the replacement text contains no shell
    metacharacter either way, but the surrounding block must not be disturbed.
 
@@ -869,6 +891,13 @@ missing-registry fallback.
      is.
    - **SC10** — `docs/backlog/debt-primary-cd-failure-unchecked.md` still reads `status: open` with
      **12** `files:` entries, and `plugins/dev/skills/secure/SKILL.md` is not among them.
+   - **SC11** — `git diff origin/main --stat -- plugins/dev/skills/pr/SKILL.md
+     plugins/dev/skills/dev/SKILL.md plugins/dev/skills/shape/SKILL.md
+     plugins/dev/skills/plan/SKILL.md plugins/dev/skills/build/SKILL.md
+     plugins/dev/skills/spec/SKILL.md` must be empty. Measured note: the criterion's "except where a
+     retired command is referenced" escape hatch is **vacuous** —
+     `grep -rn 'security-review\|commands/fix\|commands/pr\|~/.claude/commands' plugins/ README.md CLAUDE.md`
+     returns zero, so no task is missing work there and the diff must be empty outright.
    - **SC3** — the section-scoped grep from Task 4 step 1.
    - **SC7** — the section-scoped grep from the Risks entry, not the whole-file count.
 
@@ -904,7 +933,7 @@ missing-registry fallback.
 
 ## Risks and Unknowns
 
-- **Two implementations of build detection will drift.** Mitigated structurally: Task 3 is marked canonical, Task 6 is a marked mirror that restates B1–B5 and O1–O3 in full and names its one divergence (no suite half). `dev:validate` Step 4 step 3a already re-checks declared canonical/mirror pairs on every fix, so the pairing is machinery rather than a comment. **A shared reference file was considered and rejected** — spec Scope §3 requires each skill to *state* the asymmetry rather than imply symmetry, which a single shared procedure would flatten.
+- **Two implementations of build detection will drift.** Mitigated structurally: Task 3 is marked canonical, Task 6 is a marked mirror that restates B1–B5 and O1–O3 in full and names **both** divergences (D1 no suite half, D2 the differing O2 action shape) identically at both ends. `dev:validate` Step 4 step 3a already re-checks declared canonical/mirror pairs on every fix, so the pairing is machinery rather than a comment. **A shared reference file was considered and rejected** — spec Scope §3 requires each skill to *state* the asymmetry rather than imply symmetry, which a single shared procedure would flatten.
 - **SC11 was amended during Plan.** It declared `dev:autopilot` byte-identical while Scope §3 created a Validate stop that autopilot must document. The spec now carries the exception and Task 7 is bounded to exactly one line. Risk if mishandled: a reviewer reads Task 7 as scope creep. Mitigation: the amendment states its own reasoning inline in `spec.md`, and Task 7 step 2 forbids any second edit to that file.
 - **SC13 was added during Plan.** `dev:start` and `README.md`'s Plugins table enumerate skills, and on an **autopilot** cycle `dev:done` reaches neither: Step 4 owns only the Component Registry table, and Step 4a *records rather than applies* prose edits in autopilot mode (`done/SKILL.md:262`) — verified. Without Tasks 10 step 6 and 11, `dev:secure` would ship undiscoverable from the reference that exists to find it.
 - **SC3's grep has a non-zero baseline, so it must be read as section-scoped.** Measured: `grep -c 'injection\|XSS\|CSRF' plugins/dev/skills/fix/SKILL.md` returns **1** today, from `fix/SKILL.md:76` — the `owner/name` allowlist's "argument-injection vector into `gh --repo`" rationale, which is correct prose no task may touch. Read literally against a zero baseline, Build would either fail the criterion or delete a load-bearing sentence. Task 4 step 1 now scopes the check to the new `### Security` section and records the baseline. This is the same whole-file-vs-section trap the SC7 bullet below catches; SC3 has it too.
