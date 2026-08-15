@@ -745,7 +745,7 @@ Either outcome → **`BUCKET_C`**, carrying its issue number for the report.
 >
 > 1. **Never interpolate the body into a double-quoted `--body`.** Write it to a temp file and pass
 >    `--body-file`, or use a **single-quoted** heredoc. `dev:reflect` already states this rule for the
->    same reason (`reflect/SKILL.md:219`): inside double quotes the shell still expands `$…`,
+>    same reason (`reflect/SKILL.md:223`): inside double quotes the shell still expands `$…`,
 >    `` `…` ``, and `$(…)`. This is not a hypothetical here — the reference fixture's own entries quote
 >    shell (`` `rm -rf "$WORKDIR/docs/dev/<feature>/"` ``), so on ordinary content the body silently
 >    corrupts, and on crafted content a backticked command runs with the user's shell and `gh`

