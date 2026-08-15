@@ -115,6 +115,9 @@ work in that order keeps the stated rationale true. If both rungs come back empt
 
 - `../../references/entry-adapters.md` — the adapter seam contract (§A1 hooks, §A2 argument tokens,
   §A3 Linear, §A4 backlog). Only the adapter dispatches consume §A3/§A4; the parse below is §A2.
+- `docs/dev/config.json` — the `linear.<teamId>.{started,in_review}` status-ID cache (§A3). Read on
+  the **`linear` dispatch only**, and legitimately absent on every other path — a repo with no
+  `/dev` setup, or any non-Linear invocation, never needs it.
 
 **The parse is four-way**, and the order matters:
 
@@ -181,9 +184,66 @@ No argument at all → ask what the user wants done. Do not guess.
    entirely and go to Step 7. Running it in both modes would make `/dev:fix merge` always STOP while
    offering `/dev:fix merge` as the exit — an infinite loop.
 
+## Step 2a: Resolve the adapter
+
+**Free-text dispatch skips this step entirely** — there is no adapter, and the request text is what
+the user typed. The step exists for the `linear` and `backlog` dispatches, and it implements the
+seam's **Resolve** and **Pre-lane** hooks (`../../references/entry-adapters.md` §A1).
+
+It runs **after Step 2's preflight and before Step 3's grounding**, which is the placement the whole
+adapter design rests on: everything that can fail here fails **before Step 5 creates any branch**, so
+a stop at this point has created nothing.
+
+### `linear` dispatch
+
+Follow §A3, in its order — do not restate it here, and do not reorder it:
+
+1. **Availability.** Confirm the `linear-server` MCP responds. On absence, timeout, or auth failure,
+   **STOP naming the reason.** No branch exists yet, so nothing needs unwinding. A missing Linear
+   degrades this one adapter — the `backlog` dispatch and free-text lane never reach this check.
+2. **Fetch** the issue (or open the picker when no identifier was given), recording `<ID>`, `<url>`,
+   `<teamId>`, `<gitBranchName>`, and the current status.
+3. **Status resolution** — read the cache, or ask the two questions against the live status list.
+   Hold the resolved IDs in-turn; **the `config.json` write is deferred to Step 5**, after
+   `checkout -b`, per §A3's persistence rule.
+4. **Pre-lane hook** — set the issue's `started` status, with §A3's two guarded branches (already at
+   or past the target → skip and note it; write permission missing → warn, continue, and say so in
+   the final report).
+
+The issue's title and description become the request text; its stated as-is claims are exactly the
+class Step 3 must verify.
+
+### `backlog` dispatch
+
+Follow §A4:
+
+1. **Resolve** `$PRIMARY/docs/backlog/<item>.md`, applying §A4's bare-slug normalization. **The
+   normalization must complete here**, before Step 5 derives the branch name from `<item>` — the
+   branch is what carries the item's identity into the separate `/dev:fix merge` invocation.
+2. **Refuse** on `status: closed` (reopening is a decision the lane must not make) or
+   `status: promoted` (naming the `promoted_to` product plan). Proceed only on `status: open`.
+3. **Bind** the request text (the item body), the grounding hints (front-matter `files:`), and the
+   display label (which **is** `<item>`).
+
+This adapter has **no external dependency**. A missing or unauthenticated Linear MCP never reaches
+this path, and the `backlog` dispatch works in a repo that has never configured Linear at all.
+
+Its **Pre-lane and Post-PR hooks are no-ops** — a backlog item has no external status to move. That
+is the seam's "a hook with nothing to do is a no-op, never an error" invariant (§A1), stated here so
+the absence does not read as an oversight.
+
 ## Step 3: Ground
 
 Read the actual files. Verify every as-is claim the request makes against what is really there.
+
+**On an adapter-sourced request, grounding is not skipped or shortened.** The request text came from
+an issue or an item rather than from the user's own typing, which makes its as-is claims *more* worth
+verifying, not less — nobody re-read them when they were written down either.
+
+**Grounding hints are a starting point, not a boundary.** On the `backlog` dispatch, the item's
+front-matter `files:` name where to look first. They do not define the set: the rule above — that a
+named set is enumerated by sweep rather than recall — governs unchanged, and an item's `files:` list
+can itself be stale.
 
 **No edit may come from a remembered mental model of the code.** If the request says "the frontmatter
 has a redundant prefix," open the frontmatter. If it names a set ("all the dev skills"), enumerate
@@ -240,31 +300,74 @@ Worked examples:
 
 ## Step 5: Branch
 
-**Resolve the final name before creating anything.**
+**Resolve the final name before creating anything, and bind it to `BRANCH_NAME`.** Every step after
+this one uses that variable, never a literal — the three dispatches produce three different shapes and
+only one of them starts with `fix/`.
 
-Name the branch `fix/<kebab-summary>`, where `<kebab-summary>` describes the change in 2–4 words. The
-allowlist applies to `<kebab-summary>` **alone**, not to the full branch name — a prefixed `fix/…`
-can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be collapsed. Normalize by
-`dev:spec` Step 6's construction (`spec/SKILL.md:135`): lowercase, collapse every run of characters
-outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`. If the result is empty, ask for a
-name rather than proceeding.
+| Dispatch | `BRANCH_NAME` |
+|---|---|
+| free text | `fix/<kebab-summary>` |
+| `backlog` | `fix/<item>` |
+| `linear` | `<gitBranchName>`, or the free-text derivation on allowlist failure |
+
+**Free text.** Name the branch `fix/<kebab-summary>`, where `<kebab-summary>` describes the change in
+2–4 words. The allowlist applies to `<kebab-summary>` **alone**, not to the full branch name — a
+prefixed `fix/…` can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be
+collapsed. Normalize by `dev:spec` Step 6's construction (`spec/SKILL.md:135`): lowercase, collapse
+every run of characters outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`. If the
+result is empty, ask for a name rather than proceeding.
+
+**`backlog` dispatch.** The branch is `fix/<item>` — the normalized on-disk basename from Step 2a,
+unchanged. `<item>` already satisfies the `<kebab-summary>` allowlist by construction (store slugs are
+lowercase kebab per `../../references/tech-debt.md` §P2), so it is not renormalized. **This is not
+cosmetic:** `/dev:fix merge` is a separate invocation and the lane persists no `state.json`, so
+`$BRANCH` is the tail's only durable signal — naming the branch from `<item>` is what carries the
+item's identity across the two invocations (§A4).
+
+**`linear` dispatch.** Use `<gitBranchName>` when it passes **§A3's full-branch-name allowlist** —
+`^[A-Za-z0-9][A-Za-z0-9._/-]*$` plus its `..`, `//`, leading/trailing `/`, and length rejections. That
+is deliberately **not** the `<kebab-summary>` allowlist above: Linear branch names are *full* names of
+the form `<user>/<id>-<title>`, and a segment-only rule would reject every real value and make the
+fallback unconditional. On failure, fall back to the free-text derivation rather than refusing the
+work. Do not "unify" the two allowlists; §A3 states why.
 
 **Collision check — both, before creating the branch:**
 
 ```bash
-git -C "$PRIMARY" rev-parse --verify "refs/heads/fix/<kebab-summary>" >/dev/null 2>&1          # local
-git -C "$PRIMARY" ls-remote --exit-code --heads origin "fix/<kebab-summary>" >/dev/null 2>&1  # remote
+git -C "$PRIMARY" rev-parse --verify "refs/heads/$BRANCH_NAME" >/dev/null 2>&1          # local
+git -C "$PRIMARY" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1  # remote
 ```
 
 On either hit, disambiguate with a `-2`, `-3` suffix. Never reuse an existing branch, and never
 force-push over one.
 
+**Exception — on the `backlog` dispatch a collision is a STOP, never a suffix.** `fix/<item>-2` makes
+the tail's `${BRANCH#fix/}` resolve to no file, and the closeout is a silent no-op in that case, so
+the item would never close and nothing would say so. Stop instead, naming the existing branch and the
+two exits: `/dev:fix merge` if a PR is open on it, or delete/rename it by hand. This is reachable on
+the ordinary retry path — Step 6's mid-flight escalation commits partial work and leaves the branch
+behind (§A4).
+
 Then create it from the freshly fetched default branch:
 
 ```bash
 git -C "$PRIMARY" fetch origin
-git -C "$PRIMARY" checkout -b "fix/<kebab-summary>" "origin/$DEFAULT_BRANCH"
+git -C "$PRIMARY" checkout -b "$BRANCH_NAME" "origin/$DEFAULT_BRANCH"
 ```
+
+**On the `linear` dispatch, perform §A3's deferred `config.json` cache write immediately after this
+`checkout -b` succeeds** — the resolved status IDs have been held in-turn since Step 2a precisely so
+this write has a branch to land on. Commit it under its own pathspec, so it can never be swept into
+the change commit:
+
+```bash
+git -C "$PRIMARY" add docs/dev/config.json
+git -C "$PRIMARY" commit -F - -- docs/dev/config.json   # single-quoted heredoc, per the PR rule below
+# message: chore: cache linear status ids for team <teamId>
+```
+
+Skip this write entirely when the cache was already populated, or when the repo has no
+`docs/dev/config.json` at all (§A3).
 
 ## Step 6: Change, Verify, PR
 
@@ -322,7 +425,7 @@ is a **consumer** of that schema and must not fork it.
 ### PR
 
 ```bash
-git -C "$PRIMARY" push -u origin "fix/<kebab-summary>"
+git -C "$PRIMARY" push -u origin "$BRANCH_NAME"
 
 BODY_FILE="$PRIMARY/.git/dev-fix-pr-body.md"
 cat > "$BODY_FILE" <<'PRBODY'
@@ -339,8 +442,13 @@ PRTITLE
     --title "$TITLE" \
     --body-file "$BODY_FILE" \
     --base "$DEFAULT_BRANCH" \
-    --head "fix/<kebab-summary>" ) && rm -f "$BODY_FILE"
+    --head "$BRANCH_NAME" ) && rm -f "$BODY_FILE"
 ```
+
+**`BRANCH_NAME` is bound in Step 5 and consumed here**, crossing the whole Change/Verify span — the
+same boundary `$PRIMARY`, `$SLUG`, and `$DEFAULT_BRANCH` already cross at these exact lines, so it
+adds no new hazard class. If this fence is ever given a `:?` bind guard like the tail's,
+`BRANCH_NAME` belongs in it.
 
 **The title gets the same treatment as the body, and for the same reason.** It is the agent's summary
 of the user's free-text request — the identical untrusted input class. `/dev:fix rename the
@@ -369,7 +477,21 @@ the repo, including from inside a `.dev-worktrees/<feature>` tree. `gh` has no `
 inside `$PRIMARY` with an explicit `--head`; without that it infers the head from whatever branch the
 tree happens to be on.
 
-**PR body — four required sections:**
+**PR body — four required sections, plus one conditional lead line.**
+
+**On the `linear` dispatch only**, the body opens with the `Closes` line from §A3, exactly:
+
+```markdown
+Closes [<ID>](<url>)
+```
+
+It goes **above** `## What changed`, as its own line, so Linear's parser sees it regardless of body
+length. It is a lead line, not a fifth section — the count below stays four. Omit it entirely on
+every other dispatch; never emit an empty or placeholder `Closes`.
+
+Like every other line in the body it is written **inside the single-quoted heredoc**. The ID and URL
+are external input from Linear, and the rule below — never interpolate the body into a double-quoted
+`--body` — applies to them exactly as it applies to grounding quotes and test output.
 
 ```markdown
 ## What changed
@@ -393,11 +515,31 @@ anywhere. A change to either side should be reflected at the other. `dev:pr` Ste
 matching pointer back to here. Two branches of the canonical are **deliberately absent**: its
 base-branch resolution via `state.json.parentFeature` (the lane has no state file and always targets
 `$DEFAULT_BRANCH`) and its nested-cycle push of the parent branch (`pr/SKILL.md:128-132`) — the lane
-never nests.
+never nests. The `Closes` lead line is **shared** rather than absent: both sides emit the identical
+`Closes [<ID>](<url>)` format, on different transports (§A3).
+
+### Post-PR hook
+
+**Immediately after `gh pr create` succeeds**, on the `linear` dispatch, set the issue's `in_review`
+status per §A3 — the seam's Post-PR hook (§A1). Both guarded branches apply here exactly as they do
+at Pre-lane: an issue already at or past that status is **not** moved backwards (skip the write and
+note it), and a `save_issue` that fails on permissions is a **warning, not a stop** (the change and
+the PR are already real; say in the report that the status was not updated).
+
+The hook fires here rather than at Pre-lane because the lane's two irreversible boundaries are *work
+started* and *PR opened*, and the two cached statuses map one to each. Setting `in_review` any earlier
+would announce a PR that does not exist yet.
+
+On every other dispatch this hook is a **no-op, not an error** (§A1).
 
 ### Stop
 
 Report the PR URL and end the turn. **The PR is the checkpoint — the lane never merges.**
+
+**On an adapter-sourced run, the report also names the source and what moved.** For `linear`: the
+issue ID, the status it now holds, and — when either status write was skipped or failed — which one
+and why, in plain words rather than as an omission. For `backlog`: the `<item>` the branch is named
+for, and that it stays `status: open` until `/dev:fix merge` closes it.
 
 ## Step 7: The merge tail (`/dev:fix merge`)
 
@@ -440,6 +582,15 @@ if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; e
 ```
 
 If more than one **open** PR resolves for the branch, stop and report rather than guessing.
+
+**The scan globs `refs/heads/fix/*`, so it does not cover a Linear-sourced branch.** That scoping is
+kept deliberately — see the `--merged` paragraph below, where it is what stops the scan listing
+colleagues' branches on a repo using `fix/` as a team convention. Widening it would resurrect exactly
+that. The cost is a named gap: an interrupted tail on a branch named from Linear's `gitBranchName`
+(conventionally `<user>/<id>-<title>`) is not listed, so the guard falls through to its flat
+"nothing to merge" message. Per the `--merged` reasoning below, that class of miss is permanent
+rather than transient, so it is stated here rather than left for a reader to discover. Recovering
+from it is manual: check out the branch and re-run `/dev:fix merge`.
 
 **The `$DEFAULT_BRANCH` guard is not redundant with idempotency.** After a completed tail, `$PRIMARY`
 is on `$DEFAULT_BRANCH` — so a re-run would bind `BRANCH` to it. On any repo that receives fork PRs
@@ -574,6 +725,17 @@ server-side merge and reads the current branch to do it, which makes it fragile 
 this lane can be in. `gh pr merge --merge` on its own never reads the current branch; deleting both
 branches with explicit git plumbing is deterministic regardless of what `HEAD` points at. Do not
 re-add `--delete-branch`.
+
+### Closeout hook
+
+The seam's fourth hook (§A1), fired after `delete_feature_branch` returns 0.
+
+**On a Linear-sourced branch it is a deliberate no-op.** The `Closes [<ID>](<url>)` line in the PR
+body closes the issue on merge, so nothing here needs to transition it. A second writer for one state
+invites double-transitions — an issue moved to "done" by the integration and then moved again by the
+tail, racing. This absence is a decision, not an omission.
+
+**On a free-text branch it is also a no-op**, since there is no external record to update.
 
 ### Report
 
