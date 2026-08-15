@@ -55,6 +55,10 @@ Note the pre-merge commit SHA (used in decision log for artifact archiving).
 
 ## Step 2: Merge PR
 
+**Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s merge tail mirrors it for the
+artifact-free fast path, which writes no `state.json` and so cannot enter this stage. A change here
+should be reflected there.
+
 First, check mergeability without touching the worktree's checkout:
 
 ```bash
@@ -469,6 +473,9 @@ again. If it still fails, stop the stage and surface it; the buffer is still on 
 can be re-run.
 
 ## Step 7: Clean Up
+
+**Duplicated at `dev:fix`.** The branch-deletion half of this step is canonical; `dev:fix`'s merge
+tail mirrors it. A change here should be reflected there.
 
 **Check for a rebase in progress first — before deleting anything.** If Step 6a's flush hit a
 push conflict and left `$WORKDIR` mid-rebase, the buffer at `docs/dev/<feature>/debt-pending.md`
