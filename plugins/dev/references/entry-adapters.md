@@ -67,6 +67,14 @@ Two cases, and they behave differently on purpose:
     included. This is a **read-only existence probe**; §A4's resolve at Step 2a remains authoritative
     and runs unchanged, so nothing here weakens its allowlist or its refusals.
 
+    **Shape-gate the token before probing:** it must match `^[a-z0-9][a-z0-9-]*$`, and anything else
+    is free text without the filesystem ever being touched. This is not belt-and-braces — it is an
+    ordering fix. The probe is the first thing in the lane to build a path out of raw CLI text, and
+    §A4's allowlist, which exists for exactly that reason, does not run until Step 2a. Without the
+    gate, `/dev:fix backlog ../../../etc/passwd and fix it` would stat a traversed path before
+    anything validated it. The gate costs nothing in reach: both forms §A4 accepts — the full
+    `<type>-<slug>` basename and the bare slug — match it by construction.
+
     **The probe searches `docs/backlog/closed/` as well as the active corpus**, and that is
     load-bearing rather than tidy. A closed item's basename still *identifies* something — the user
     typed a real name — so it must reach the adapter, where §A4's refusal says "that item is closed"

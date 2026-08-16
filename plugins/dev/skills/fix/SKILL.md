@@ -140,10 +140,11 @@ are **context** appended to the request text, and never change the dispatch.
 - **Exactly two tokens** — `backlog <item>`, `linear <id>` — is always the adapter. A non-resolving
   identifier is a **STOP** naming what was not found, never a fall back to free text.
 - **Three or more tokens** is the adapter only if the second token identifies something: for
-  `backlog`, it resolves to exactly one item file — **`docs/backlog/closed/` included**, so a closed
-  item reaches §A4 and gets refused in words rather than being misread as prose (a read-only
-  existence probe; Step 2a's §A4 resolve stays authoritative); for `linear`, it matches
-  `^[A-Za-z][A-Za-z0-9]*-[0-9]+$`
+  `backlog`, it passes the shape gate `^[a-z0-9][a-z0-9-]*$` **and then** resolves to exactly one
+  item file — **`docs/backlog/closed/` included**, so a closed item reaches §A4 and gets refused in
+  words rather than being misread as prose (a read-only existence probe, shape-gated first because it
+  is the lane's earliest path-from-CLI-text and §A4's allowlist does not run until Step 2a; that
+  resolve stays authoritative); for `linear`, it matches `^[A-Za-z][A-Za-z0-9]*-[0-9]+$`
   (shape only, never a fetch, so an unreachable MCP stops with a reason instead of silently
   rerouting). Otherwise the whole argument is free text — `/dev:fix linear auth is broken` is a
   request about Linear auth, and `/dev:fix backlog viewer is broken` is one about the backlog viewer.
