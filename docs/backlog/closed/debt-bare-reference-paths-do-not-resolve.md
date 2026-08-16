@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-16
+closed_by: retire-legacy-commands
 severity: Nit
 first_recorded: 2026-08-15
 cycles: [entry-adapters]
