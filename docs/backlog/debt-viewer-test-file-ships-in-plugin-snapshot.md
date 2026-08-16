@@ -5,7 +5,6 @@ status: open
 first_recorded: 2026-08-14
 cycles: [backlog-viewer]
 recurrence: 1
-severity: Nit
 files:
   - plugins/dev/skills/debt/test_viewer.py
 ---

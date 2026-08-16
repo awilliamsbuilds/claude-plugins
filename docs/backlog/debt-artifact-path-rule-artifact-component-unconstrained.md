@@ -2,7 +2,6 @@
 type: debt
 scope: repo
 status: open
-severity: Nit
 first_recorded: 2026-08-11
 cycles: [autopilot-handoff]
 recurrence: 1
