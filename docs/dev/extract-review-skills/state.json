@@ -29,8 +29,8 @@
   "challenge": {
     "run": true,
     "blockers": 1,
-    "concerns": 5,
-    "applied": 50,
+    "concerns": 0,
+    "applied": 51,
     "dismissed": 0,
     "loops_run": 5,
     "loops_max": 5
