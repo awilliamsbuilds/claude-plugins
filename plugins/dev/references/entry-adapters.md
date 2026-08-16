@@ -49,18 +49,58 @@ The lane's parse is **four-way**:
 | Argument | Dispatch |
 |---|---|
 | the bare token `merge`, and nothing else | tail mode |
-| `linear`, alone or followed by one identifier | Linear adapter |
-| `backlog` followed by exactly one identifier | backlog adapter |
+| `linear`, alone or followed by an identifier | Linear adapter |
+| `backlog` followed by an identifier | backlog adapter |
 | anything else | free text — the catch-all |
 
-**The disambiguation rule.** `linear` and `backlog` are adapter tokens **only** when followed by
-nothing or by a single well-formed identifier. Anything longer is free text.
-`/dev:fix linear auth is broken` is a request about Linear auth, not an adapter invocation.
+**The disambiguation rule is identity, not word count.** `linear` and `backlog` are adapter tokens
+when the token after them **identifies something real**. Words after that identifier are **context**:
+they are appended to the request text the adapter binds, and they never change the dispatch.
 
-This follows the precedent the `merge` token already sets: merging is the one irreversible step in
-the lane, so the token that triggers it is matched exactly rather than by prefix. The adapter tokens
-inherit that discipline because the alternative — prefix-matching — would silently swallow a real
-free-text request whose first word happens to be `linear` or `backlog`.
+Two cases, and they behave differently on purpose:
+
+- **Exactly two tokens** — `backlog <item>`, `linear <id>` — is **always** the adapter. If the
+  identifier then fails to resolve, that is a **STOP** naming what was not found (§A3 fetch, §A4
+  resolve), never a quiet fall back to free text. A typo deserves an error, not a different command.
+- **Three or more tokens** is the adapter **only if** the second token identifies something:
+  - `backlog` — it resolves to exactly one item file under §A4's resolution, bare-slug normalization
+    included. This is a **read-only existence probe**; §A4's resolve at Step 2a remains authoritative
+    and runs unchanged, so nothing here weakens its allowlist or its refusals.
+
+    **The probe searches `docs/backlog/closed/` as well as the active corpus**, and that is
+    load-bearing rather than tidy. A closed item's basename still *identifies* something — the user
+    typed a real name — so it must reach the adapter, where §A4's refusal says "that item is closed"
+    in words. Probing only the active corpus would send it to free text instead, which is a fresh
+    instance of the silent misread this whole rule exists to remove: a name that means something,
+    read as prose because of where the file happens to sit. Being findable and being workable are
+    different questions, and only §A4 answers the second.
+  - `linear` — it matches the issue-ID shape `^[A-Za-z][A-Za-z0-9]*-[0-9]+$`. **Shape only, never a
+    fetch:** the parse must not depend on the MCP being reachable, or an unavailable Linear would
+    silently reroute an adapter invocation into the free-text lane instead of stopping with a reason.
+
+  Failing that test, the whole argument is free text. `/dev:fix linear auth is broken` is a request
+  about Linear auth — `auth` is not issue-ID shaped. `/dev:fix backlog viewer is broken` is a request
+  about the backlog viewer — `viewer` names no file in the store.
+
+**Why word count was the wrong test.** It made "adapter or not" turn on something the user has no
+reason to think is significant — whether they added a sentence of context after the identifier.
+Adding context is a natural thing to do, and under the old rule it silently converted
+`/dev:fix backlog <item> <a paragraph of thinking>` into a free-text run: no `fix/<item>` branch, so
+`/dev:fix merge`'s Closeout hook found no matching identity and the item was never closed. No error,
+no warning, and the consequence surfaced two invocations later as an item still sitting open. Testing
+what the token *identifies* keeps the protection the old rule was reaching for — a request whose first
+word happens to be `linear` or `backlog` still lands in free text — without punishing context.
+
+**The residual ambiguity, named.** A free-text request that opens with a real identifier —
+`backlog debt-foo is wrong, delete it` — now dispatches to the adapter with the rest as context. That
+is the deliberate trade: the identifier names the item either way, and the adapter's own grounding and
+triage are where the actual intent gets read. Prefer this over the old failure, which was silent; this
+one is visible in the branch name before anything merges.
+
+**The `merge` token keeps its stricter rule**, and the asymmetry is the point: merging is the one
+irreversible step in the lane, so its token is matched exactly and alone. `/dev:fix merge the two
+config loaders` stays a free-text request. An adapter invocation opens a PR you review; a `merge`
+invocation ships one — so only the second is worth the cost of rejecting context.
 
 **The two no-identifier forms differ, deliberately.** `linear` with no identifier opens the issue
 picker (§A3). `backlog` with no identifier is an **error**: resolution in the store is by *existence*

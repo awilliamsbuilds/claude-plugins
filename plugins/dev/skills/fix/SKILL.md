@@ -124,8 +124,8 @@ work in that order keeps the stated rationale true. If both rungs come back empt
 | Argument | Dispatch |
 |---|---|
 | the bare token `merge`, and nothing else | **tail mode** (Step 7) |
-| `linear`, alone or followed by one identifier | **Linear adapter** (Step 2a) |
-| `backlog` followed by exactly one identifier | **backlog adapter** (Step 2a) |
+| `linear`, alone or followed by an identifier | **Linear adapter** (Step 2a) |
+| `backlog` followed by an identifier | **backlog adapter** (Step 2a) |
 | anything else | **free text** — the lane's catch-all |
 
 **The bare `merge` token is exact, never prefix-matched.** Any longer argument — including one whose
@@ -133,11 +133,25 @@ first word is `merge` — is a free-text lane request. `/dev:fix merge the two c
 request to merge two config loaders, not a request to merge a PR. Merging is the one irreversible step
 in this skill, so the token that triggers it is exact rather than prefix-matched.
 
-**The adapter tokens inherit that discipline** (§A2). `linear` and `backlog` are adapter tokens **only**
-when followed by nothing or by a single well-formed identifier. Anything longer is free text:
-`/dev:fix linear auth is broken` is a request about Linear auth, not an adapter invocation.
-Prefix-matching here would silently swallow a real request whose first word happens to be `linear` or
-`backlog`.
+**The adapter tokens are decided by identity, not by word count** (§A2). `linear` and `backlog` are
+adapter tokens when the token after them **identifies something real**; words after that identifier
+are **context** appended to the request text, and never change the dispatch.
+
+- **Exactly two tokens** — `backlog <item>`, `linear <id>` — is always the adapter. A non-resolving
+  identifier is a **STOP** naming what was not found, never a fall back to free text.
+- **Three or more tokens** is the adapter only if the second token identifies something: for
+  `backlog`, it resolves to exactly one item file — **`docs/backlog/closed/` included**, so a closed
+  item reaches §A4 and gets refused in words rather than being misread as prose (a read-only
+  existence probe; Step 2a's §A4 resolve stays authoritative); for `linear`, it matches
+  `^[A-Za-z][A-Za-z0-9]*-[0-9]+$`
+  (shape only, never a fetch, so an unreachable MCP stops with a reason instead of silently
+  rerouting). Otherwise the whole argument is free text — `/dev:fix linear auth is broken` is a
+  request about Linear auth, and `/dev:fix backlog viewer is broken` is one about the backlog viewer.
+
+Word count was the wrong test because adding a sentence of context after the identifier is a natural
+thing to do, and it used to flip the dispatch silently: no `fix/<item>` branch, so the tail's Closeout
+hook found no identity and never closed the item. §A2 carries the full reasoning and the one residual
+ambiguity this trades for.
 
 **The two no-identifier forms differ, deliberately.** `linear` with no identifier opens the issue
 picker (§A3). `backlog` with no identifier is an **error** — resolution in the store is by *existence*
