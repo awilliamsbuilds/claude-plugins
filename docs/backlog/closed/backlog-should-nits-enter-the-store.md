@@ -1,7 +1,9 @@
 ---
 type: backlog
 scope: repo
-status: open
+status: closed
+closed: 2026-08-16
+closed_by: "fix/backlog-should-nits-enter-the-store"
 first_recorded: 2026-08-13
 cycles: [manual]
 recurrence: 1
