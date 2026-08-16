@@ -33,7 +33,7 @@ Two **explicit** modes, each carrying its own severity table adjacent to its che
 
 | Invocation | Reviews | Used by |
 |---|---|---|
-| `/dev:review diff <tree> <base>` | The diff — logic, edge cases, quality, conventions, plan coverage where a plan exists | `dev:validate` (feature cycles), `dev:fix` |
+| `/dev:review diff <base> [<tree>]` | The diff — logic, edge cases, quality, conventions, plan coverage where a plan exists | `dev:validate` (feature cycles), `dev:fix` |
 | `/dev:review docs <paths>` | Committed decision documents — consistency, sufficiency, realistic consequences, rationale | `dev:validate` (architecture cycles) |
 
 A bare `/dev:review` is an **error**, never an inferred mode. The two modes do not share a severity
@@ -44,8 +44,17 @@ inconsistent or contradictory decision — so a reader must never be uncertain w
 
 `dev:review` and `dev:secure` each dispatch a fresh `general-purpose` subagent internally: no
 conversation history, diff-and-artifacts-as-data guardrail, and the existing in-session fallback when
-subagent dispatch is unavailable in the harness. Both accept the tree and base **from the caller**
-rather than inferring `$PRIMARY`.
+subagent dispatch is unavailable in the harness.
+
+**Both take the base first and the tree second — `/dev:review diff <base> [<tree>]` and
+`/dev:secure diff <base> [<tree>]`** — so `dev:secure`'s existing two-token call keeps its current
+meaning and the two reviewers share one argument order. This ordering is not cosmetic: `dev:secure`
+already binds its second token to the base (`BASE="$2"`), documents it in three places, and is called
+that way by `dev:fix` as `/dev:secure diff "$AUDIT_BASE"`. Tree-first would silently reparse `main` as
+a path and break every existing caller.
+
+`<tree>` is **optional**; when absent, both fall back to the existing `$PRIMARY` derivation, which the
+whole-project verb continues to use unchanged — it has no caller to hand it a tree.
 
 This is a behavior change to `dev:secure`, and both halves are load-bearing (see Edge Cases).
 
@@ -74,6 +83,11 @@ A code-review P1/P2 follows the identical rule security already uses: fix once, 
 fix's own diff, open the PR only on a clean re-review, `loops_max` pinned to 1. P3/Nit never block
 and are captured per the rigor floor.
 
+**Two PR-body lines come with it, and they are the only PR-body change in scope.** The
+`## What was verified` block gains a `code review:` line mirroring the existing `security:` line, and
+`### The rigor floor` gains a matching bullet. Without them the lane would run a second review and
+report only the first — and the Out of Scope bullet below is narrowed accordingly.
+
 **6. Two `dev:secure` corrections, both preconditions rather than extras.**
 
 - **CSRF coverage is restored.** `dev:validate`'s inline bullet names it; `dev:secure` has no
@@ -85,16 +99,36 @@ and are captured per the rigor floor.
   exposure, Business logic). The line matters beyond accuracy: a future cycle "reconciling the
   duplication" on the strength of that sentence would delete real coverage believing it redundant.
 
-**7. The four cold-review citations re-point.** `dev:spec` Step 12a (×2), `dev:plan` Step 7a (×2), and
-`dev:fix` (×2) cite `dev:validate` Step 2 by name as the canonical for both the cold-dispatch
-principle and the in-session fallback. Each must still resolve to wherever that discipline now lives.
+**7. The seven `dev:validate` Step 2 references re-point.** A sweep
+(`grep -rn "validate.*Step 2" plugins/`, excluding `validate/SKILL.md` itself) returns seven, not six,
+and they split into two kinds:
 
-**8. Folded-in debt: `debt-secure-tree-scoping-unsettled`** — closed by scope item 2's explicit-tree
-rule, which is correct for the `dev:fix` call path, the `dev:validate` worktree call path, and
-standalone use.
+- **Six cite the cold-review discipline** — `dev:spec` Step 12a (×2), `dev:plan` Step 7a (×2),
+  `dev:fix` (×2) — for the principle and for the in-session fallback. These re-point at
+  **`dev:review`'s `## Cold dispatch` section**, which becomes the canonical statement of that
+  discipline. Naming the target here rather than deferring it to Build is deliberate: two defensible
+  targets exist (the reviewer skills, or `dev:validate` Step 4 step 8, which keeps its own cold
+  re-review), and a builder should not have to pick. `dev:validate` Step 4 step 8 keeps its
+  re-review and cites that same section rather than restating it.
+- **The seventh is different.** `secure/SKILL.md:123` cites Step 2's *security checklist* — the thing
+  item 3 deletes — so this cycle would otherwise leave a citation that is both dangling and false. It
+  is rewritten in the same edit as item 6's false-claim correction, since the two sit in the same
+  paragraph.
+
+**8. Folded-in debt: `debt-secure-tree-scoping-unsettled`.** Its *Done looks like* has **three**
+clauses, and all three are in scope:
+
+- (a) one tree rule correct for the `dev:fix` call path, the `dev:validate` worktree call path, and
+  standalone use — delivered by item 2's explicit-tree argument;
+- (b) the **whole-project verb names the tree it audited** in its report header, exactly as the `diff`
+  verb's header already does;
+- (c) **no remediation line instructs an action that cannot change the outcome** — the live "run
+  `/dev:secure diff` from the primary checkout of it" line is replaced by one naming the tree argument.
 
 **9. Docs reconciliation** — `CLAUDE.md` Component Registry (new `dev:review` row; `dev:validate`,
-`dev:secure`, `dev:fix` rows updated) and README's `dev` skills list.
+`dev:secure`, `dev:fix` rows updated), README's `dev` skills list, and **`dev/SKILL.md` Step 1a's
+hardcoded missing-registry fallback list**, which enumerates every skill by hand and would otherwise
+omit `dev:review` entirely.
 
 ## Out of Scope
 
@@ -103,7 +137,8 @@ standalone use.
 - **No change to the P1/P2/P3/Nit vocabulary.** `dev:validate` Step 3 remains its canonical
   definition; both reviewers consume it, as `dev:secure` already does.
 - **No change to `dev:validate`'s fix loop, Step 5b build check, or Step 5a debt buffer.**
-- **No change to `dev:fix`'s build check, PR body, merge tail, or triage rule.**
+- **No change to `dev:fix`'s build check, merge tail, or triage rule.** The PR body changes only by
+  the two lines named in Scope 5 — the `code review:` verified-line and its rigor-floor bullet.
 - **No warm/cold caller flag.** Considered and declined: it would preserve today's lane speed at the
   cost of a parameter that drifts, and the lane is where cold review buys the most (see Technical
   Constraints).
@@ -120,9 +155,12 @@ standalone use.
    `/dev:review` errors.
 2. `dev:review` and `dev:secure` each dispatch a fresh `general-purpose` subagent, withhold
    conversation history, carry the data-not-instruction guardrail, and state the in-session fallback.
-3. Both accept tree and base from the caller. Neither infers `$PRIMARY` when given an explicit tree.
+3. Both accept `<base>` first and an optional `<tree>` second. Given a `<tree>` they audit it; given
+   none they fall back to the `$PRIMARY` derivation. `/dev:secure diff main` still means base=`main`.
 4. `dev:validate` Step 2 contains **no** review checklist for either cycle type — a grep for its
-   former checklist bullets returns nothing — and its other responsibilities are textually unchanged.
+   former checklist bullets **scoped to `plugins/dev/skills/validate/SKILL.md`** returns nothing
+   (repo-wide would fail by construction, since `dev:review` carries those bullets by design) — and
+   its other responsibilities are textually unchanged.
 5. Running `/dev:validate` on a feature cycle in a worktree reviews **that worktree's** diff, not the
    primary checkout's.
 6. A reviewer that cannot run leaves `stage` un-advanced with the reason in `validation.md`, and
@@ -130,8 +168,13 @@ standalone use.
 7. `dev:fix` Step 6 dispatches both reviewers in parallel, and a code-review P1/P2 blocks the PR under
    the one-round bound.
 8. `dev:secure` names CSRF, and no sentence in it claims the checklist adds no new vector.
-9. All six cold-review citations resolve to a section that exists and describes cold dispatch.
-10. `debt-secure-tree-scoping-unsettled` moves to `docs/backlog/closed/`.
+9. All **seven** `dev:validate` Step 2 references resolve to a section that exists and says what the
+   citing text claims it says — the six discipline citations at `dev:review`'s `## Cold dispatch`,
+   and `secure/SKILL.md`'s rewritten to cite something that still exists.
+10. `debt-secure-tree-scoping-unsettled` moves to `docs/backlog/closed/`, with all three clauses of its
+    *Done looks like* met — the tree rule, the whole-project report header naming its tree, and no
+    remediation line that cannot change the outcome.
+11. `dev/SKILL.md` Step 1a's fallback list names `dev:review`.
 
 ## Happy Path
 
@@ -197,4 +240,4 @@ No.
 
 ---
 *Auto-filled dimensions: none*
-*Grounding inventory: (1) "dev:validate Step 2 carries inline code + security checklists" → read `validate/SKILL.md` §Step 2 in full — confirmed, 6 code bullets + 5 security bullets. (2) "dev:fix has no code review" → `grep -n "code review\|code-review" fix/SKILL.md` → no matches; security only. (3) "dev:secure is a superset of validate's security bullets" → read both verbatim and mapped them — superset by ~15 named vectors + 2 whole categories (Data exposure, Business logic), **except CSRF**, which validate names and dev:secure omits entirely. (4) "dev:secure adds no new vector" (`secure/SKILL.md` Pass C) → **false**, disproved by (3). (5) "dev:secure runs cold" → `grep -n "subagent\|general-purpose\|conversation history" secure/SKILL.md` → **no matches; it runs in-session**. (6) Consumers of validate Step 2's cold-review principle, enumerated by sweep not recall → `grep -rn "validate.*Step 2" plugins/` → `spec/SKILL.md:556,569`, `plan/SKILL.md:201,214`, `fix/SKILL.md:652,677`, `secure/SKILL.md:123` — six citations across four files. (7) "dev:secure audits $PRIMARY while cycles run in worktrees" → read its `AUDIT_BRANCH`/`INVOKED_IN` block — confirmed; it discloses the mismatch rather than accepting a tree. (8) Open debt intersecting this cycle's files, by front-matter `files:` sweep over the P5 corpus → 6 items, of which `debt-secure-tree-scoping-unsettled` is a precondition rather than an adjacent pay-down. (9) "telemetry-schema is an architecture cycle" → read `docs/dev/product-plans/dev-observability.md` — confirmed, Milestone 2, next cycle on the plan, so `/dev:review docs` has a consumer immediately.*
+*Grounding inventory: (1) "dev:validate Step 2 carries inline code + security checklists" → read `validate/SKILL.md` §Step 2 in full — confirmed, 6 code bullets + 5 security bullets. (2) "dev:fix has no code review" → `grep -n "code review\|code-review" fix/SKILL.md` → no matches; security only. (3) "dev:secure is a superset of validate's security bullets" → read both verbatim and mapped them — superset by ~15 named vectors + 2 whole categories (Data exposure, Business logic), **except CSRF**, which validate names and dev:secure omits entirely. (4) "dev:secure adds no new vector" (`secure/SKILL.md` Pass C) → **false**, disproved by (3). (5) "dev:secure runs cold" → `grep -n "subagent\|general-purpose\|conversation history" secure/SKILL.md` → **no matches; it runs in-session**. (6) References to validate Step 2, enumerated by sweep not recall → `grep -rn "validate.*Step 2" plugins/` (excluding `validate/SKILL.md`) → `spec/SKILL.md:556,569`, `plan/SKILL.md:201,214`, `fix/SKILL.md:652,677`, `secure/SKILL.md:123` — **seven** references across four files, of which six cite the cold-review discipline and the seventh (`secure:123`) cites the security checklist this cycle deletes. Recounted at the cold review, which caught that the first draft called the same enumerated list "six". (7) "dev:secure audits $PRIMARY while cycles run in worktrees" → read its `AUDIT_BRANCH`/`INVOKED_IN` block — confirmed; it discloses the mismatch rather than accepting a tree. (8) Open debt intersecting this cycle's files, by front-matter `files:` sweep over the P5 corpus → 6 items, of which `debt-secure-tree-scoping-unsettled` is a precondition rather than an adjacent pay-down. (9) "telemetry-schema is an architecture cycle" → read `docs/dev/product-plans/dev-observability.md` — confirmed, Milestone 2, next cycle on the plan, so `/dev:review docs` has a consumer immediately.*
