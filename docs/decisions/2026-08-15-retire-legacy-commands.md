@@ -90,3 +90,66 @@ tree they are looking at. That is a design call, not a fix-loop call.
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 0f11bb8 on branch feature/retire-legacy-commands
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-15*
+
+**Spec:** 88%/Ready with `spec_revisions: 3` — and the *kind* of churn is diagnosable. One revision
+came from the gated spec stage; the other two were Plan-stage backtracks, both the same defect class:
+**a Success Criterion asserting a measurable check that nobody measured.** SC11 declared
+`dev:autopilot` byte-identical without checking whether Scope §3's new Validate stop needed
+documenting there; SC3 asserted a grep returns zero when it returns 1, and read literally would have
+forced Build to delete correct security prose. Step 7's grounding inventory grounds as-is claims
+about the *codebase* — and did that well, since "zero security in `dev:fix`" is the finding that
+shaped the whole cycle — but never runs the greps the spec writes into its own criteria.
+`challenge.blockers: 3` against `spec_revisions: 3` reads as the "both nets catching spillover" row,
+and the spillover has one identifiable source.
+
+**Shape:** skipped (no UI) — correct; terminal output only.
+
+**Plan:** 4 challenger loops, 26 fixes applied, 0 dismissed, exiting clean. Not noise — every finding
+was actionable, and the standout was structural: `dev:secure` and `dev:fix` resolved the base branch
+with *opposite* precedence, so a stale `origin/HEAD` would have made the audit review a different
+diff than the PR opened. `files_read_in_build: 4` says the resulting plan was specific enough that
+Build barely re-read anything.
+
+**Validate:** 3/5 loops, exited by the same-region recurrence rule rather than by exhaustion. Loop
+1's own fix introduced a P1 (`--end-of-options` before `--name-only`, exit 128) that loop 2's cold
+re-review caught — the mechanism working exactly as designed. **Two of the three P2s were found by
+executing the procedure rather than reading it**, including one (`0 changed files where the worktree
+has 13`) that three prior reading-based reviews all missed.
+
+**Flow:** deep tier and no-ui both correctly detected; the handoff at Spec ran clean. **But the flow
+finding that matters came from the user, not the counters** — see below.
+
+**Token efficiency:** no outliers worth flagging. Spec dominates wall-clock (4h39m vs 8m plan / 7m
+build / 31m validate), but that span is the interactive definition work plus two backtracks, which is
+where the thinking belonged.
+
+**User observations (Step 4 — the handed-off cycle's one pause):**
+- **Project context does not survive between cycles.** "I as a human forget what milestone we're at
+  and what's next... I have redirected us or skipped the order, not intentionally." No counter sees
+  this. `dev:done` Step 8 does emit the milestone map and the next command — once, at the tail of the
+  display, in the session that is ending. The user's preferred direction is **one worktree per
+  project rather than per cycle**, so plan and context persist across cycles. Sized at 12 files.
+- **The retrospective should run at the end of Validate**, so it ships inside the cycle's PR instead
+  of being committed to the integration branch afterwards. This cycle is itself the evidence: PR #82
+  merged, and then this decision log and this retrospective went to `main` outside any review.
+  Notably a **recurrence** — `backlog-reflect-before-pr-merge` asked the same question and was closed
+  the same day by the `fast-path` cycle, which built a lane that has no retrospective at all. It
+  closed the question by sidestepping it while the pipeline it was about still has it.
+
+**Suggestions:**
+1. `dev:spec` Step 7 should **run** any grep or command a Success Criterion states as checkable and
+   record the baseline — the rule this cycle just added to `dev:validate` Step 4 (step 3b), applied
+   one stage earlier where a wrong criterion is cheapest to catch. Both Plan backtracks were this.
+2. `dev:validate` Step 2 should prefer **executing** an added procedure over reading it when the diff
+   contains shell. It is the single move that found what three reviews missed.
+3. Carry "what's next" across the session boundary, per the user's observation above.
+4. Move the retrospective ahead of the merge so it lands in the PR.
+5. A close should record `closed_by:` — the prematurely-closed reflect item carries none, which is
+   what made its close hard to attribute.
+
+**Deferred to tech debt:** `debt-secure-tree-scoping-unsettled`,
+`debt-secure-report-fields-not-grounded-in-output`, `backlog-project-context-lost-between-cycles`,
+`backlog-reflect-before-pr-merge-retire-legacy-commands`
