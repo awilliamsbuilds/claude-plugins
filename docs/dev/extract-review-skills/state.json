@@ -2,7 +2,8 @@
   "version": "1.0",
   "feature": "extract-review-skills",
   "branch": "feature/extract-review-skills",
-  "mode": "standard",
+  "mode": "autopilot",
+  "handoff_at": "spec",
   "stage": "spec",
   "completed": [],
   "skipped": [
@@ -28,10 +29,10 @@
   "challenge": {
     "run": true,
     "blockers": 4,
-    "concerns": 3,
-    "applied": 7,
+    "concerns": 7,
+    "applied": 18,
     "dismissed": 0,
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 5
   },
   "challenge_plan": {
