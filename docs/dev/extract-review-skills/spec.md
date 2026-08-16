@@ -34,7 +34,14 @@ Two **explicit** modes, each carrying its own severity table adjacent to its che
 | Invocation | Reviews | Used by |
 |---|---|---|
 | `/dev:review diff <base> [<tree>]` | The diff — **all six bullets `dev:validate` Step 2 carries today**: logic, edge cases, quality, conventions, plan coverage where a plan exists, and the config-contract check | `dev:validate` (feature cycles), `dev:fix` |
-| `/dev:review docs <paths>` | Committed decision documents — consistency, sufficiency, realistic consequences, rationale | `dev:validate` (architecture cycles) |
+| `/dev:review docs <paths>` | Committed decision documents at one or more **absolute** paths supplied by the caller — consistency, sufficiency, realistic consequences, rationale. No discovery, no default: a bare `/dev:review docs` is an error, exactly as a bare `/dev:review` is | `dev:validate` (architecture cycles) |
+
+**`<paths>` is required, and that is how the `docs` mode gets tree-correct scoping without a `<tree>`
+argument.** During a cycle the decision documents live under `$WORKDIR/docs/dev/<feature>/` and only
+reach `docs/decisions/` at Done, so a `docs` reviewer that discovered its own paths — or resolved
+relative ones — would resolve them against its own `$PRIMARY` and review the wrong tree's documents.
+That is the same failure Scope 2 exists to kill, arriving by the other route. Absolute paths from the
+caller close it, which is why the architecture route needs no `<tree>` of its own.
 
 **The sixth bullet is named explicitly because it is the one at risk.** `dev:validate` Step 2's
 config-contract check ("if this cycle adds a new key to `docs/dev/config.json`, verify every skill
@@ -70,12 +77,25 @@ a path and break every existing caller.
 whole-project verb continues to use unchanged — it has no caller to hand it a tree.
 
 **`dev:secure` Step 1's parse rule changes with the signature, and this edit is required rather than
-incidental.** Step 1 today reads "Parse the argument as **at most two tokens**" and "A third token →
-stop and say the argument was not understood" (`secure/SKILL.md:64-70`) — so a builder who edits only
-Step 2a ships a skill whose own parser refuses the three-token call the rest of this cycle depends on.
-"At most two tokens" becomes **at most three**; the third token is consumed by the `diff` verb as
+incidental.** Step 1 today reads "Parse the argument as **at most two tokens**" (`secure/SKILL.md:63`)
+and "A third token → stop and say the argument was not understood" (`:68`) — so a builder who edits
+only Step 2a ships a skill whose own parser refuses the three-token call the rest of this cycle depends
+on. "At most two tokens" becomes **at most three**; the third token is consumed by the `diff` verb as
 `<tree>`; the refusal narrows to a **fourth** token, and to a *second* token on the whole-project
-verb, which takes none. The exact-match rule on the first token is untouched.
+verb, which takes none. The exact-match rule on the first token (`:70`) is untouched.
+
+**The signature is documented in four places, and all four are in scope.** Editing the parser without
+the prose leaves the skill contradicting itself:
+
+| Surface | Today |
+|---|---|
+| The verb table, `secure/SKILL.md:30` | `/dev:secure diff [<base>]` |
+| Step 1's parse rule, `:63-68` | "at most two tokens" |
+| Step 2a's *Resolve the base*, `:154-161` | binds `BASE="$2"` |
+| `## Invocation`, `:331-335` | three forms, none with a tree |
+
+The verb table and `## Invocation` are the two most easily missed, since neither is where the behavior
+lives — which is precisely why they are named here.
 
 **`<tree>` is validated, not trusted.** It reaches `git -C "$tree"` from the same trust level as the
 base ref one argument over, where `dev:secure` already carries an anchored allowlist plus
@@ -90,12 +110,19 @@ This is a behavior change to `dev:secure`, and both halves are load-bearing (see
 
 ```
 Feature cycle       → dispatch /dev:review diff + /dev:secure diff, in parallel
-Architecture cycle  → dispatch /dev:review docs
+Architecture cycle  → dispatch /dev:review docs with the absolute paths of the decision
+                      documents under "$WORKDIR/docs/dev/<feature>/"
 ```
 
-Step 2 gives up exactly three things: the code checklist, the security checklist, and the Architecture
+Step 2 gives up exactly **four** things: the code checklist, the security checklist, the Architecture
 severity mapping table that classifies the document review's findings (which moves with the `docs`
-checklist per item 1, leaving no copy behind).
+checklist per item 1, leaving no copy behind), and **its cold-dispatch block**
+(`validate/SKILL.md:58-64` — the subagent input list, the conversation-history exclusion, the
+data-not-instruction guardrail, and the in-session fallback), which moves into the two reviewers per
+item 2. The fallback sentence is the tell that this block cannot stay: it says to "fall back to
+running **both checklists** in-session," and after this cycle Step 2 holds no checklists to run. After
+this cycle `dev:review`'s `## Cold dispatch` is the only statement of that discipline, and Step 2
+cites it rather than restating it.
 
 Everything else `dev:validate` does is unchanged: classification into `state.json`, the fix loop to
 `loops_max`, fix ordering, Step 4 step 8's cold re-review of each fix diff, Step 5a's carrying-cost
@@ -142,8 +169,12 @@ report only the first — and the Out of Scope bullet below is narrowed accordin
 (`grep -rn "validate.*Step 2" plugins/`, excluding `validate/SKILL.md` itself) returns **eight lines,
 seven of them genuine**: the eighth, `autopilot/SKILL.md:14`, is a false positive — that line names
 `dev:validate` Step *5b* and separately ends with autopilot's own "see Step 2", and the two fragments
-match the pattern together. It needs no edit. The seven genuine references do **not** split cleanly
-into one kind; they take four different treatments:
+match the pattern together. It needs no **re-point**. Note that this is the same line item 4 edits, for
+an unrelated reason: `:14` *is* the `**When autopilot stops:**` list that gains the new stop condition.
+So "needs no edit" would be wrong here — it needs no *citation change*, while being touched anyway.
+
+The seven genuine references do **not** split cleanly into one kind; they take four different
+treatments:
 
 - **Four re-point at the cold-review discipline** — `dev:spec` Step 12a (`:556`, `:569`), `dev:plan`
   Step 7a (`:214`), `dev:fix` (`:652`) — for the principle and for the in-session fallback. These cite
@@ -168,6 +199,16 @@ into one kind; they take four different treatments:
 - **`secure/SKILL.md:123` cites Step 2's *security checklist*** — the thing item 3 deletes — so this
   cycle would otherwise leave a citation that is both dangling and false. It is rewritten in the same
   edit as item 6's false-claim correction, since the two sit in the same paragraph.
+
+**The sweep pattern is narrower than the citation exposure, so the build spot-checks past it.** Three
+further references cite `dev:validate`'s cold-review *behavior* without containing the string "Step 2"
+— `spec/SKILL.md:565` and `plan/SKILL.md:210` ("the same reason `dev:validate` withholds conversation
+history from its reviewers") and `references/tech-debt.md:458` ("the same rule `dev:validate` and
+`dev:spec` already apply to review subagents"). All three are expected to survive unedited, because
+validate still withholds history from the reviewers it dispatches — it just dispatches reviewer skills
+rather than checklists. The build **confirms** that reading rather than assuming it, and edits any of
+the three that no longer holds. Named here so the seven is understood as the re-point set, not as the
+whole citation surface.
 
 **8. Folded-in debt: `debt-secure-tree-scoping-unsettled`.** Its *Done looks like* has **three**
 clauses, and all three are in scope:
@@ -209,14 +250,23 @@ never mentions `dev:review` except when the registry is broken — the inverse o
 - **No warm/cold caller flag.** Considered and declined: it would preserve today's lane speed at the
   cost of a parameter that drifts, and the lane is where cold review buys the most (see Technical
   Constraints).
-- **The seven other debt items surfaced at grounding stay open** —
+- **The eleven other debt items surfaced at grounding stay open** —
   `debt-secure-report-fields-not-grounded-in-output`, `debt-primary-cd-failure-unchecked`,
   `debt-artifact-path-rule-artifact-component-unconstrained`,
-  `debt-cross-file-line-citations-go-stale-silently`, `backlog-reflect-before-pr-merge-…`, and the two
-  that intersect only via item 9's `dev/SKILL.md` edit: `debt-no-ui-flag-stated-as-authoritative` and
-  `backlog-project-context-lost-between-cycles`. The last two are named rather than left silent
-  because item 9 touches their file — but item 9 edits Step 1a's *enumerations*, not Step 1a's tier
-  rule, which is the clause the `no-ui` item records. Adjacent, not the same clause; both stay open.
+  `debt-cross-file-line-citations-go-stale-silently`, `backlog-reflect-before-pr-merge-…`; the two
+  that intersect only via item 9's `dev/SKILL.md` edit — `debt-no-ui-flag-stated-as-authoritative` and
+  `backlog-project-context-lost-between-cycles`; and the four that reach the cycle only through item
+  7's citation edits in `spec/SKILL.md` and `plan/SKILL.md` — `debt-arch-cross-boundary-transport`,
+  `debt-plan-task-trust-boundaries`, `debt-declined-user-proposals-leave-no-record`, and
+  `debt-spec-grounding-citation-unverified`.
+
+  All eleven are named rather than left silent, because this cycle touches their files. None is the
+  clause its item records: item 9 edits Step 1a's *enumerations*, not the tier rule the `no-ui` item
+  describes; item 7 rewrites single citation sentences in `spec/SKILL.md` and `plan/SKILL.md`, and none
+  of the four is that sentence. Adjacent, not the same clause. `debt-spec-grounding-citation-unverified`
+  deserves a specific note: it records that `dev:spec`'s grounding inventory says what was read but
+  nothing verifies the citations resolve — visibly on-topic for this spec's own footer, and still out of
+  scope, because fixing it means changing `dev:spec`'s procedure rather than this cycle's reviewers.
 - **No `dev:autopilot` change beyond the one new stop condition.**
 
 ## Success Criteria
@@ -235,16 +285,25 @@ never mentions `dev:review` except when the registry is broken — the inverse o
    outside Step 2 (Steps 3, 4, 5, 5a, 5b, and the gate) are textually unchanged.
 5. Running `/dev:validate` on a feature cycle in a worktree reviews **that worktree's** diff, not the
    primary checkout's.
+5b. Running `/dev:validate` on an architecture cycle in a worktree reviews **that worktree's** decision
+    documents, not the primary checkout's — delivered by `docs` mode's required absolute `<paths>`
+    rather than by a `<tree>` argument.
 6. A reviewer that cannot run leaves `stage` un-advanced with the reason in `validation.md`, and
    `dev:autopilot`'s stop list names it.
 7. `dev:fix` Step 6 dispatches both reviewers in parallel, and a code-review P1/P2 blocks the PR under
    the one-round bound.
-8. `dev:secure` names CSRF, and no sentence in it claims the checklist adds no new vector.
+8. `dev:secure` names CSRF, and no sentence in it claims the checklist adds no new vector. The
+   template-injection question is **settled in writing**: either Pass C's Injection bullet names
+   server-side template rendering, or `validation.md` records that both readings were read and no gap
+   was found. Unsettled is a failure — that is what makes item 6's second bullet checkable.
 9. All **seven** genuine `dev:validate` Step 2 references resolve to a section that exists and says what
    the citing text claims it says — the four discipline citations at `dev:review`'s `## Cold dispatch`,
    `plan/SKILL.md:201`'s two clauses each pointing at their own target, `secure/SKILL.md`'s rewritten to
    cite something that still exists, and `fix/SKILL.md:677` stating **two** reviews per route rather
-   than one. `autopilot/SKILL.md:14` is unedited, and a re-run of the sweep still returns it.
+   than one. `autopilot/SKILL.md:14` receives **no citation re-point** — its only edit is item 4's new
+   stop-condition entry — and a re-run of the sweep still returns it. The three references that cite
+   validate's cold-review behavior without the string "Step 2" (`spec:565`, `plan:210`,
+   `references/tech-debt.md:458`) each still say something true.
 10. `debt-secure-tree-scoping-unsettled` moves to `docs/backlog/closed/`, with all three clauses of its
     *Done looks like* met — the tree rule, the whole-project report header naming its tree, and no
     remediation line that cannot change the outcome.
@@ -327,4 +386,4 @@ No.
 
 ---
 *Auto-filled dimensions: none*
-*Grounding inventory: (1) "dev:validate Step 2 carries inline code + security checklists" → read `validate/SKILL.md` §Step 2 in full — confirmed, 6 code bullets + 5 security bullets. (2) "dev:fix has no code review" → `grep -n "code review\|code-review" fix/SKILL.md` → no matches; security only. (3) "dev:secure is a superset of validate's security bullets" → read both verbatim and mapped them — superset by ~15 named vectors + 2 whole categories (Data exposure, Business logic), **except CSRF**, which validate names and dev:secure omits entirely. Re-measured at the second cold review, which found the exception list incomplete: `grep -n "template" secure/SKILL.md` → **one** hit (`:126`), and it is "template literals into queries" under SQL, whereas `validate:75` lists "template" as an injection type in its own right. So there are **two** candidate losses, not one, and the second is unresolved by reading alone — Scope 6 hands the build the choice with both readings named and forbids assuming the benign one. (4) "dev:secure adds no new vector" (`secure/SKILL.md` Pass C) → **false**, disproved by (3). (5) "dev:secure runs cold" → `grep -n "subagent\|general-purpose\|conversation history" secure/SKILL.md` → **no matches; it runs in-session**. (6) References to validate Step 2, enumerated by sweep not recall → `grep -rn "validate.*Step 2" plugins/` (excluding `validate/SKILL.md`) → **eight lines**: `spec/SKILL.md:556,569`, `plan/SKILL.md:201,214`, `fix/SKILL.md:652,677`, `secure/SKILL.md:123`, plus `autopilot/SKILL.md:14`. The eighth is a **false positive** — that line cites `dev:validate` Step *5b* and separately ends with autopilot's own "see Step 2"; the pattern spans the two fragments. Seven genuine. Counted twice and re-split twice: the first draft said "six", the first cold review corrected the count to seven and the second corrected the *classification* — the seven take **four** treatments, not two, because `plan:201` carries two citations in one sentence and `fix:677` is made false rather than stale (see Scope 7). (7) "dev:secure audits $PRIMARY while cycles run in worktrees" → read its `AUDIT_BRANCH`/`INVOKED_IN` block — confirmed; it discloses the mismatch rather than accepting a tree. (8) Open debt intersecting this cycle's files, by front-matter `files:` sweep over the P5 corpus → **8** items, of which `debt-secure-tree-scoping-unsettled` is a precondition rather than an adjacent pay-down. Re-swept at the second cold review, which caught that the original sweep returned 6 because it predated Scope 9's addition of `dev/SKILL.md` to this cycle's file set; the two additional items reach the cycle only through that file and are now named in Out of Scope rather than left silent. (9) "the whole-project verb may keep auditing `$PRIMARY` and still satisfy the debt item's clause (a)" → read `debt-secure-tree-scoping-unsettled.md` *Why deferred* verbatim → confirmed, it allows "a caller-supplied tree, **or a documented refusal**". (10) "validate Step 2's config-contract check exists nowhere else" → `grep -rn "Config contract" plugins/` → **one** hit, `validate/SKILL.md:72`; it is the sixth code bullet, and the first draft's five-lens `diff` row would have deleted it. (11) "`dev/SKILL.md` Step 1a hardcodes one skill list" → **false**, read Step 1a in full → **two** hand-maintained enumerations (item 4's printed `FYI — other skills` list, and the missing-registry fallback below it); the first is the one `/dev list` prints on the normal path. (12) "a bare SHA is a usable `<base>`" → ran `dev:secure`'s own two gates against `git rev-parse HEAD` → allowlist `^[A-Za-z0-9._][A-Za-z0-9._/-]*$` passes and `rev-parse --verify "$BASE^{commit}"` passes, so Happy Path needs no allowlist edit. (13) "`dev:secure` Step 1 will accept a three-token call" → **false**, `secure/SKILL.md:64-70` reads "at most two tokens" and "a third token → stop"; the parse rule is now an explicit deliverable in Scope 2 rather than an assumed one. (9) "telemetry-schema is an architecture cycle" → read `docs/dev/product-plans/dev-observability.md` — confirmed, Milestone 2, next cycle on the plan, so `/dev:review docs` has a consumer immediately.*
+*Grounding inventory: (1) "dev:validate Step 2 carries inline code + security checklists" → read `validate/SKILL.md` §Step 2 in full — confirmed, 6 code bullets + 5 security bullets. (2) "dev:fix has no code review" → `grep -n "code review\|code-review" fix/SKILL.md` → no matches; security only. (3) "dev:secure is a superset of validate's security bullets" → read both verbatim and mapped them — superset by ~15 named vectors + 2 whole categories (Data exposure, Business logic), **except CSRF**, which validate names and dev:secure omits entirely. Re-measured at the second cold review, which found the exception list incomplete: `grep -n "template" secure/SKILL.md` → **one** hit (`:126`), and it is "template literals into queries" under SQL, whereas `validate:75` lists "template" as an injection type in its own right. So there are **two** candidate losses, not one, and the second is unresolved by reading alone — Scope 6 hands the build the choice with both readings named and forbids assuming the benign one. (4) "dev:secure adds no new vector" (`secure/SKILL.md` Pass C) → **false**, disproved by (3). (5) "dev:secure runs cold" → `grep -n "subagent\|general-purpose\|conversation history" secure/SKILL.md` → **no matches; it runs in-session**. (6) References to validate Step 2, enumerated by sweep not recall → `grep -rn "validate.*Step 2" plugins/` (excluding `validate/SKILL.md`) → **eight lines**: `spec/SKILL.md:556,569`, `plan/SKILL.md:201,214`, `fix/SKILL.md:652,677`, `secure/SKILL.md:123`, plus `autopilot/SKILL.md:14`. The eighth is a **false positive** — that line cites `dev:validate` Step *5b* and separately ends with autopilot's own "see Step 2"; the pattern spans the two fragments. Seven genuine. Counted twice and re-split twice: the first draft said "six", the first cold review corrected the count to seven and the second corrected the *classification* — the seven take **four** treatments, not two, because `plan:201` carries two citations in one sentence and `fix:677` is made false rather than stale (see Scope 7). (7) "dev:secure audits $PRIMARY while cycles run in worktrees" → read its `AUDIT_BRANCH`/`INVOKED_IN` block — confirmed; it discloses the mismatch rather than accepting a tree. (8) Open debt intersecting this cycle's files, by front-matter `files:` sweep over the P5 corpus → **12** items, of which `debt-secure-tree-scoping-unsettled` is a precondition rather than an adjacent pay-down. This count was wrong twice and for the same reason both times — the sweep's *file set* lagged the spec's own scope. It returned 6 before Scope 9 added `dev/SKILL.md`, then 8 before it included `spec/SKILL.md` and `plan/SKILL.md`, which item 7 edits. The correct sweep is over every file any Scope item touches; all 12 are now named in Out of Scope. The recurring failure is worth stating plainly: a `files:` sweep is only as good as the file list handed to it, and this spec's file list grew twice after the first sweep ran. (9) "the whole-project verb may keep auditing `$PRIMARY` and still satisfy the debt item's clause (a)" → read `debt-secure-tree-scoping-unsettled.md` *Why deferred* verbatim → confirmed, it allows "a caller-supplied tree, **or a documented refusal**". (10) "validate Step 2's config-contract check exists nowhere else" → `grep -rn "Config contract" plugins/` → **one** hit, `validate/SKILL.md:72`; it is the sixth code bullet, and the first draft's five-lens `diff` row would have deleted it. (11) "`dev/SKILL.md` Step 1a hardcodes one skill list" → **false**, read Step 1a in full → **two** hand-maintained enumerations (item 4's printed `FYI — other skills` list, and the missing-registry fallback below it); the first is the one `/dev list` prints on the normal path. (12) "a bare SHA is a usable `<base>`" → ran `dev:secure`'s own two gates against `git rev-parse HEAD` → allowlist `^[A-Za-z0-9._][A-Za-z0-9._/-]*$` passes and `rev-parse --verify "$BASE^{commit}"` passes, so Happy Path needs no allowlist edit. (13) "`dev:secure` Step 1 will accept a three-token call" → **false**, `secure/SKILL.md:63` reads "at most two tokens" and `:68` "a third token → stop"; the parse rule is now an explicit deliverable in Scope 2 rather than an assumed one. Line numbers re-measured after the second cold review caught the first draft's `:64-70` off-by-one — the exact class `debt-cross-file-line-citations-go-stale-silently` records, reproduced inside a spec that cites that item. (14) "telemetry-schema is an architecture cycle" → read `docs/dev/product-plans/dev-observability.md` — confirmed, Milestone 2, next cycle on the plan, so `/dev:review docs` has a consumer immediately. (15) "the second-token signature is documented in three places" → **four**: the verb table (`:30`), Step 1 (`:63-68`), Step 2a's *Resolve the base* (`:154-161`), and `## Invocation` (`:331-335`) — all four now named in Scope 2. (16) "`autopilot/SKILL.md:14` is untouched by this cycle" → **false**, `:14` *is* the `When autopilot stops:` list Scope 4 extends; it takes no citation re-point, which is a different claim, and conflating the two put Scope 7 and Success Criterion 9 in contradiction with Scope 4 and Criterion 6. (17) "`dev:validate` Step 2 keeps its cold-dispatch block" → **false**, `validate/SKILL.md:58-64` holds the subagent input list, the history exclusion, the injection guardrail, and a fallback reading "fall back to running **both checklists** in-session" — checklists item 3 removes, so the block moves into the reviewers rather than staying. (18) "`/dev:review docs` can discover its own paths" → **rejected on measurement**: decision documents live at `$WORKDIR/docs/dev/<feature>/` during a cycle and reach `docs/decisions/` only at Done (`build/SKILL.md:81`), so discovery or relative resolution inside the reviewer lands on `$PRIMARY` — the wrong-tree failure by the other route. Hence required absolute `<paths>`.*

@@ -29,10 +29,10 @@
   "challenge": {
     "run": true,
     "blockers": 4,
-    "concerns": 7,
-    "applied": 18,
+    "concerns": 5,
+    "applied": 27,
     "dismissed": 0,
-    "loops_run": 1,
+    "loops_run": 2,
     "loops_max": 5
   },
   "challenge_plan": {
