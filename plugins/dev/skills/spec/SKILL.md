@@ -20,9 +20,12 @@ Every feature goes through Spec. Simple features are where unexamined assumption
 
 ## Step 1: Read Context
 
-**Argument form — `/dev:spec linear <issue-id>`.** `linear` is an entry token **only** when followed
-by exactly one well-formed identifier; anything else is today's behavior, unchanged. (Same rule the
-lane's parse uses — see `../../references/entry-adapters.md` §A2.) This is the form `dev:fix` prints
+**Argument form — `/dev:spec linear <issue-id>`.** `linear` is an entry token when the token after it
+**identifies** an issue — alone it is the adapter outright, and followed by further words it is the
+adapter only if it matches the issue-ID shape `^[A-Za-z][A-Za-z0-9]*-[0-9]+$`, with those words
+carried as context rather than as part of the ID. Anything else is today's behavior, unchanged.
+(Same rule the lane's parse uses — see `../../references/entry-adapters.md` §A2, which is canonical
+and carries the reasoning.) This is the form `dev:fix` prints
 when triage escalates a Linear-sourced request, so the escalated cycle starts from the issue rather
 than from a blank spec.
 
