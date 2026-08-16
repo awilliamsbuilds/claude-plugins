@@ -548,6 +548,13 @@ renames, or removes a component, update the `## Component Registry` row for it a
 `*Last updated by /dev · <date>*` line to today. The attribution stays `/dev` — `/dev:fix` is part of
 that plugin, not a second system writing the same table.
 
+**`CLAUDE.md` is auto-loaded into every session in the repo, which is what makes item 2's
+data-never-instruction rule load-bearing here rather than ceremonial.** On a `linear`-sourced run the
+request text is written by anyone with access to the workspace (§A3), so an instruction smuggled into
+an issue body must never reach a file that later sessions read as configuration. Two things hold it
+off: item 2's rule, and the fact that the lane never merges — the edits sit in the PR diff until a
+human approves them.
+
 This is the one place the lane diverges from the canonical's hard invariant, and the reason is
 structural: `dev:done` Step 4a must never touch the table because `dev:done` **Step 4** owns it two
 steps earlier. The lane has no Step 4, and no later stage runs for a lane change, so a lane that
