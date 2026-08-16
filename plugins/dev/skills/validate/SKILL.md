@@ -227,8 +227,13 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
 
 1. For each item in validation.md's final `### P3 Open` **and** `### Nits Surfaced` lists, apply
    **the carrying-cost test** from `../../references/tech-debt.md`. Both lists are eligible.
-   Classification is by carrying cost, not by P3-vs-Nit — a Nit exposing a systemic convention
+   Classification is by carrying cost, not by P3-vs-Nit — a nit exposing a systemic convention
    gap qualifies, a P3 that is a local one-liner does not.
+
+   **The test now has a second half: the item must name what the next cycle pays** (the contract's
+   *State the cost, or don't record it*). A finding that cannot state one — from either list —
+   is fixed in the loop or dropped, never recorded. Do not record it with a vague cost sentence
+   in order to satisfy the rule; that is the failure mode the requirement exists to catch.
 
 2. For each item that qualifies, append a `### <slug>` entry to the `## To Record` section of
    `$WORKDIR/docs/dev/<feature>/debt-pending.md` in the **P4 buffer format** from the contract — a
@@ -238,10 +243,16 @@ Placement is deliberate: **after** Step 5 so `p3_open[]` and `nits_open[]` are f
    `**What's wrong:** / **Why deferred:** / **Done looks like:**` body. Create the buffer from the
    contract's template first if it does not exist. Set `files:` to the paths the finding actually
    names — `dev:spec`'s cross-check keys its matching on that field.
-   **Carry the fix-loop severity as a front-matter field:** add `severity: P3` or `severity: Nit`
+   **Carry the fix-loop severity as a front-matter field — `severity: P3`, and only that value**
    (this field replaces the old `*Source: dev:validate (P3|Nit)*` tag). `severity` is an
    **informational** field the flush preserves verbatim — it is **not** one of the
    routing/lifecycle fields and drives no procedure.
+
+   **A nit-sourced item gets no `severity` field at all.** `Nit` is not a value of this field
+   (contract, P1 `severity`): the label does real work in Step 5's fix ordering above and stops at
+   the store boundary. Write the item without the field, and let its body state the systemic gap
+   that earned it a place — which the carrying-cost test already requires of every item. Omitting
+   the field is the whole change here; a nit that passes the test is still recorded.
 
    **Escape any Markdown heading in the body text you copy.** Finding text often quotes the code
    under review, and in a Markdown-heavy repo that quote can itself start with `#`. Indent such

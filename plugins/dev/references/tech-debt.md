@@ -46,11 +46,22 @@ it turns the store into a P3 landfill.
 
 **Severity is the wrong axis.** Both directions matter:
 
-- A **Nit** that exposes a systemic convention gap — a naming rule nothing enforces, a pattern
-  the next five cycles will each rediscover — **qualifies.**
+- A finding the fix loop called a **nit** that exposes a systemic convention gap — a naming rule
+  nothing enforces, a pattern the next five cycles will each rediscover — **qualifies.**
 - A **P3** that is a local one-liner in a file nobody else will touch — **does not.**
 
 Classify by what the item will cost the *next* cycle, never by the label the fix loop gave it.
+
+**State the cost, or don't record it.** An item qualifies only if its body **names what the next
+cycle pays** — the work that gets harder, the behavior that will bite, the rediscovery that
+repeats. "Nice to clean up" is not a cost. This requirement is the test's teeth: without it the
+test is a question a writer answers in their head and nobody can audit, which is how a store fills
+with items that each looked reasonable alone. `**Why deferred:**` (debt) or `**Why:**` (backlog) is
+where that sentence goes.
+
+It applies at **every** capture site — the producing stages' buffers, `dev:debt add`, and a lane's
+deferred-work capture — and it binds regardless of the finding's review label. A P3 whose body can
+only say "would be tidier" fails it exactly as a nit would.
 
 ## (P1) Front-matter schema
 
@@ -70,7 +81,7 @@ recurrence: 1
 files:
   - plugins/dev/skills/autopilot/SKILL.md
 possibly_related_to:    # optional — slug of a suspected duplicate (P6)
-severity:               # optional — P3 | Nit — informational, written by dev:validate; preserved verbatim
+severity:               # optional — P3 — informational, written by dev:validate; preserved verbatim
 routing:                # optional — local-degrade hold marker (pending); procedure in P9
 promoted_to:            # optional — for a promoted backlog item, repo-relative path of the product-plan it spawned (docs/dev/product-plans/<slug>.md); set by dev:spec, one-way — see P3
 closed:                 # optional — set on close (P3)
@@ -101,9 +112,21 @@ closed_by:              # optional — cycle name that closed it
   has no defect site yet).
 - `possibly_related_to` — optional slug of a suspected duplicate, written by the recurrence-merge
   procedure under uncertainty (P6). Points at the **slug** (P2), so it survives the close move.
-- `severity` — optional, `P3 | Nit`. **Informational**, written by `dev:validate` (it carries the fix
+- `severity` — optional, `P3`. **Informational**, written by `dev:validate` (it carries the fix
   loop's own label into the store). The flush **preserves it verbatim**; it is **not** a
   routing/lifecycle field and drives no procedure.
+
+  **`Nit` is not a value of this field.** A nit is a review-time label — it does real work inside
+  `dev:validate`'s fix loop, where nits are attempted only once P1/P2/P3 are resolved — but it is
+  not a tracker priority, and the store already refuses to act on `severity` at all. A nit that
+  passes the carrying-cost test is recorded like any other item: **no `severity` field**, with its
+  body stating the systemic gap that earned it a place. Nothing is lost, because the gap is the
+  reason the item exists and prose says it better than a label that drives no procedure.
+
+  **Items in `closed/` may still carry `severity: Nit`.** They are historical records of what an
+  earlier cycle decided and are never rewritten to match a later contract. A reader of the archive
+  should expect values this field no longer accepts; so should any tool that ranks them — see the
+  viewer's rank-list comment, which orders values without gating membership.
 - `routing` — optional, `pending`. The **local-degrade hold marker**: set to `pending` on a
   `plugin`-scoped item that couldn't be delivered to the plugin repo (no network/auth, API error, slug
   unresolvable), so it is held locally, surfaced, and re-attempted rather than dropped. Its procedure is

@@ -290,8 +290,11 @@ FACET_FIELDS = ("type", "status", "scope", "severity")
 FACET_RANK = {
     # references/tech-debt.md lifecycle table
     "status": ["open", "in-progress", "promoted", "closed"],
-    # validate/SKILL.md severity ladder; extends past the contract's P3 | Nit
-    # because debt-p9-issue-body-fence-width carries P2 today
+    # validate/SKILL.md severity ladder; deliberately wider than the contract's
+    # sole accepted value (P3). P2 appears because debt-p9-issue-body-fence-width
+    # carries it today, and Nit because closed/ keeps archived items at values the
+    # contract no longer accepts — both must stay orderable, per the membership
+    # rule above.
     "severity": ["P1", "P2", "P3", "Nit"],
     # type and scope have no inherent sequence — they sort alphabetically
 }
