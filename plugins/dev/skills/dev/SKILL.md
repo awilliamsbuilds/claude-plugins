@@ -1,6 +1,6 @@
 ---
 name: dev
-description: "Main entry point for the /dev workflow. Standard mode: manages the 7-stage development workflow (spec → shape → plan → build → validate → PR → done) with explicit approval gates between stages. Use /dev:autopilot for no-gate mode. Use /dev:init to set up a new project. Use /dev:fix for the fast path — a grounded change straight to an open PR with no cycle artifacts, including /dev:fix linear ENG-123 and /dev:fix backlog <item>."
+description: "Main entry point for the /dev workflow. Standard mode: manages the 7-stage development workflow (spec → shape → plan → build → validate → PR → done) with explicit approval gates between stages. Also the workflow's own reference: /dev list prints a quick reference — which skill covers each stage, how to invoke it, and the non-pathway skills as FYI. Use /dev list when you've forgotten how /dev works, need a refresher on the workflow stages and commands, or aren't sure which dev:* skill to run next. Use /dev:autopilot for no-gate mode. Use /dev:init to set up a new project. Use /dev:fix for the fast path — a grounded change straight to an open PR with no cycle artifacts, including /dev:fix linear ENG-123 and /dev:fix backlog <item>."
 ---
 
 # dev — Development Workflow Orchestrator
@@ -19,11 +19,76 @@ While a `/dev` session is active (a `docs/dev/<feature>/state.json` exists for t
 
 Arguments can appear in any combination:
 
+- `list` → print the workflow reference (Step 1a) and **return**. This one short-circuits: it never falls through to Step 2.
 - `auto` → this is a redirect: "For autopilot mode, use /dev:autopilot. Continuing in standard mode with approval gates."
 - `no-ui` → set mode to no-ui; Shape stage will be skipped
 - `init` → delegate to /dev:init immediately
 - `spec`, `shape`, `plan`, `build`, `validate`, `pr`, `done` → jump to that stage (see Step 5)
 - No arguments → standard flow (Step 2)
+
+## Step 1a: Print the Workflow Reference (`/dev list`)
+
+Print a quick, accurate reference for how `/dev` works: the stage pathway, which skill covers each stage, exactly how to invoke it, the tier rules, and the skills that sit outside the pathway.
+
+**Read-only, and it returns here — never continue to Step 2.** Step 2 runs `/dev:init` when `docs/dev/config.json` is missing, so falling through would turn "what are the commands?" into a repo that has just had files created in it. A reference must be safe to ask for in a repo that has never run `/dev`. For the same reason this step does no session-state check (that is Step 3's job) and writes nothing.
+
+**1. Read the Component Registry.** Read `CLAUDE.md`'s `## Component Registry` table and pull the one-line "Purpose" description for each `dev:*` row. That table is the single source of truth for these descriptions — `dev:done` Step 4 maintains it on every feature cycle, so a second hardcoded copy here would go stale against it. If the table, or a specific row, is missing, fall back to the minimal descriptions in item 4 below rather than failing.
+
+The stage rows' Purpose strings already start with their own "Stage N — " prefix (e.g. "Stage 1 — builds the feature specification") — strip that prefix when substituting, since the pathway below supplies its own numbering; use only the text after it.
+
+**2. Print the stage pathway.** The stage order is fixed and stable, so it lives here rather than being read from anywhere. Each line pairs the stage with its registry description and its exact standalone command:
+
+```
+/dev workflow — 7 stages:
+
+1. Spec     → dev:spec     — [registry description] — Run: /dev:spec
+2. Shape    → dev:shape    — [registry description] — Run: /dev:shape   (skipped if no UI)
+3. Plan     → dev:plan     — [registry description] — Run: /dev:plan    (skipped in Micro tier)
+4. Build    → dev:build    — [registry description] — Run: /dev:build
+5. Validate → dev:validate — [registry description] — Run: /dev:validate
+6. PR       → dev:pr       — [registry description] — Run: /dev:pr
+7. Done     → dev:done     — [registry description] — Run: /dev:done
+
+Fastest path: just run /dev — it starts a new session or resumes an in-progress one, and walks every stage in order with approval gates.
+```
+
+**3. Print the tier rules.** State them as **rules over the pathway**, never as an enumerated table of tier × UI combinations — the same form Step 5 uses, for the reason given there:
+
+```
+Tier rules:
+- Micro tier (small, bounded changes): Shape and Plan are skipped; spec.md's "Implementation Note" section serves as the plan.
+- no-ui: Shape is skipped, for any tier.
+```
+
+**4. Print FYI — other skills.** Using the same registry lookup:
+
+```
+FYI — other skills (not part of the linear pathway):
+
+- dev:init      — [registry description] — run once per repo, before the first /dev session (auto-triggered if missing)
+- dev:fix       — [registry description] — the fast path: skips the pathway entirely, going straight to an open PR with no cycle artifacts; escalates to /dev when the request carries 2+ unresolved decisions. Also starts from an identifier: /dev:fix linear <id> and /dev:fix backlog <item>
+- dev:autopilot — [registry description] — alternative to the gated flow above, and also its continuation: printed as an option at the Spec and Shape gates once definition is settled; runs all stages without stopping for approval
+- dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
+- dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
+- dev:secure    — [registry description] — on-demand security review outside the pipeline: /dev:secure audits the whole project, /dev:secure diff audits the current diff. Reports only; writes nothing. /dev:fix calls the diff verb before every PR
+- dev:migrate-tracker — [registry description] — run once in a repo still on the old docs/dev/tech-debt.md tracker; a no-op everywhere else
+```
+
+**If the Component Registry table or a specific row is missing:** fall back to these minimal descriptions rather than failing:
+- `dev:spec` — builds the feature spec
+- `dev:shape` — produces the design doc
+- `dev:plan` — writes the implementation plan
+- `dev:build` — implements the plan
+- `dev:validate` — reviews and fixes issues
+- `dev:pr` — opens the pull request
+- `dev:done` — merges and closes out
+- `dev:init` — sets up /dev in a repo
+- `dev:fix` — the fast path: request to open PR, no cycle artifacts; also `linear` / `backlog` entry forms
+- `dev:autopilot` — no-gate full-cycle runner; also accepts an artifact path to take over a gated cycle mid-flight
+- `dev:reflect` — cycle retrospective
+- `dev:debt` — view and close tracked tech debt
+- `dev:secure` — on-demand security review; whole-project or `diff`, report-only
+- `dev:migrate-tracker` — migrates a legacy tech-debt.md into docs/backlog/
 
 ## Step 2: Check Initialization
 
@@ -106,19 +171,18 @@ Wait for user response:
 - `skip`: ask for reason, update `skipped[]` in state.json, move to stage after
 - `stop`: exit cleanly; state.json preserved for resume
 
-**Stage sequence by tier:**
+**Stage sequence by tier — stated as rules, not as rows.**
 
-Micro:
-1. Spec → 2. Build → 3. Validate → 4. PR → 5. Done
+The full pathway is: 1. Spec → 2. Shape → 3. Plan → 4. Build → 5. Validate → 6. PR → 7. Done.
 
-Standard + no-ui:
-1. Spec → 2. Plan → 3. Build → 4. Validate → 5. PR → 6. Done
+Two rules remove stages from it. They compose, and every tier/UI combination is **derived** by applying them rather than looked up:
 
-Standard + UI:
-1. Spec → 2. Shape → 3. Plan → 4. Build → 5. Validate → 6. PR → 7. Done
+- **Micro tier:** Shape and Plan are skipped (`spec.md`'s "Implementation Note" section serves as the plan). → Spec → Build → Validate → PR → Done.
+- **no-ui:** Shape is skipped, at any tier. → Standard/Deep + no-ui is Spec → Plan → Build → Validate → PR → Done.
 
-Deep + UI:
-1. Spec → 2. Shape → 3. Plan → 4. Build → 5. Validate → 6. PR → 7. Done
+**The rule form is deliberate.** The enumerated table this replaced listed Micro, Standard + no-ui, Standard + UI, and Deep + UI — and had no row at all for **Deep + no-ui**, a combination this workflow genuinely produces, so the orchestrator could not describe a cycle it had just run. An enumeration goes stale by omission the moment a combination is added; a rule set does not. `dev:autopilot` Step 3 already states its equivalent as a rule ("Standard/Deep + no-ui"), and Step 1a's tier rules print the same two lines to the user.
+
+Which stages are actually skipped for the current cycle is read from `skipped[]` in `state.json` (Step 4 sets it from the spec's `## UI Needed`), not re-derived here.
 
 ## Step 5a: Jump to Stage
 
@@ -168,6 +232,7 @@ Wait for user's choice, then invoke dev:spec with the chosen feature name.
 | Command | What happens |
 |---------|-------------|
 | `/dev` | Standard mode, new session or resume |
+| `/dev list` | Print the workflow reference — every stage, its skill, its exact `/dev:<stage>` command, the tier rules, and the non-pathway skills. Read-only; runs safely in a repo that has never run `/dev:init` |
 | `/dev no-ui` | Standard mode, Shape skipped |
 | `/dev auto` | Redirects to /dev:autopilot |
 | `/dev init` | Runs /dev:init |

@@ -295,6 +295,8 @@ Emit **no** line on the silent no-op path (step 3). The absent-file note appears
 
 **8. Hard invariants.** This step never writes the `## Component Registry` table (Step 4 remains its sole writer), and it never creates a missing `README.md` or `CLAUDE.md`.
 
+**This step is canonical for docs-prose reconciliation, and `dev:fix`'s `### Reconcile docs prose` mirrors it** — cited by section name rather than line number, since line numbers across files go stale silently. That mirror exists because a lane change never enters this pipeline, so nothing else would ever catch its staleness. Three divergences, named identically at both ends: **D1** — the lane has no `debt-pending.md` buffer (no cycle artifacts), so it writes unapplied spots straight to `docs/backlog/`; **D2** — the lane has no standard/autopilot mode split, and applies edits rather than gating or recording them, because its PR is the review checkpoint; **D3** — the lane's step **does** update the `## Component Registry` table, because it has no Step 4 preceding it and no later stage will ever run for a lane change. Invariant #8 above is scoped to this step and is not weakened by D3. A change to either side should be reflected at the other.
+
 ## Step 5: Generate Decision Log
 
 Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEGRATION`):
