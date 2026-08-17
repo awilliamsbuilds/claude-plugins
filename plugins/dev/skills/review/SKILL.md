@@ -298,6 +298,79 @@ readable as evidence rather than as silence.
 
 Then **stop**: print the report and end the turn. Nothing was created, modified, or deleted.
 
+## Step 3: Docs mode
+
+    /dev:review docs <paths>
+
+### `<paths>` is required
+
+One or more **absolute** paths to committed decision documents, supplied by the caller. There is **no
+discovery and no default.** A bare `/dev:review docs` is an **error**, exactly as a bare
+`/dev:review` is — stop and say which argument was missing.
+
+**This is how the mode gets tree-correct scoping without a `<tree>` argument.** During a cycle the
+decision documents live under `$WORKDIR/docs/dev/<feature>/` and only reach `docs/decisions/` at Done
+(`build/SKILL.md:81`). A reviewer that discovered its own paths — or resolved relative ones — would
+resolve them against its own `$PRIMARY` and review the **wrong tree's** documents. That is the same
+failure `diff` mode's `<tree>` argument exists to kill, arriving by the other route. Absolute paths
+from the caller close it, which is why the architecture route needs no tree of its own.
+
+Validate each path against the same allowlist `diff` mode uses,
+`^/[A-Za-z0-9._][A-Za-z0-9._/-]*$`, and confirm each exists. **Stop naming any path that fails
+either check** — never review a partial set silently, since a document missing from the set is
+indistinguishable in the report from a document with no findings.
+
+### The checklist — five bullets
+
+Review the committed decision documents:
+- Are decisions internally consistent (no contradictions)?
+- Does each decision have sufficient context that implementation could proceed?
+- Are consequences realistic?
+- Do decisions contradict each other?
+- Is rationale present and non-trivial?
+
+### Severity — the architecture mapping
+
+**Architecture severity mapping:**
+| Level | Meaning |
+|-------|---------|
+| P1 | Decision is internally inconsistent, contradicts another committed decision, or leaves implementation with an unresolvable ambiguity |
+| P2 | Decision is underspecified — implementation couldn't proceed from it without guessing |
+| P3 | Decision is documented but rationale is thin |
+| Nit | Formatting, incomplete Consequences section |
+
+This table is the **architecture-cycle reinterpretation** of `dev:validate` Step 3's generic
+vocabulary, which stays canonical for the generic scheme. It lives here, adjacent to the checklist
+that produces the findings it classifies, because **a reviewer that cannot classify its own findings
+is not report-complete.** `dev:validate` keeps no copy.
+
+**Note how far this is from `diff` mode's P1.** There, a P1 is a correctness or security blocker;
+here it is an internally inconsistent or contradictory decision. The two modes genuinely do not share
+a severity meaning — which is the reason a bare `/dev:review` is an error rather than an inferred
+mode.
+
+### Dispatch and report
+
+Run `## Cold dispatch` for this mode: the subagent receives the full contents of the named documents
+and the checklist and severity table above — nothing else.
+
+```
+## Document Review — decision documents
+**Documents reviewed:** <count>
+<one line per absolute path>
+
+### P1 — blockers
+### P2 — significant
+### P3 — improvements
+### Nit
+### Passed checks
+```
+
+Every finding names the document and the passage. An empty category says "None found." and moves on
+— **do not pad the report.** `### Passed checks` lists what was explicitly verified clean.
+
+Then **stop**: print the report and end the turn. Nothing was created, modified, or deleted.
+
 ## Invocation
 
 - `/dev:review diff <base>` — review the current diff of the primary checkout against `<base>`
