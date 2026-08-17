@@ -4,8 +4,10 @@
   "branch": "feature/extract-review-skills",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
@@ -74,7 +76,7 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-16T14:08:42Z",
-      "spec_end": "2026-08-16T15:05:01Z"
+      "spec_end": "2026-08-17T00:56:26Z"
     }
   }
 }
