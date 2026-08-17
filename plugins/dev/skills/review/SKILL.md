@@ -161,6 +161,10 @@ else
   case "$TREE" in
     *[!-A-Za-z0-9._/\ ]*) echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1 ;;
   esac
+  case "$TREE" in
+    */../*|*/..) echo "STOP: '$TREE' may not contain a '..' segment."; exit 1 ;;
+  esac
+  while :; do case "$TREE" in */) TREE="${TREE%/}" ;; *) break ;; esac; done
   if [ "$(git -C "$TREE" rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]; then
     echo "STOP: '$TREE' is not a git worktree."; exit 1
   fi
@@ -212,7 +216,10 @@ named refusal instead of a raw `git` error surfacing from inside a reviewer. Rec
 glossed, per `dev:validate` Step 4 step 3b.
 
 **Shared procedure.** This is the **canonical** implementation of `<tree>` resolve-and-validate.
-`dev:secure` Step 2a carries a marked mirror of it. A change here should be reflected there.
+`dev:secure` Step 2a carries a marked mirror of it. A change here should be reflected there. **One
+divergence, named at both ends:** the mirror also sets a `TREE_SUPPLIED` flag, because that skill has
+a wrong-tree notice to suppress when a caller named its tree explicitly. This skill prints no such
+notice and needs no flag; everything else in the branch structure is identical.
 
 ### Resolve `<base>`, in the tree just resolved
 
@@ -248,6 +255,9 @@ for ARTIFACT in "${@:4}"; do
   case "$ARTIFACT" in
     *[!-A-Za-z0-9._/\ ]*) echo "STOP: '$ARTIFACT' is not a valid absolute path."; exit 1 ;;
   esac
+  case "$ARTIFACT" in
+    */../*|*/..) echo "STOP: '$ARTIFACT' may not contain a '..' segment."; exit 1 ;;
+  esac
   if [ ! -f "$ARTIFACT" ]; then echo "STOP: artifact '$ARTIFACT' does not exist."; exit 1; fi
   case "$ARTIFACT" in
     "$TREE"/*) ;;
@@ -264,8 +274,16 @@ to a dispatched subagent, and passages can be quoted into the report — so an u
 path would make this mode a file-reader for anything on disk (`/etc/passwd`, `~/.ssh/id_rsa` — both
 pass the character allowlist, which is deliberately permissive of any absolute path). Neither caller
 can reach that today: `dev:validate` builds the paths itself from `$WORKDIR`, and `dev:fix` passes
-none. This closes it as an invariant rather than leaving it to caller discipline, because the mode is
-also user-invocable.
+none. The check exists so the invariant does not depend on caller discipline, since the mode is also
+user-invocable.
+
+**The `..` rejection is what makes the containment check actually contain.** `case "$ARTIFACT" in
+"$TREE"/*)` is a plain string-prefix test on the **unnormalized** path, and both `.` and `/` are
+inside the permitted charset — so measured, `"$TREE/../../../../etc/passwd"` passes the prefix test
+while resolving far outside the tree. Rejecting any `..` segment closes that, and `$TREE`'s own
+trailing-slash strip above is the other half: an unstripped `/x/repo/` would make the pattern
+`/x/repo//*` and reject every legitimate artifact. A `..` *inside* a filename component (`a..b`) is
+still allowed — the guard matches segments, not substrings.
 
 **These are caller-supplied and never discovered.** This skill does not know `<feature>`, and a
 relative path would resolve against its own `$PRIMARY` — the wrong-tree failure arriving by the other

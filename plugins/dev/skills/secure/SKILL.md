@@ -243,6 +243,10 @@ else
   case "$TREE" in
     *[!-A-Za-z0-9._/\ ]*) echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1 ;;
   esac
+  case "$TREE" in
+    */../*|*/..) echo "STOP: '$TREE' may not contain a '..' segment."; exit 1 ;;
+  esac
+  while :; do case "$TREE" in */) TREE="${TREE%/}" ;; *) break ;; esac; done
   if [ "$(git -C "$TREE" rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]; then
     echo "STOP: '$TREE' is not a git worktree."; exit 1
   fi
@@ -289,7 +293,9 @@ turns a malformed path into a named refusal instead of a raw `git` error surfaci
 review.
 
 **Shared procedure.** This is a marked **mirror** of `dev:review` Step 2's `<tree>`
-resolve-and-validate, which stays **canonical**. It is restated here in full rather than pointed at,
+resolve-and-validate, which stays **canonical**. **One divergence, named at both ends:** this side
+also sets `TREE_SUPPLIED`, which the wrong-tree notice in *Scope the audit* reads to stay silent when
+a caller named its tree; `dev:review` prints no such notice and carries no flag. It is restated here in full rather than pointed at,
 so this verb stands alone. A change to either side should be reflected at the other.
 
 ### Resolve the base
@@ -369,7 +375,8 @@ names it.
 ```bash
 AUDIT_BRANCH=$(git -C "$TREE" branch --show-current)
 INVOKED_IN=$(git rev-parse --show-toplevel 2>/dev/null) || INVOKED_IN=""
-if [ -z "$TREE_SUPPLIED" ] && [ -n "$INVOKED_IN" ] && [ "$INVOKED_IN" != "$PRIMARY" ]; then
+if [ -z "$TREE_SUPPLIED" ] && [ "$TREE" = "$PRIMARY" ] \
+   && [ -n "$INVOKED_IN" ] && [ "$INVOKED_IN" != "$PRIMARY" ]; then
   echo "NOTE: no tree was supplied, so this audits the primary checkout"
   echo "      ($PRIMARY, branch ${AUDIT_BRANCH:-detached}), not the tree you"
   echo "      invoked from ($INVOKED_IN)."
@@ -413,7 +420,9 @@ surprising empty diff is auditing a different tree than intended — and the tre
 actually answers it.
 
 **Shared procedure.** This is the **canonical** statement of the empty-diff rule. `dev:review`
-Step 2 carries a marked mirror of it. A change here should be reflected there.
+Step 2 carries a marked mirror of it. A change here should be reflected there. **One divergence,
+named at both ends:** this message also carries the *branch*, because this verb binds `AUDIT_BRANCH`
+for its report header; `dev:review` derives no branch and names tree and base only.
 
 Otherwise run the audit against the diff only:
 
@@ -431,7 +440,7 @@ records the deliberate skip rather than going silent.
 
 ```
 ## Security Review — diff vs <BASE>
-**Tree audited:** <TREE> · **Branch audited:** <AUDIT_BRANCH> · **Files changed:** <count>
+**Tree audited:** <TREE> · **Branch audited:** <AUDIT_BRANCH, or `detached`> · **Files changed:** <count>
 
 ### P1 — blockers
 ### P2 — significant
@@ -469,7 +478,7 @@ translating.
 
 ```
 ## Security Review — whole project
-**Tree audited:** <$PRIMARY> · **Branch:** <AUDIT_BRANCH> · **Files reviewed:** <count>
+**Tree audited:** <PRIMARY> · **Branch:** <AUDIT_BRANCH, or `detached`> · **Files reviewed:** <count>
 
 ### P1 — blockers
 ### P2 — significant
