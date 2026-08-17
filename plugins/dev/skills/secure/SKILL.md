@@ -256,10 +256,11 @@ fi
 Three branches:
 
 - **Absent** → `TREE="$PRIMARY"`. This is `dev:fix`'s call path and the standalone default.
-- **Present, failing the allowlist** → **stop**, naming the argument.
-- **Present, passing the allowlist, but not a git worktree** → **stop**, naming the argument.
+- **Present, failing the shape or charset guard** → **stop**, naming the argument.
+- **Present, containing a `..` segment** → **stop**, naming the argument.
+- **Present, passing all three guards, but not a git worktree** → **stop**, naming the argument.
 
-**Neither failure falls back to `$PRIMARY`.** A silent fallback would turn a caller's typo into a
+**No failure falls back to `$PRIMARY`.** A silent fallback would turn a caller's typo into a
 confident audit of the wrong tree — the precise failure this argument exists to prevent, and the one
 *Scope the audit* below calls the worst available outcome for a pre-PR gate.
 
@@ -269,11 +270,18 @@ derivation (`validate/SKILL.md:16`, and this skill's own `$PRIMARY` above). Reus
 would ship a verb that refuses the `"$WORKDIR"` its own caller hands it. Requiring the leading `/` is
 also what rejects a `-`-leading value.
 
-**Two `case` statements rather than one `grep -E`, and that is not stylistic.** `grep` matches **per
+**Three `case` statements rather than one `grep -E`, and that is not stylistic.** `grep` matches **per
 line**, so it accepts a value whose *first* line is well-formed regardless of what follows —
 measured, a value of `/tmp/ok` followed by a newline and `rm -rf /` **passes** a
 `grep -Eq '^/[A-Za-z0-9._][A-Za-z0-9._/-]*$'` check. `case` tests the whole string, so the newline
-lands in the negated class and is refused.
+lands in the negated class and is refused. The first `case` fixes the leading character, the second
+rejects anything outside the allowed set, and the third rejects a `..` segment.
+
+**The `..` guard and the trailing-slash strip are here for mirror fidelity, not for a consumer in
+this file.** `dev:review` needs both because it containment-checks artifact paths against `$TREE`, and
+a `..` segment or a trailing slash defeats that check. This verb has no such consumer — it only hands
+`$TREE` to `git -C`. They are carried anyway so the two blocks stay byte-identical apart from the one
+named divergence below; a mirror that silently drops half a guard is how the pair starts drifting.
 
 **A literal space is allowed; a newline, `;`, `$`, and a backtick are not.** A repo legitimately
 checked out under `/Users/adam/My Projects/…` would otherwise fail this guard, which `dev:validate`

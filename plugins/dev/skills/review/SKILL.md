@@ -174,10 +174,11 @@ fi
 Three branches, and the third is the one that matters:
 
 - **Absent** → `TREE="$PRIMARY"`. This is the standalone default, and `dev:fix`'s call path.
-- **Present, failing the allowlist** → **stop**, naming the argument.
-- **Present, passing the allowlist, but not a git worktree** → **stop**, naming the argument.
+- **Present, failing the shape or charset guard** → **stop**, naming the argument.
+- **Present, containing a `..` segment** → **stop**, naming the argument.
+- **Present, passing all three guards, but not a git worktree** → **stop**, naming the argument.
 
-**Neither failure falls back to `$PRIMARY`.** A silent fallback would turn a caller's typo into a
+**No failure falls back to `$PRIMARY`.** A silent fallback would turn a caller's typo into a
 confident review of the wrong tree — the precise failure this argument exists to prevent. Stopping
 costs a re-run; falling back costs a review that reports clean on code nobody changed.
 
@@ -188,12 +189,13 @@ it rejects **every absolute path** — and both callers pass absolute paths by d
 `secure/SKILL.md:39`). Reusing "the same shape" would ship a mode that refuses the `"$WORKDIR"` its
 own caller hands it. Requiring the leading `/` is also what rejects a `-`-leading value.
 
-**Two `case` statements rather than one `grep -E`, and that is not stylistic.** `grep` matches **per
+**Three `case` statements rather than one `grep -E`, and that is not stylistic.** `grep` matches **per
 line**, so it accepts a value whose *first* line is well-formed regardless of what follows —
 measured, a value of `/tmp/ok` followed by a newline and `rm -rf /` **passes** a
 `grep -Eq '^/[A-Za-z0-9._][A-Za-z0-9._/-]*$'` check. `case` tests the whole string, so the newline
-lands in the negated class and is refused. The first `case` fixes the leading character; the second
-rejects anything outside the allowed set.
+lands in the negated class and is refused. The first `case` fixes the leading character, the second
+rejects anything outside the allowed set, and the third rejects a `..` segment (see the containment
+note under *Bind the artifact paths*, which is what that third guard exists to protect).
 
 **A literal space is allowed; a newline, `;`, `$`, and a backtick are not.** A repo legitimately
 checked out under `/Users/adam/My Projects/…` would otherwise fail this guard in both reviewers,
@@ -243,8 +245,9 @@ name with no allowlist change. `dev:validate` does exactly that.
 
 ### Bind the artifact paths
 
-Tokens 4 and beyond are absolute paths. Validate each with the same two `case` statements `<tree>`
-uses, confirm each exists, and **confirm each is inside `$TREE`**:
+Tokens 4 and beyond are absolute paths. Validate each with the same three `case` statements
+`<tree>` uses — shape, charset, and `..` — then confirm each exists and **confirm each is inside
+`$TREE`**:
 
 ```bash
 for ARTIFACT in "${@:4}"; do
@@ -401,8 +404,8 @@ resolve them against its own `$PRIMARY` and review the **wrong tree's** document
 failure `diff` mode's `<tree>` argument exists to kill, arriving by the other route. Absolute paths
 from the caller close it, which is why the architecture route needs no tree of its own.
 
-Validate each path with the same two `case` statements `diff` mode's `<tree>` uses, and confirm each
-exists. **Stop naming any path that fails either check** — never review a partial set silently, since
+Validate each path with the same three `case` statements `diff` mode's `<tree>` uses — shape,
+charset, and `..` — and confirm each exists. **Stop naming any path that fails either check** — never review a partial set silently, since
 a document missing from the set is indistinguishable in the report from a document with no findings.
 
 **This mode has no `$TREE` to contain the paths against, so the containment rule is stated instead of
