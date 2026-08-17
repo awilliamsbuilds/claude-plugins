@@ -253,7 +253,7 @@ else
 fi
 ```
 
-Three branches:
+Four branches:
 
 - **Absent** → `TREE="$PRIMARY"`. This is `dev:fix`'s call path and the standalone default.
 - **Present, failing the shape or charset guard** → **stop**, naming the argument.
@@ -279,8 +279,11 @@ rejects anything outside the allowed set, and the third rejects a `..` segment.
 
 **The `..` guard and the trailing-slash strip are here for mirror fidelity, not for a consumer in
 this file.** `dev:review` needs both because it containment-checks artifact paths against `$TREE`, and
-a `..` segment or a trailing slash defeats that check. This verb has no such consumer — it only hands
-`$TREE` to `git -C`. They are carried anyway so the two blocks stay byte-identical apart from the one
+a `..` segment or a trailing slash defeats that check. This verb has no such consumer: it hands
+`$TREE` to `git -C`, string-compares it once in *Scope the audit*, and interpolates it into the
+report header — and the
+comparison is reached only on the branch where no tree was supplied, so a stripped trailing slash
+cannot change its answer. They are carried anyway so the two blocks stay byte-identical apart from the one
 named divergence below; a mirror that silently drops half a guard is how the pair starts drifting.
 
 **A literal space is allowed; a newline, `;`, `$`, and a backtick are not.** A repo legitimately

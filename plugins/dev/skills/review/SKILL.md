@@ -171,7 +171,7 @@ else
 fi
 ```
 
-Three branches, and the third is the one that matters:
+Four branches, and the last is the one that matters:
 
 - **Absent** → `TREE="$PRIMARY"`. This is the standalone default, and `dev:fix`'s call path.
 - **Present, failing the shape or charset guard** → **stop**, naming the argument.
@@ -405,7 +405,8 @@ failure `diff` mode's `<tree>` argument exists to kill, arriving by the other ro
 from the caller close it, which is why the architecture route needs no tree of its own.
 
 Validate each path with the same three `case` statements `diff` mode's `<tree>` uses — shape,
-charset, and `..` — and confirm each exists. **Stop naming any path that fails either check** — never review a partial set silently, since
+charset, and `..` — and confirm each exists. **Stop naming any path that fails any check** — never
+review a partial set silently, since
 a document missing from the set is indistinguishable in the report from a document with no findings.
 
 **This mode has no `$TREE` to contain the paths against, so the containment rule is stated instead of
