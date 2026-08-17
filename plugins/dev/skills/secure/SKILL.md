@@ -154,16 +154,26 @@ A pattern match is a candidate, not a confirmed secret. Read the hit before repo
 
 ### Pass C — static analysis
 
-Read the source files and analyze each against these five categories. They are exactly what
-`dev:validate` Step 2's security review already carries — this skill is where that checklist becomes
-reusable, and it adds no new vector:
+Read the source files and analyze each against these five categories. **This is the plugin's sole
+security checklist** — `dev:validate` Step 2 dispatches this skill rather than carrying a copy of it.
+
+**These five categories are a superset of the inline bullets `dev:validate` used to carry, not a
+restatement of them.** Measured, Pass C adds roughly fifteen named vectors that checklist never
+mentioned, plus two whole categories — **Data exposure** and **Business logic** — with no counterpart
+there at all. This is worth stating precisely rather than approximately: a future cycle
+"reconciling the duplication" on the strength of a claim that the two are equivalent would delete
+real coverage believing it redundant. They were never equivalent.
 
 - **Injection** — SQL (concatenation, f-strings, or template literals into queries), command (user
-  input reaching `exec`/`spawn`/`system`/`eval`), XSS (unescaped input rendered to HTML,
-  `dangerouslySetInnerHTML` with dynamic data), path traversal (user-controlled paths without
-  sanitization), SSRF (user-controlled URLs fetched server-side without an allowlist)
+  input reaching `exec`/`spawn`/`system`/`eval`), **server-side template injection (user-controlled
+  input rendered as a template by Jinja2, ERB, Handlebars, Twig or similar — distinct from a
+  template literal interpolated into a query, and typically an RCE rather than a data leak)**, XSS
+  (unescaped input rendered to HTML, `dangerouslySetInnerHTML` with dynamic data), path traversal
+  (user-controlled paths without sanitization), SSRF (user-controlled URLs fetched server-side
+  without an allowlist)
 - **Authentication & authorization** — missing auth checks on endpoints, insecure direct object
-  references (`/api/items/:id` without an ownership check), tokens stored insecurely, plaintext or
+  references (`/api/items/:id` without an ownership check), **CSRF (state-changing endpoints with no
+  anti-forgery token, or cookies set without `SameSite`)**, tokens stored insecurely, plaintext or
   weakly-hashed passwords (MD5, SHA1), missing rate limiting on auth endpoints
 - **Data exposure** — sensitive data logged (passwords, tokens, PII), error messages leaking stack
   traces or internals to clients, API responses returning more than the caller needs, hardcoded
