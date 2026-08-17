@@ -114,6 +114,15 @@ not a stray request — so that guard would cost the parameter and buy nothing.
 
 Scope is the tracked files of `$PRIMARY`. Three passes, in order. Collect the full output of each.
 
+**This verb takes no tree, and that refusal is documented rather than incidental.** Unlike the `diff`
+verb it has no caller handing it a tree — `dev:fix` and `dev:validate` both call `diff` — so a tree
+argument here would exist only to be guessed at. What it owes instead is **disclosure**: its report
+header (Step 3) names the absolute path of the tree it audited, so a user standing in a worktree can
+see at a glance that the audit covered the primary checkout rather than what they were looking at.
+That is the shape this verb's exposure needs, because unlike `diff` it never comes back empty — it
+comes back looking like a completed clean audit of code the user is not looking at, which is the more
+dangerous of the two failures.
+
 ### Pass A — project-type detection and scanners
 
 Detect first, then run only what applies:
@@ -383,7 +392,7 @@ records the deliberate skip rather than going silent.
 
 ```
 ## Security Review — diff vs <BASE>
-**Branch audited:** <AUDIT_BRANCH> · **Files changed:** <count>
+**Tree audited:** <TREE> · **Branch audited:** <AUDIT_BRANCH> · **Files changed:** <count>
 
 ### P1 — blockers
 ### P2 — significant
@@ -394,6 +403,12 @@ skipped — diff scope. Run /dev:secure for a dependency audit.
 ### Secret scan
 ### Passed checks
 ```
+
+**`Tree audited:` is a path, and it is here because this is the verb that can audit a tree other than
+the one it was invoked from.** `Branch audited:` answers a different question and stays — a branch
+name does not distinguish a worktree from its primary, and after the `<tree>` argument the notice
+above fires only when *no* tree was supplied. Without this field the one verb that takes a tree would
+be the one whose report never names it.
 
 Then Step 4 applies unchanged: print, stop, write nothing.
 
@@ -415,7 +430,7 @@ translating.
 
 ```
 ## Security Review — whole project
-**Scope:** <repo slug or path> · **Files reviewed:** <count>
+**Tree audited:** <absolute path> · **Branch:** <branch> · **Files reviewed:** <count>
 
 ### P1 — blockers
 ### P2 — significant
