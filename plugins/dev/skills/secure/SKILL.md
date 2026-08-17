@@ -73,6 +73,13 @@ findings. It receives **only**:
 - the diff (`diff` verb) or the tracked-file scope and scanner output (whole-project verb)
 - the pass checklists it must apply, and the severity table in Step 3
 
+**Read-only — the subagent inherits this skill's report-only contract.** Instruct it explicitly that
+it may read files and run read-only commands but must **create, modify, or delete nothing**, and must
+report its findings rather than acting on them. A `general-purpose` subagent has write tools, and
+`## Purpose`'s zero-write invariant binds this file, not the agent it dispatches — only this
+instruction carries it across that boundary. Before this skill ran cold, the invariant held because
+the work happened in-session; it does not travel by itself.
+
 **Deliberately excluded: this session's conversation history.** A reviewer who watched the code get
 written is less objective than one seeing only the finished diff.
 
@@ -113,6 +120,13 @@ not a stray request — so that guard would cost the parameter and buy nothing.
 ## Step 2: Whole-project audit
 
 Scope is the tracked files of `$PRIMARY`. Three passes, in order. Collect the full output of each.
+
+Resolve the branch this verb's report header names — it has no `AUDIT_BRANCH` of its own otherwise,
+since that variable is bound inside Step 2a for the `diff` verb:
+
+```bash
+AUDIT_BRANCH=$(git -C "$PRIMARY" branch --show-current)
+```
 
 **This verb takes no tree, and that refusal is documented rather than incidental.** Unlike the `diff`
 verb it has no caller handing it a tree — `dev:fix` and `dev:validate` both call `diff` — so a tree
@@ -219,12 +233,17 @@ order of the two validations moves.
 ```bash
 TREE="$3"
 if [ -z "$TREE" ]; then
-  TREE="$PRIMARY"
+  TREE="$PRIMARY"; TREE_SUPPLIED=""
 else
-  if ! printf '%s' "$TREE" | grep -Eq '^/[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
-    echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1
-  fi
-  if ! git -C "$TREE" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  TREE_SUPPLIED=1
+  case "$TREE" in
+    /[A-Za-z0-9._]*) ;;
+    *) echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1 ;;
+  esac
+  case "$TREE" in
+    *[!-A-Za-z0-9._/\ ]*) echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1 ;;
+  esac
+  if [ "$(git -C "$TREE" rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]; then
     echo "STOP: '$TREE' is not a git worktree."; exit 1
   fi
 fi
@@ -245,6 +264,22 @@ class excludes `/`, so it rejects **every absolute path** — and both callers p
 derivation (`validate/SKILL.md:16`, and this skill's own `$PRIMARY` above). Reusing "the same shape"
 would ship a verb that refuses the `"$WORKDIR"` its own caller hands it. Requiring the leading `/` is
 also what rejects a `-`-leading value.
+
+**Two `case` statements rather than one `grep -E`, and that is not stylistic.** `grep` matches **per
+line**, so it accepts a value whose *first* line is well-formed regardless of what follows —
+measured, a value of `/tmp/ok` followed by a newline and `rm -rf /` **passes** a
+`grep -Eq '^/[A-Za-z0-9._][A-Za-z0-9._/-]*$'` check. `case` tests the whole string, so the newline
+lands in the negated class and is refused.
+
+**A literal space is allowed; a newline, `;`, `$`, and a backtick are not.** A repo legitimately
+checked out under `/Users/adam/My Projects/…` would otherwise fail this guard, which `dev:validate`
+escalates into a stage stop. The space is safe because every use site quotes the value
+(`git -C "$TREE"`); the characters that would matter unquoted stay refused.
+
+**The `--is-inside-work-tree` gate tests the answer, not the exit status.** Measured:
+`git -C <a-git-dir> rev-parse --is-inside-work-tree` prints `false` and **exits 0**, so an
+exit-status check would accept a `.git` directory or a bare repo as a worktree. Comparing the output
+to `true` is what makes the guard mean what the paragraph above says it means.
 
 **This allowlist is not an argument-injection guard.** Measured: `git -C "-foo" status` and
 `git -C "--exec-path=/tmp/x" status` both fail with `fatal: cannot change to '<value>'` — `-C`
@@ -277,9 +312,13 @@ anchors the first character of its `owner/name` slug for exactly this reason
 (`dev:fix`'s **Resolve the target repo**); this is the same class from the same trust level.
 
 ```bash
-if ! printf '%s' "$BASE" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
-  echo "STOP: '$BASE' is not a valid base ref name."; exit 1
-fi
+case "$BASE" in
+  [A-Za-z0-9._]*) ;;
+  *) echo "STOP: '$BASE' is not a valid base ref name."; exit 1 ;;
+esac
+case "$BASE" in
+  *[!A-Za-z0-9._/-]*) echo "STOP: '$BASE' is not a valid base ref name."; exit 1 ;;
+esac
 if ! git -C "$TREE" rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
   echo "STOP: base '$BASE' does not resolve to a commit in $TREE."; exit 1
 fi
@@ -330,11 +369,11 @@ names it.
 ```bash
 AUDIT_BRANCH=$(git -C "$TREE" branch --show-current)
 INVOKED_IN=$(git rev-parse --show-toplevel 2>/dev/null) || INVOKED_IN=""
-if [ "$TREE" = "$PRIMARY" ] && [ -n "$INVOKED_IN" ] && [ "$INVOKED_IN" != "$PRIMARY" ]; then
+if [ -z "$TREE_SUPPLIED" ] && [ -n "$INVOKED_IN" ] && [ "$INVOKED_IN" != "$PRIMARY" ]; then
   echo "NOTE: no tree was supplied, so this audits the primary checkout"
   echo "      ($PRIMARY, branch ${AUDIT_BRANCH:-detached}), not the tree you"
   echo "      invoked from ($INVOKED_IN)."
-  echo "      To audit that tree instead: /dev:secure diff $BASE $INVOKED_IN"
+  echo "      To audit that tree instead: /dev:secure diff \"$BASE\" \"$INVOKED_IN\""
 fi
 
 git -C "$TREE" diff --name-only --end-of-options "$BASE"...HEAD
@@ -430,7 +469,7 @@ translating.
 
 ```
 ## Security Review — whole project
-**Tree audited:** <absolute path> · **Branch:** <branch> · **Files reviewed:** <count>
+**Tree audited:** <$PRIMARY> · **Branch:** <AUDIT_BRANCH> · **Files reviewed:** <count>
 
 ### P1 — blockers
 ### P2 — significant

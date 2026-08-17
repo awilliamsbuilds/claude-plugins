@@ -80,6 +80,10 @@ Dispatch both reviewers, **issued together**:
 /dev:secure diff "$BASE_SHA" "$WORKDIR"
 ```
 
+On **Micro tier** omit the trailing `plan.md` argument — that tier has no plan file, and passing a
+path that does not exist is a stop, not a shrug (`dev:review` refuses it rather than reviewing a
+partial set).
+
 **Every argument is passed explicitly, artifact paths included.** On this route the spec-comparison
 and plan-coverage bullets must actually *run*; `dev:review`'s `not run` reporting is the `dev:fix`
 route's behavior, never this one's. A reviewer here that reported those two as `not run` would mean
@@ -92,7 +96,8 @@ reviewer, so parallelism is a property of how this step calls them.
 
 Each reviewer returns its findings (strengths + issues found) to the main session, which classifies
 and fixes them per Step 3 and Step 4 below — those steps are unchanged regardless of where the review
-ran.
+ran. **If either reviewer could not run, do not continue to Step 3** — see *A reviewer that cannot
+run stops the stage* below, which governs this route and the architecture route alike.
 
 ### Architecture Cycle — Document Review
 
@@ -179,7 +184,7 @@ Run up to `loops_max` iterations.
    - Any **P1/P2** it finds is a new open issue: add it to `p1_open[]`/`p2_open[]`, then persist it — write the updated `*_open[]` arrays back to state.json (step 6's open-list write only, not another `loops_run` increment) so this loop's committed state reflects the re-review rather than holding the addition only in memory. The loop cannot exit on this iteration; if `loops_max` budget remains it iterates again, otherwise step 10 routes to Step 4a.
    - Any **P3/Nit** it raises is recorded in `p3_open[]`/`nits_open[]` and remains eligible for Step 5a's carrying-cost buffer, exactly as the main Step 2 reviews' P3/Nits are.
    - The re-reviewer gates loop exit on **P1/P2 only**.
-   - **`dev:fix`'s `### Security` section carries a marked mirror of this re-review**, with
+   - **`dev:fix`'s `### Review` section carries a marked mirror of this re-review**, with
      `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
 8a. **Re-run the manual verification for any declared-untested layer this loop touched.** If a fix in this loop edited a file belonging to a `plan.md` task that declared a **TDD deviation** — a task whose entry states its layer has no test runner and names manual verification as its check — step 8's diff review is not sufficient to exit. Re-run that task's stated verification against the fixed build and record the result in `validation.md`. A suite cannot regress a layer it does not cover, so on exactly those files a green suite plus a clean diff review is the evidence that is missing, not the evidence that it is safe.
