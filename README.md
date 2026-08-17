@@ -10,7 +10,7 @@ Personal Claude Code plugins for awilliamsbuilds.
 | `writing` | `humanize`, `voice-extractor`, `linkedin`, `email` | Multi-context writing toolkit — humanize AI text, write LinkedIn messages/posts/articles and personal email, and extract a reusable personal voice |
 | `naming` | `craft-name` | Business, brand, product, and feature naming |
 | `plugin-manager` | `add-plugin` | Create and manage plugins in this repo |
-| `dev` | `dev`, `dev:init`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot`, `dev:debt`, `dev:secure`, `dev:migrate-tracker` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done), plus `dev:fix` — the fast path that goes straight to an open PR with no cycle artifacts — and `dev:secure`, an on-demand security review that reports and writes nothing |
+| `dev` | `dev`, `dev:init`, `dev:spec`, `dev:shape`, `dev:plan`, `dev:build`, `dev:validate`, `dev:pr`, `dev:done`, `dev:reflect`, `dev:fix`, `dev:autopilot`, `dev:debt`, `dev:review`, `dev:secure`, `dev:migrate-tracker` | Structured multi-stage development workflow (spec → shape → plan → build → validate → PR → done), plus `dev:fix` — the fast path that goes straight to an open PR with no cycle artifacts — and two report-only reviewers the pipeline and the fast path both call: `dev:review` for code and decision documents, `dev:secure` for security. Both report findings and write nothing |
 
 ## Setup
 
