@@ -119,6 +119,185 @@ would mean guessing which of two vocabularies the report is written in.
 **This deliberately diverges from `dev:secure`**, whose bare form is a real verb (the whole-project
 audit). That skill's bare invocation names a scope; this one would name nothing.
 
+## Step 2: Diff mode
+
+    /dev:review diff <base> [<tree>] [<artifact-path>…]
+
+### The binding is positional and fixed
+
+Token 2 is `<base>`. Token 3 is **always** `<tree>`. Artifact paths begin at token 4. **No caller may
+pass artifact paths without also passing a tree.**
+
+This is stated as a rule rather than inferred, because artifact paths reuse `<tree>`'s allowlist and
+are therefore **indistinguishable from it by shape**. The alternative — sniffing each path to see
+whether it is a git worktree — is a decision this file should settle rather than leave to whoever
+reads it next. The failure is soft either way: a `spec.md` path bound as `<tree>` fails
+`rev-parse --is-inside-work-tree` and stops, which is why a fixed rule is enough.
+
+### Resolve `<tree>` — before the base, not after
+
+`<tree>` is resolved **first**, because the base is verified *in* the tree (next section). Validating
+the base first would reference an unbound `$TREE`, and it would also produce the wrong refusal: a
+mistyped tree would surface as "base does not resolve" rather than as a named tree refusal.
+
+```bash
+TREE="$3"
+if [ -z "$TREE" ]; then
+  TREE="$PRIMARY"
+else
+  if ! printf '%s' "$TREE" | grep -Eq '^/[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
+    echo "STOP: '$TREE' is not a valid absolute tree path."; exit 1
+  fi
+  if ! git -C "$TREE" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "STOP: '$TREE' is not a git worktree."; exit 1
+  fi
+fi
+```
+
+Three branches, and the third is the one that matters:
+
+- **Absent** → `TREE="$PRIMARY"`. This is the standalone default, and `dev:fix`'s call path.
+- **Present, failing the allowlist** → **stop**, naming the argument.
+- **Present, passing the allowlist, but not a git worktree** → **stop**, naming the argument.
+
+**Neither failure falls back to `$PRIMARY`.** A silent fallback would turn a caller's typo into a
+confident review of the wrong tree — the precise failure this argument exists to prevent. Stopping
+costs a re-run; falling back costs a review that reports clean on code nobody changed.
+
+**The pattern is deliberately not the base ref's** (`secure/SKILL.md:172`,
+`^[A-Za-z0-9._][A-Za-z0-9._/-]*$`). Measured: that pattern's first character class excludes `/`, so
+it rejects **every absolute path** — and both callers pass absolute paths by derivation, since
+`WORKDIR` descends from `PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)` (`validate/SKILL.md:16`,
+`secure/SKILL.md:39`). Reusing "the same shape" would ship a mode that refuses the `"$WORKDIR"` its
+own caller hands it. Requiring the leading `/` is also what rejects a `-`-leading value.
+
+**This allowlist is not an argument-injection guard, and saying it were would be an unmeasured
+claim.** Measured: `git -C "-foo" status` and `git -C "--exec-path=/tmp/x" status` both fail with
+`fatal: cannot change to '<value>'` — `-C` consumes its operand positionally and never reparses it as
+an option. The allowlist is worth having for the ordinary reason: it turns a malformed path into a
+named refusal instead of a raw `git` error surfacing from inside a reviewer. Recorded rather than
+glossed, per `dev:validate` Step 4 step 3b.
+
+**Shared procedure.** This is the **canonical** implementation of `<tree>` resolve-and-validate.
+`dev:secure` Step 2a carries a marked mirror of it. A change here should be reflected there.
+
+### Resolve `<base>`, in the tree just resolved
+
+```bash
+BASE="$2"
+if ! printf '%s' "$BASE" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._/-]*$'; then
+  echo "STOP: '$BASE' is not a valid base ref name."; exit 1
+fi
+if ! git -C "$TREE" rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
+  echo "STOP: base '$BASE' does not resolve to a commit in $TREE."; exit 1
+fi
+```
+
+**A bare SHA is a valid `<base>`.** Measured: a `git rev-parse HEAD` value passes both the allowlist
+and the `rev-parse --verify` check unchanged, so a caller may hand a commit SHA rather than a branch
+name with no allowlist change. `dev:validate` does exactly that.
+
+### Bind the artifact paths
+
+Tokens 4 and beyond are absolute paths, each validated against the same
+`^/[A-Za-z0-9._][A-Za-z0-9._/-]*$` allowlist, and each confirmed to exist. Stop naming any path that
+fails either check — never review a partial set silently.
+
+**These are caller-supplied and never discovered.** This skill does not know `<feature>`, and a
+relative path would resolve against its own `$PRIMARY` — the wrong-tree failure arriving by the other
+route. Two of the six bullets below need more than the diff, and this is how they get it:
+
+- **`dev:validate` passes them**: `"$WORKDIR/docs/dev/<feature>/spec.md"`, and `plan.md` where a plan
+  exists. Micro tier passes `spec.md` alone, whose `## Implementation Note` is its plan.
+- **`dev:fix` passes none**, because the lane produces no cycle artifacts at all. See the `not run`
+  rule below — that is this mode's normal behavior on the lane's route, not a degraded one.
+
+### Take the diff
+
+```bash
+git -C "$TREE" diff --name-only --end-of-options "$BASE"...HEAD
+git -C "$TREE" diff --end-of-options "$BASE"...HEAD
+```
+
+**No end-ref is taken.** The diff runs against **the given tree's own `HEAD`**, which is what makes
+the tree argument sufficient on its own — a caller that names the tree does not also have to name a
+tip.
+
+**Every other option must come *before* `--end-of-options`** — hence `--name-only` first. Measured
+and recorded at `secure/SKILL.md:244-248`: `git diff --end-of-options "$BASE"...HEAD --name-only`
+fatals with `option '--name-only' must come before non-option arguments` (exit 128), while the order
+above exits 0. Getting this backwards costs the changed-file list on every run, which to a caller
+reads as a review that could not run.
+
+**Empty diff → say the diff is *empty*, and stop.** Do **not** report "no findings" — that phrasing
+reads as a review that ran and came back clean, which is a different claim from one that had nothing
+to examine. Name the **tree** and the **base** in that message, because the commonest cause of a
+surprising empty diff is reviewing a different tree than intended.
+
+**Shared procedure.** This empty-diff rule is a marked **mirror** of `dev:secure`'s canonical
+statement (`secure/SKILL.md`, *Scope the audit*). It is restated here in full rather than pointed at,
+so this mode stands alone; a change to either side should be reflected at the other.
+
+### The checklist — six bullets
+
+Examine the diff against each:
+
+- Logic errors and correctness bugs
+- Edge cases not handled (compare against spec)
+- Code quality: readability, naming, complexity
+- Conventions: does this match the codebase's existing patterns?
+- Plan coverage: were all plan tasks implemented?
+- Config contract: if this cycle adds a new key to `docs/dev/config.json`, verify every skill that reads **that key** lists it in its Step 1 read list (a skill that reads config.json only for other keys is not required to list this one)
+
+**Two of the six need an artifact, and report `not run` without one.** *Edge cases (compare against
+spec)* needs the spec's Success Criteria; *plan coverage* needs the plan's task list. Where the
+caller supplied no artifact path:
+
+- run the other four bullets normally, and
+- report those two as **`not run`** in the report's `### Checks not run` section — **never as clean,
+  and never by silent omission.**
+
+A check that did not run must not read as a check that passed. This is the same distinction the
+empty-diff rule draws above, for the same reason: an unattended caller would otherwise record a
+clean review that never happened.
+
+### Severity
+
+Classify every finding as **P1 / P2 / P3 / Nit**. This mode **consumes** the vocabulary
+`dev:validate` **Step 3** defines and does not define a second scheme:
+
+| Level | Meaning |
+|-------|---------|
+| P1 | Correctness/security blocker |
+| P2 | Significant quality issue |
+| P3 | Quality improvement |
+| Nit | Style/minor |
+
+### Dispatch and report
+
+Run `## Cold dispatch` for this mode: the subagent receives the diff, the artifact contents where
+supplied, and the checklist and severity table above — nothing else.
+
+```
+## Code Review — diff vs <BASE>
+**Tree reviewed:** <TREE> · **Base:** <BASE> · **Files changed:** <count>
+
+### P1 — blockers
+### P2 — significant
+### P3 — improvements
+### Nit
+### Checks not run
+### Passed checks
+```
+
+Every finding carries the file path, the line number where identifiable, what the defect is, and a
+concrete fix. An empty category says "None found." and moves on — **do not pad the report.**
+`### Checks not run` names each bullet that did not run and why; it says "None." when all six ran.
+`### Passed checks` lists what was explicitly verified clean, which is what makes "None found."
+readable as evidence rather than as silence.
+
+Then **stop**: print the report and end the turn. Nothing was created, modified, or deleted.
+
 ## Invocation
 
 - `/dev:review diff <base>` — review the current diff of the primary checkout against `<base>`
