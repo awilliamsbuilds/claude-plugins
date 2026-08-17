@@ -4,12 +4,13 @@
   "branch": "feature/extract-review-skills",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -20,8 +21,8 @@
     "design": null,
     "plan": "docs/dev/extract-review-skills/plan.md",
     "validation": "docs/dev/extract-review-skills/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/86",
+    "pr_number": 86
   },
   "validate": {
     "loops_run": 4,
@@ -89,7 +90,8 @@
       "build_start": "2026-08-17T01:17:03Z",
       "build_end": "2026-08-17T02:16:46Z",
       "validate_start": "2026-08-17T02:17:05Z",
-      "validate_end": "2026-08-17T02:51:59Z"
+      "validate_end": "2026-08-17T02:51:59Z",
+      "pr_created": "2026-08-17T02:52:59Z"
     }
   }
 }
