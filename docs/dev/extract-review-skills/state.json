@@ -4,10 +4,11 @@
   "branch": "feature/extract-review-skills",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -74,12 +75,14 @@
     "spec_questions_asked": 8,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 12,
     "stage_timestamps": {
       "spec_start": "2026-08-16T14:08:42Z",
       "spec_end": "2026-08-17T00:56:26Z",
       "plan_start": "2026-08-17T01:01:40Z",
-      "plan_end": "2026-08-17T01:09:45Z"
+      "plan_end": "2026-08-17T01:09:45Z",
+      "build_start": "2026-08-17T01:17:03Z",
+      "build_end": "2026-08-17T02:16:46Z"
     }
   }
 }

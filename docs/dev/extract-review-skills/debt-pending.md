@@ -51,5 +51,16 @@ Buffer for this cycle's tech-debt writes. Flushed by `dev:done` Step 6a.
 
 - debt-secure-tree-scoping-unsettled — this cycle makes `dev:validate` call `/dev:secure` from a
   cycle worktree, which is exactly the ambiguity the item records: `dev:secure` audits `$PRIMARY`
-  while a cycle runs in `.dev-worktrees/<feature>`. The cycle settles the rule by having the
-  reviewer skills accept an explicit tree from the caller, so the item is paid rather than deferred.
+  while a cycle runs in `.dev-worktrees/<feature>`. All three clauses of its *Done looks like* are
+  met, and the split between them is the point:
+  **(a)** the tree rule is now per-verb rather than blanket — the `diff` verb takes an optional
+  `<tree>` from the caller (validated, and a failure **stops** rather than falling back), while the
+  **whole-project verb keeps `$PRIMARY` as a documented refusal**, which the item's *Why deferred*
+  explicitly allows ("a caller-supplied tree, **or a documented refusal**"). A reader who takes (a)
+  to mean "every verb takes a tree" would reopen this wrongly.
+  **(b)** the whole-project report header names the tree **as an absolute path**
+  (`**Tree audited:** <path>`), *replacing* the old ambiguous `**Scope:** <repo slug or path>` field
+  rather than sitting beside it; the `diff` header gained the same field, which the clause did not
+  demand but item 2 made necessary.
+  **(c)** the unactionable "run `/dev:secure diff` from the primary checkout of it" line is gone,
+  replaced by one naming the tree argument. Paid, not deferred.
