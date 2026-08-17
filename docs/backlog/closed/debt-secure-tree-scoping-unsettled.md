@@ -1,9 +1,11 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 severity: P3
 first_recorded: 2026-08-15
+closed: 2026-08-17
+closed_by: extract-review-skills
 cycles: [retire-legacy-commands]
 recurrence: 1
 files:
