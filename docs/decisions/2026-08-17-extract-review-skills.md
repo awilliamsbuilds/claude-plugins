@@ -82,3 +82,63 @@ dispatcher, and `dev:fix` gained the code review it had never run.
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: `7435483` on branch `feature/extract-review-skills`
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-17*
+
+**Spec:** `spec_revisions: 0` alongside `challenge.applied: 51` across 5 challenger loops — no later
+stage backtracked into the spec, but the counter is blind to 51 challenger-applied fixes, so the
+"process healthy" reading it invites is wrong. The user's round-by-round review is the sharper
+instrument: **blocker severity held** (round 1 caught the config-contract check being deleted out of
+existence and `dev:secure`'s parser refusing the three-token call the cycle depends on; round 2 caught
+`/dev:review docs` declared with required paths but invoked argument-free at every call site, and
+SC6/SC9 mutually unsatisfiable) while the **concern stream decayed** to bookkeeping. Iteration 3
+returned an internal tool error rather than a verdict, yet the counters advanced — `loops_run: 5` and a
+durably stale `blockers: 1` on a spec that was approved after a later verification fix resolved it.
+Cost side: the spec grew **200 → 546 lines**, much of it prose explaining why earlier drafts were wrong.
+
+**Shape:** skipped (no UI).
+
+**Plan:** clean — plan challenger returned 0 blockers, 4 concerns, all folded in without a revision
+iteration. One Build deviation: Tasks 8+9 landed in one commit, because the reviewer-cannot-run stop
+belongs inside Step 2's dispatch prose and splitting it would have meant writing the section twice.
+
+**Validate:** 4 loops / 5, clean exit. The pattern worth naming: **loops 3 and 4 existed only to
+re-sync prose with loop 2's code change** — two of four loops were prose catching up to one guard
+addition. The cycle's most expensive defect was self-certified: a containment check that did not
+contain, wrapped in prose asserting it did, caught only because a re-review *ran* the traversal instead
+of reading the guard. Step 4 step 3b's measure-before-asserting rule existed and still did not fire —
+it is scoped to command behavior, not to "does the guard I just wrote hold."
+
+**Flow:** tier `deep` was right. But the **handoff entry point is broken**: invoked as
+`/dev:autopilot docs/dev/<feature>/spec.md` on a cycle whose `state.json` already read `stage: "plan"`,
+the run re-opened and re-edited the approved spec. Only a free-text instruction ("the next step is
+plan, do not run a review of the spec again") produced the documented behavior. That instruction is not
+part of the interface.
+
+**Token efficiency:** `files_read_in_build: 12` across 12 files touched — no outlier. The real cost
+centre was Spec: 648 min and 5 challenger rounds, with the tail-chasing noted below.
+
+**Tail-chasing, named:** the open-debt `files:` sweep was wrong three times running (6 → 8 → 12 → 17),
+and partly *because* the reviews kept enlarging the set they were sweeping — item 7's own edits added
+`spec/SKILL.md` and `plan/SKILL.md`, which created the 8 → 12 gap. A fourth spec review would not have
+converged. The right instrument is a check at a stage that knows the final file set, not another round.
+
+**Suggestions:** four, all recorded rather than applied (Step 6's gate is standard-mode-only and does
+not run on a handed-off cycle):
+- `dev:autopilot` should take an explicit resume stage (`/dev:autopilot plan <path>`) or refuse to
+  re-enter any stage already in `completed[]`.
+- The spec challenger should exit on **blocker kind** — "would a builder following this literally ship
+  something broken?" — rather than on a count of 5; revision rationale should not be written into
+  `spec.md`; and an errored dispatch should neither advance `loops_run` nor leave a stale `blockers`.
+- `dev:validate`'s fix loop should require prose describing an edited code block to be re-checked in
+  the same loop, with counts and ordinals called out — and the same-region recurrence rule should
+  distinguish a converging resync cascade from a genuine circling loop.
+- The grounding-sweep staleness class should be verified where the final file set is known, not
+  re-swept per spec revision.
+
+**Deferred to tech debt:** `debt-autopilot-handoff-stage-not-explicit`,
+`debt-spec-challenger-loop-lacks-blocker-kind-exit`,
+`debt-validate-fix-prose-desyncs-from-code-in-same-loop`,
+`debt-spec-grounding-sweep-file-set-lags-scope` (existing entry, extended with the tail-chasing
+diagnosis and the build-time-check reframing).
