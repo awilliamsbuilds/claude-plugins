@@ -4,11 +4,12 @@
   "branch": "feature/extract-review-skills",
   "mode": "autopilot",
   "handoff_at": "spec",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -18,7 +19,7 @@
     "spec": "docs/dev/extract-review-skills/spec.md",
     "design": null,
     "plan": "docs/dev/extract-review-skills/plan.md",
-    "validation": null,
+    "validation": "docs/dev/extract-review-skills/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -27,8 +28,12 @@
     "loops_max": 5,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
-    "nits_open": []
+    "p3_open": [
+      "secure/SKILL.md 'no consumer' enumeration omits two display-only $TREE sites (claim correct; polish-class, dropped by carrying-cost test)"
+    ],
+    "nits_open": [
+      "secure/SKILL.md loop-4 rewrap is ragged"
+    ]
   },
   "challenge": {
     "run": true,
@@ -82,7 +87,9 @@
       "plan_start": "2026-08-17T01:01:40Z",
       "plan_end": "2026-08-17T01:09:45Z",
       "build_start": "2026-08-17T01:17:03Z",
-      "build_end": "2026-08-17T02:16:46Z"
+      "build_end": "2026-08-17T02:16:46Z",
+      "validate_start": "2026-08-17T02:17:05Z",
+      "validate_end": "2026-08-17T02:51:59Z"
     }
   }
 }
