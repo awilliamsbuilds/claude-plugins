@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "feature": "extract-review-skills",
+  "branch": "feature/extract-review-skills",
+  "mode": "autopilot",
+  "handoff_at": "spec",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-08-16T14:08:42Z",
+  "artifacts": {
+    "spec": "docs/dev/extract-review-skills/spec.md",
+    "design": null,
+    "plan": "docs/dev/extract-review-skills/plan.md",
+    "validation": "docs/dev/extract-review-skills/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/86",
+    "pr_number": 86
+  },
+  "validate": {
+    "loops_run": 4,
+    "loops_max": 5,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [
+      "secure/SKILL.md 'no consumer' enumeration omits two display-only $TREE sites (claim correct; polish-class, dropped by carrying-cost test)"
+    ],
+    "nits_open": [
+      "secure/SKILL.md loop-4 rewrap is ragged"
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 1,
+    "concerns": 0,
+    "applied": 51,
+    "dismissed": 0,
+    "loops_run": 5,
+    "loops_max": 5
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 4,
+    "applied": 4,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 5
+  },
+  "confidence": {
+    "final_score": 100,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "deep",
+  "product_plan": null,
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/extract-review-skills",
+  "metrics": {
+    "spec_questions_asked": 8,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 12,
+    "stage_timestamps": {
+      "spec_start": "2026-08-16T14:08:42Z",
+      "spec_end": "2026-08-17T00:56:26Z",
+      "plan_start": "2026-08-17T01:01:40Z",
+      "plan_end": "2026-08-17T01:09:45Z",
+      "build_start": "2026-08-17T01:17:03Z",
+      "build_end": "2026-08-17T02:16:46Z",
+      "validate_start": "2026-08-17T02:17:05Z",
+      "validate_end": "2026-08-17T02:51:59Z",
+      "pr_created": "2026-08-17T02:52:59Z"
+    }
+  }
+}

@@ -70,7 +70,8 @@ FYI — other skills (not part of the linear pathway):
 - dev:autopilot — [registry description] — alternative to the gated flow above, and also its continuation: printed as an option at the Spec and Shape gates once definition is settled; runs all stages without stopping for approval
 - dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
 - dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
-- dev:secure    — [registry description] — on-demand security review outside the pipeline: /dev:secure audits the whole project, /dev:secure diff audits the current diff. Reports only; writes nothing. /dev:fix calls the diff verb before every PR
+- dev:review    — [registry description] — report-only code and document review: /dev:review diff reviews a diff, /dev:review docs reviews decision documents at absolute paths. Reports only; writes nothing. dev:validate Step 2 and /dev:fix both call it before every PR
+- dev:secure    — [registry description] — on-demand security review outside the pipeline: /dev:secure audits the whole project, /dev:secure diff audits the current diff. Reports only; writes nothing. dev:validate Step 2 and /dev:fix both call the diff verb before every PR
 - dev:migrate-tracker — [registry description] — run once in a repo still on the old docs/dev/tech-debt.md tracker; a no-op everywhere else
 ```
 
@@ -87,6 +88,7 @@ FYI — other skills (not part of the linear pathway):
 - `dev:autopilot` — no-gate full-cycle runner; also accepts an artifact path to take over a gated cycle mid-flight
 - `dev:reflect` — cycle retrospective
 - `dev:debt` — view and close tracked tech debt
+- `dev:review` — report-only code and document review; `diff` and `docs` modes
 - `dev:secure` — on-demand security review; whole-project or `diff`, report-only
 - `dev:migrate-tracker` — migrates a legacy tech-debt.md into docs/backlog/
 
