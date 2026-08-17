@@ -715,15 +715,17 @@ The lane may never skip these, and the PR body says which applied:
 - Grounded before acting — no edit from a remembered mental model of the code.
 - Ran the project's test suite when one exists.
 - Reconciled `README.md` / `CLAUDE.md` when the change touched a surface either one documents.
+- Ran a code review of the diff before opening the PR.
 - Ran a security review of the diff before opening the PR.
 - Never claimed unverified success; if something could not be verified, said so.
 - Captured anything deferred to `docs/backlog/` rather than dropping it.
 - Reported what it decided on the user's behalf.
 
-**`dev:secure` writing nothing is a property of that skill, not a licence for its caller.** When the
-lane declines to fix a P3 or Nit the review surfaced, the lane captures it to `docs/backlog/` under
-the deferred-work bullet above, exactly as it captures any other deferred work. The skill reports;
-the lane decides and records.
+**Both reviewers writing nothing is a property of those skills, not a licence for their caller.**
+`dev:review` and `dev:secure` are each report-only by contract. When the lane declines to fix a P3 or
+Nit either review surfaced, the lane captures it to `docs/backlog/` under the deferred-work bullet
+above, exactly as it captures any other deferred work. The skills report; the lane decides and
+records.
 
 ### Deferred-work capture
 
@@ -827,6 +829,8 @@ are external input from Linear, and the rule below — never interpolate the bod
 ## What was verified
 [build: `<command>` → passed | failed | "no build system detected in this repo"
  suite: <SUITE_RESULT> — <SUITE_OUTPUT verbatim> | "no test suite in this repo"
+ code review: `/dev:review diff` → clean | "<N> finding(s) fixed, re-review clean —
+   <one line per finding: severity, what it was, how it was fixed>"
  security: `/dev:secure diff` → clean | "<N> finding(s) fixed, re-review clean —
    <one line per finding: severity, what it was, how it was fixed>"
  plus whatever else was checked and how — and anything that could NOT be verified,
