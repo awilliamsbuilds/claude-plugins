@@ -1,5 +1,5 @@
 # Validate Prose Re-sync
-*Branch: feature/validate-prose-resync · Confidence: 70% — High · 2026-08-17*
+*Branch: feature/validate-prose-resync · Confidence: 100% — Ready · 2026-08-17*
 *Cycle type: feature · Tier: standard*
 
 ## Intent
@@ -17,17 +17,27 @@ The cost asymmetry is the whole argument. Re-reading the subsection that contain
 **~1,060 tokens**; the reviewer dispatch it avoids measured **60,000–170,000 tokens** in this
 repo's cold reviews. Roughly a 1:60 trade at worst.
 
-This is not a rare shape. Across 28 completed cycles, **10 (36%) reached loop 3 or deeper**, and five
-reached loop 5+, one running to loop 9. Not all of those are prose desync — that attribution is only
-directly evidenced on one cycle — but deep loops are routine rather than exceptional, and this is one
-confirmed contributor.
+This is not a rare shape. Across **27** completed cycles, **10 (37%) reached loop 3 or deeper**, and
+**2** reached loop 5+, one of them running to loop 9. Not all of those are prose desync — that
+attribution is only directly evidenced on one cycle — but deep loops are routine rather than
+exceptional, and this is one confirmed contributor. (An earlier draft said "five reached loop 5+";
+that was the count of distinct loop *numbers* ≥ 5, not of cycles — loops 5 through 9 are one single
+cycle walking upward.)
 
 ## Scope
 
-**1. A re-sync rule in `dev:validate` Step 4's fix loop.**
+**1. A re-sync rule in `dev:validate` Step 4's fix loop, as a new step 3c.**
 
 When a fix in this loop edits a fenced code block, **re-read the prose inside the smallest enclosing
-heading before the loop may exit**, and reconcile any statement that no longer describes the block.
+heading**, and reconcile any statement that no longer describes the block.
+
+**Its position is pinned, not left to the builder: a new step 3c, after 3b and before step 4.** This
+is load-bearing rather than tidiness. Step 4 is the P3-handling step, and it carries a **circuit
+breaker** — *"if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes
+for the remainder of this cycle."* A re-sync rule folded into step 4 would inherit that breaker and
+**silently switch itself off for the rest of the cycle**, in exactly the situation where prose is
+most likely to be going stale. As 3c it runs beside the P1/P2 fixes that trigger it, and the breaker
+cannot reach it.
 
 Three properties are load-bearing, and each was chosen against a rejected alternative:
 
@@ -37,8 +47,10 @@ Three properties are load-bearing, and each was chosen against a rejected altern
 - **It is bounded to the smallest enclosing heading**, not the file and not a fixed line radius.
   Measured on the observed failure: the edited fence was at lines 152–172 of `review/SKILL.md`, and
   **both** stale sentences (lines 174 and 192) sat inside the same `###` subsection (line 146
-  onward). That subsection is 80 lines / ~1,060 tokens against a 479-line / ~5,825-token file — **16%**.
-  A whole-file re-read would cost 5.5× more for no additional catch on the evidence available.
+  onward). That subsection is 80 lines of a 478-line file, and **~1,060 tokens against ~5,825** —
+  so a whole-file re-read costs **5.5×** more for no additional catch on the evidence available.
+  The token ratio is the one that matters here and is the only one quoted; an earlier draft also
+  quoted a 16% line ratio, which is a different denominator and read misleadingly as its reciprocal.
 - **It does not extend to other files.** Step 4 **step 3a** already propagates a fix to declared
   canonical/mirror counterparts, which is how `dev:secure` received the same edits on the observed
   cycle. Cross-file is covered; the uncovered case is intra-file, and that is what this rule adds.
@@ -81,13 +93,22 @@ that requires a written override to behave correctly is itself a defect.
 The rule gains a **converging-cascade exemption** distinguishing the two shapes. The signals that
 separated them on the observed cycle, and which the exemption is built from:
 
-- **severity is monotonically falling** across the rounds (P2 → P3 → P3), versus flat or rising;
+- **severity is non-increasing across the rounds and strictly lower than the first round's**
+  (P2 → P3 → P3), versus rising, or flat *at* the round-1 severity. Stated this way deliberately:
+  "monotonically falling" would exclude the very cascade this exemption was built from, since its
+  last two rounds were both P3;
 - **no code changed after the first round** — subsequent rounds edited only prose;
 - the findings are **consequences of the same earlier edit** rather than competing answers to one
   unsettled question.
 
-Where the exemption applies, the loop continues rather than routing to Step 4a; where it does not,
-today's behavior is unchanged.
+**Both branches of the existing rule are addressed, not just the standard one.** The rule as written
+forks by mode: standard routes to Step 4a, while autopilot "does not stop the run" but attempts no
+further fixes in that region and buffers its remaining findings for Step 5a. Where the exemption
+applies: standard continues the loop rather than routing to Step 4a, and **autopilot continues fixing
+in that region rather than buffering out of it**. The autopilot half matters more, not less — it is
+the mode with no human present to override the misfire, so a converging cascade there would silently
+stop being fixed and be carried to the buffer instead. Where the exemption does not apply, today's
+behavior is unchanged in both modes.
 
 ## Out of Scope
 
@@ -111,10 +132,14 @@ today's behavior is unchanged.
 
 1. `dev:validate` Step 4 states the re-sync rule: a fix that edits a fenced code block cannot exit the
    loop until the prose within the smallest enclosing heading has been reconciled against it. The rule
-   is stated in terms of **prose describing code**, and a grep of the rule's text contains no
-   number-specific trigger list.
+   is stated in terms of **prose describing code**. The distinction that makes this checkable: the
+   rule may cite counts and ordinals as **illustrative** of what commonly goes stale, but must not
+   define its trigger *as* a list of such words — a reader must not be able to conclude that prose
+   without a number in it is out of scope. Test: the rule's own statement of what to check names the
+   relation ("still describes the block"), not an enumeration of word types.
 2. The rule names its boundary explicitly as the **smallest enclosing heading**, and says why —
-   both observed misses fell inside it, and a whole-file re-read costs ~5.5× for no evidenced gain.
+   both observed misses fell inside it, and a whole-file re-read costs **5.5× the tokens** for no
+   evidenced gain. Where a ratio is quoted it names its denominator.
 3. Step 4 states how the new rule composes with the existing *"do not rewrite correct prose"* rule,
    in terms of the **defect-class vs polish** classification Step 4 already defines. A reader
    following both rules is never in contradiction, and the new rule demonstrably does not widen what
@@ -122,10 +147,15 @@ today's behavior is unchanged.
 4. The **fix-diff re-review checklist** carries a question about prose no longer describing changed
    code. It is a question in that existing checklist — no new dispatch and no new artifact.
 5. The **same-region recurrence** rule distinguishes a converging cascade from a circling loop, naming
-   at least the falling-severity and no-code-changed-after-the-first-round signals, and states which
+   at least the non-increasing-and-below-round-1 severity signal and the
+   no-code-changed-after-the-first-round signal, and states which
    behavior each shape gets. Today's behavior is unchanged for the circling shape.
-6. **No `state.json` key is added**, no `validation.md` section is added, and `dev:fix` is not edited —
-   verified by the diff touching only `plugins/dev/skills/validate/SKILL.md`.
+6. **No `state.json` key is added**, no `validation.md` section is added, and `dev:fix` is not
+   edited — verified by the diff touching **no file under `plugins/` other than**
+   `plugins/dev/skills/validate/SKILL.md`. Cycle artifacts under `docs/dev/` and the `CLAUDE.md`
+   Component Registry row are expected and excluded from this check; a criterion phrased as "only
+   this one file" is unsatisfiable, because every cycle commits its own `spec.md`, `plan.md`,
+   `validation.md`, and `state.json`.
 7. The cycle's own Validate stage is an honest test of criterion 1: this cycle edits prose in a file
    that contains code blocks, so if the rule as written is unworkable, its own fix loop should reveal
    that.
@@ -133,9 +163,10 @@ today's behavior is unchanged.
 ## Happy Path
 
 1. A fix loop iteration fixes a P1/P2 that edits a fenced code block in a skill file.
-2. Before the loop's commit, the fixer re-reads the prose under the smallest heading enclosing that
-   block, and reconciles any statement that no longer describes it — counts, ordinals, enumerations,
-   and any other description alike.
+2. At **step 3c** — after the P1/P2 fixes, before step 4's P3 handling and before step 7's commit —
+   the fixer re-reads the prose under the smallest heading enclosing that block, and reconciles any
+   statement that no longer describes it. Counts, ordinals and enumerations are the commonest cases,
+   not the boundary of the check.
 3. Reconciliation edits ride the **same** loop commit, so no additional loop is spent on them.
 4. Step 8's cold re-reviewer reads the fix diff and applies its checklist, which now asks whether
    changed code left its surrounding prose behind. On a loop that did the re-read, this returns clean.
@@ -189,4 +220,4 @@ No.
 
 ---
 *Auto-filled dimensions: none*
-*Grounding inventory: (1) "Step 4 has no rule about prose" → `grep -n "prose" validate/SKILL.md` → **false, 2 hits** (`:176`, `:177`), and they run the opposite way — "do not rewrite correct prose during the fix loop." The claim was inverted, and Scope 2 exists because of this correction. (2) "step 3a covers only cross-task counterparts, not intra-file prose" → read `:162` in full → confirmed; it keys on `plan.md`'s `Interfaces:` blocks, a registry the plan cannot hold intra-file prose adjacency in. (3) "the stale prose sat several paragraphs from the edited fence, so an adjacency rule would miss it" → **false, and I asserted it before measuring.** Measured: fence at `review/SKILL.md:152-172`, stale sentences at `:174` (two lines after) and `:192`, both under the same `###` at `:146`. This inverted the recommendation — the bounded-subsection rule became viable *because* of the measurement, having been ruled out on an unmeasured claim. (4) Subsection cost → computed: 80 lines / ~759 words / ~1,062 tokens vs 479 lines / ~5,825 tokens whole-file = 16%. (5) Reviewer dispatch cost → measured from this session's four cold reviews: 62k–173k subagent tokens. (6) "36% of cycles reach loop 3+" → `git log --grep="^validate: loop"` over `main`, loop-number distribution → 28 cycles at loop 1, 10 at loop 3+, 5 at loop 5+, max 9. Deliberately **not** claimed as all prose-desync — only one cycle is directly evidenced. (7) "`dev:fix` mirrors Step 4 step 8 and may need the same rule" → `fix/SKILL.md:700-701` → confirmed mirror, and its cap is "pinned to 1", so the cascade is structurally unreachable there; Out of Scope records the deferral rather than assuming it away. (8) Open debt intersecting `validate/SKILL.md` by front-matter `files:` sweep over the P5 corpus → **4 items**: the source item (in scope), `backlog-reflect-before-pr-merge-retire-legacy-commands` (Milestone 3, different region), and two adjacent-only (`debt-artifact-path-rule-artifact-component-unconstrained`, `debt-primary-cd-failure-unchecked`). None folded in beyond the source.*
+*Grounding inventory: (1) "Step 4 has no rule about prose" → `grep -n "prose" validate/SKILL.md` → **false, 2 hits** (`:176`, `:177`), and they run the opposite way — "do not rewrite correct prose during the fix loop." The claim was inverted, and Scope 2 exists because of this correction. (2) "step 3a covers only cross-task counterparts, not intra-file prose" → read `:162` in full → confirmed; it keys on `plan.md`'s `Interfaces:` blocks, a registry the plan cannot hold intra-file prose adjacency in. (3) "the stale prose sat several paragraphs from the edited fence, so an adjacency rule would miss it" → **false, and I asserted it before measuring.** Measured: fence at `review/SKILL.md:152-172`, stale sentences at `:174` (two lines after) and `:192`, both under the same `###` at `:146`. This inverted the recommendation — the bounded-subsection rule became viable *because* of the measurement, having been ruled out on an unmeasured claim. (4) Subsection cost → computed: 80 lines / ~759 words / ~1,062 tokens, against a **478**-line / ~5,825-token file — a **5.5× token ratio**. Note the line ratio (80/478 = 16.7%) and the token ratio (1,062/5,825 = 18.2%) are different denominators and are not reciprocals of the 5.5×; only the token ratio is quoted in the body, because tokens are the cost being traded. (5) Reviewer dispatch cost → measured from this session's four cold reviews: 62k–173k subagent tokens. (6) "36% of cycles reach loop 3+" → `git log --grep="^validate: loop"` over `main`, loop-number distribution → **27** cycles at loop 1, 10 at loop 3+ (**37%**), **2** at loop 5+, max 9. Re-measured after the cold review disproved the first count: the original "5 at loop 5+" was the number of distinct loop *numbers* ≥ 5, not of cycles — loops 5–9 are a single cycle walking upward (`3acf48a`…`3d37914`), plus one other cycle at loop 5 (`6486a1f`). Deliberately **not** claimed as all prose-desync — only one cycle is directly evidenced. (7) "`dev:fix` mirrors Step 4 step 8 and may need the same rule" → `fix/SKILL.md:700-701` → confirmed mirror, and its cap is "pinned to 1", so the cascade is structurally unreachable there; Out of Scope records the deferral rather than assuming it away. (8) Open debt intersecting `validate/SKILL.md` by front-matter `files:` sweep over the P5 corpus → **4 items**: the source item (in scope), `backlog-reflect-before-pr-merge-retire-legacy-commands` (Milestone 3, different region), and two adjacent-only (`debt-artifact-path-rule-artifact-component-unconstrained`, `debt-primary-cd-failure-unchecked`). None folded in beyond the source.*
