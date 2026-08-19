@@ -3,9 +3,10 @@
   "feature": "validate-prose-resync",
   "branch": "feature/validate-prose-resync",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -37,10 +38,10 @@
     "loops_max": 3
   },
   "challenge_plan": {
-    "run": false,
+    "run": true,
     "blockers": 0,
-    "concerns": 0,
-    "applied": 0,
+    "concerns": 3,
+    "applied": 3,
     "dismissed": 0,
     "loops_run": 0,
     "loops_max": 3

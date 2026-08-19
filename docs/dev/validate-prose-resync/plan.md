@@ -20,6 +20,11 @@ one-round bound cannot produce the multi-loop cascade this cycle addresses — s
 deliberately diverges here rather than drifting. Task 3 records that divergence in the canonical
 side's own text so the gap is declared rather than silent.
 
+**Anchoring note for the builder.** Every line number below is **pre-insertion** — measured against
+`validate/SKILL.md` as it stands before Task 1 runs. Task 1 inserts a new block mid-file, so Tasks
+2–4's cited lines shift downward by the length of that insertion. Anchor on the **quoted text** each
+task gives, not on the number; the numbers are there to locate the region on a first read.
+
 ## Tasks
 
 ### Task 1: Add step 3c — the prose re-sync rule
@@ -31,8 +36,9 @@ Depends on: nothing — first task.
 Files: modify `plugins/dev/skills/validate/SKILL.md`
 Interfaces:
 - Consumes: nothing
-- Produces: the step label **`3c`** and the phrase **"smallest enclosing heading"**, both referenced
-  verbatim by Task 2 and Task 3
+- Produces: the step label **`3c`**, cited by Task 2's composition clause and by Task 3's rationale
+  for the checklist question. (The phrase "smallest enclosing heading" is internal to this task —
+  no later task consumes it.)
 - State keys: none — this task introduces no `state.json` key (SC6 forbids one)
 - Shared procedure: none — `dev:fix` carries no counterpart to step 3c, and the spec's Out of Scope
   defers adding one
@@ -114,6 +120,11 @@ Implementation steps:
    Editing `fix/SKILL.md` is forbidden by SC6 and by the spec's Out of Scope; leaving the drift
    unmarked is what the canonical/mirror convention exists to prevent, so the divergence is declared
    on the canonical side.
+4. Say, in that same clause, that the mirror does **not** name this divergence back — `fix/SKILL.md`
+   still reads "Two divergences" and is not edited by this cycle. The repo's convention is that a
+   divergence is named at both ends; here it is named at one, deliberately. A reader who checks the
+   mirror and finds a different count needs the asymmetry stated, or the canonical text reads as
+   simply wrong about its own counterpart.
 
 ### Task 4: Give the same-region recurrence rule a converging-cascade exemption
 What: Amend step 8's same-region recurrence rule so it distinguishes a converging cascade from a loop
