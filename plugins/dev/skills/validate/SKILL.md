@@ -221,17 +221,22 @@ Run up to `loops_max` iterations.
    - The re-reviewer gates loop exit on **P1/P2 only**.
    - **`dev:fix`'s `### Review` section carries a marked mirror of this re-review**, with
      `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
-     **How the prose-resync question below reaches that mirror.** `dev:fix` restates no checklist —
-     `fix/SKILL.md:643` reads "**These are calls, not copies.** The lane restates neither checklist" —
-     and its in-session fallback (`fix/SKILL.md:678`) runs *this* checklist. So the question
-     propagates by reference; the mirror does not omit it and `dev:fix` needs no edit. What that lane
-     does **not** get is step 3c: its cap is pinned to 1, so the multi-loop cascade 3c prevents is
-     structurally unreachable there, and whether its single round should carry the re-read anyway is
-     deferred rather than settled.
+     **How the prose-resync question below reaches that mirror.** `dev:fix`'s `### Review` declares
+     its re-review a marked mirror of this step with exactly **two** named divergences — the cap
+     pinned to 1, and no `state.json` to write open lists into. Neither is about checklist content,
+     and that lane restates no checklist of its own, so the question below is **inherited rather than
+     omitted** and `dev:fix` needs no edit. One gap worth naming rather than glossing: that lane's
+     primary dispatch hands its re-reviewer the fix diff and the finding "and nothing else", naming
+     no checklist — so the question reaches it through the mirror relationship and the in-session
+     fallback, not through an explicit hand-off. What the lane does **not** inherit is step 3c: its
+     cap is pinned to 1, so the multi-loop cascade 3c prevents is structurally unreachable there, and
+     whether that single round should carry the re-read anyway is deferred rather than settled.
+     (Cited by section name, not line number — `docs/backlog/debt-cross-file-line-citations-go-stale-silently.md`
+     is open against exactly that form, and the healthy-path rule below gives the same reasoning.)
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
-     **Converging-cascade exemption.** A loop can revisit one region for the opposite reason: each round is a consequence of the first round's edit, and the loop is settling rather than circling. Step 3c's re-syncs produce exactly this shape. Before applying the rule above, check all three signals — the exemption needs all three:
-     - **severity is non-increasing across the rounds and strictly lower than the first round in that region** (the observed cascade ran P2 → P3 → P3). "First round in that region" means the round that first produced a finding there — not loop 1 of the cycle, which may be far earlier and unrelated. Stated as non-increasing-and-strictly-below deliberately: *monotonically falling* would exclude the very cascade this was built from, whose last two rounds were both P3. Severity flat *at* that first round's level does not qualify;
-     - **no code changed after the first round** — every subsequent round edited prose only;
+     **Converging-cascade exemption.** A loop can revisit one region for the opposite reason: each round is a consequence of the edit made by **the first round in that region** — the round that first produced a finding there, not loop 1 of the cycle — and the loop is settling rather than circling. Step 3c's re-syncs produce exactly this shape. Before applying the rule above, check all three signals — the exemption needs all three:
+     - **severity is non-increasing across the rounds and strictly lower than the first round in that region** (the observed cascade ran P2 → P3 → P3). Stated as non-increasing-and-strictly-below deliberately: *monotonically falling* would exclude the very cascade this was built from, whose last two rounds were both P3. Severity flat *at* that first round's level does not qualify;
+     - **no code changed after that first round in the region** — every subsequent round edited prose only;
      - the findings are **consequences of the same earlier edit**, not competing answers to one unsettled question.
      Where all three hold, the loop is converging and the rule does not fire: **standard continues the loop** rather than routing to Step 4a, and **autopilot continues fixing in that region** rather than buffering out of it. The autopilot half matters more, not less — it is the mode with no human present to override a misfire, so a converging cascade there would silently stop being fixed and leave the correction sitting in the buffer.
      Where any signal fails, the shape is circling and today's behavior stands unchanged in both modes: standard routes to Step 4a, autopilot stops fixing in-region and buffers.

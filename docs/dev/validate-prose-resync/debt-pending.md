@@ -4,7 +4,7 @@ Buffer for items `dev:done` Step 6a flushes into `docs/backlog/`.
 
 ## To Record
 
-### backlog-converging-cascade-third-signal-unaudited
+### converging-cascade-third-signal-unaudited
 
 ````markdown
 ---
