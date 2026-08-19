@@ -173,6 +173,34 @@ Run up to `loops_max` iterations.
    from the git remotes" (false without `--repo`), and a backwards rationale for
    `git rev-parse --git-common-dir` that stood until loop 3 actually ran the command. Measuring costs
    one command; the reviewer disproving it costs a loop.
+3c. **Re-sync the prose around any code block this loop's fixes edited.** If a fix in this loop
+   changed a fenced code block, then before step 7's commit, re-read the prose inside the **smallest
+   heading enclosing that block** and reconcile every statement that no longer describes it. What you
+   are checking is a relation — *does this English still describe that block?* — not the presence of
+   particular words. Counts, ordinals and enumerations ("**Two** `case` statements", "**Three**
+   branches:") are the commonest things to go stale and are worth looking for first, but they
+   illustrate the check rather than bound it: prose carrying no number at all goes stale the same way,
+   and a reader who concludes otherwise has read this step wrong.
+   **Boundary — the *smallest* enclosing heading**, so a nested `####` binds tighter than its parent
+   `##`. Measured on the failure that produced this rule: the edited fence sat at
+   `review/SKILL.md:152-172`, and both stale sentences (`:174`, `:192`) fell inside the same `###`
+   subsection opening at `:146` — about 1,062 tokens of that file's ~5,825, so re-reading the whole
+   file would have cost **5.5× the tokens** (the denominator is the file's own total token count) for
+   no additional catch on the evidence available. If the block sits under no heading at all, fall back
+   to the whole file: a file with no headings is small enough that the fallback costs little, which is
+   why this needs no second boundary rule.
+   **The reconciliation edits ride this loop's own commit** (step 7), which is the entire point — the
+   re-read costs roughly a thousand tokens, and the reviewer catching the same staleness one loop
+   later costs a full cold dispatch, measured at 60k–170k tokens in this repo.
+   **Intra-file only.** A declared canonical/mirror counterpart in *another* file is step 3a's job;
+   this step does not duplicate it.
+   **This step finds defect-class prose; it grants no licence to polish** — step 4 draws that line and
+   is unchanged by this step.
+   **Why this is 3c and not part of step 4:** step 4 carries a circuit breaker that stops all further
+   P3 fixes for the rest of the cycle once one is blamed for a regression. A re-sync rule folded into
+   step 4 would inherit that breaker and switch itself off — in exactly the situation where this
+   loop's own edits are churning prose fastest. Sitting at 3c it runs beside the P1/P2 fixes that
+   trigger it, where the breaker cannot reach it.
 4. Attempt P3 fixes — **defect-class only.** Classify each open P3 before touching it: does it name a concrete defect (a statement that is wrong, self-contradictory, or ambiguous; a dangling reference; a rule that contradicts a sibling file), or does it propose better phrasing for prose that is already correct (wording, convention alignment, consistency of tone with a sibling)? Fix the first kind inline as before (commit if successful; skip if risky). **Leave the second kind to Step 5a's carrying-cost test — do not rewrite correct prose during the fix loop.** A polish edit carries the same regression risk as any other edit and none of the upside; step 8's re-review is good enough to catch what it breaks, which reopens the loop and invites the next polish edit. That compounding is what this rule exists to stop, and loop position is not the discriminator — a polish P3 is deferred whether or not the same loop is also fixing a P1/P2.
    **Circuit breaker:** if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes for the remainder of this cycle — buffer every one that remains. One such attribution is evidence that this diff's prose is more fragile than its open P3s are valuable.
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
