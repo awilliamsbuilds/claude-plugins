@@ -2,9 +2,11 @@
   "version": "1.0",
   "feature": "validate-prose-resync",
   "branch": "feature/validate-prose-resync",
-  "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "mode": "autopilot",
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
@@ -75,5 +77,6 @@
       "spec_start": "2026-08-17T04:17:16Z",
       "spec_end": "2026-08-18T04:26:29Z"
     }
-  }
+  },
+  "handoff_at": "spec"
 }
