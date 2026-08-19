@@ -215,6 +215,12 @@ Run up to `loops_max` iterations.
    - The re-reviewer gates loop exit on **P1/P2 only**.
    - **`dev:fix`'s `### Review` section carries a marked mirror of this re-review**, with
      `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
+     **One declared exception: the prose-resync question** in the checklist below. The mirror's cap is
+     pinned to 1, so the multi-loop cascade that question exists to prevent is structurally
+     unreachable there, and the mirror deliberately omits it. Note the asymmetry: `dev:fix` still
+     names **two** divergences and does not name this one back, so the usual named-at-both-ends
+     convention holds in one direction only here. Whether that single round should carry the re-read
+     anyway is an open question, deferred rather than settled.
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
 8a. **Re-run the manual verification for any declared-untested layer this loop touched.** If a fix in this loop edited a file belonging to a `plan.md` task that declared a **TDD deviation** — a task whose entry states its layer has no test runner and names manual verification as its check — step 8's diff review is not sufficient to exit. Re-run that task's stated verification against the fixed build and record the result in `validation.md`. A suite cannot regress a layer it does not cover, so on exactly those files a green suite plus a clean diff review is the evidence that is missing, not the evidence that it is safe.
 9. If no open P1/P2 after this loop: exit loop. Proceed to Step 5.
@@ -226,7 +232,7 @@ that owns it: moving it to `dev:review` would hand that skill a checklist it cou
 This is the one named exception to *an orchestrator never defines a checklist*; do not "finish the
 extraction" by moving it.
 
-Did any fix introduce a correctness or security regression (P1)? Did any fix break a sibling skill's documented behavior or healthy path (P1/P2)? Did any fix change one side of a plan-declared canonical/mirror or verified-by pair without updating the other? Does every shell snippet the fix added or changed obey the healthy-path exit-code rule below?
+Did any fix introduce a correctness or security regression (P1)? Did any fix break a sibling skill's documented behavior or healthy path (P1/P2)? Did any fix change one side of a plan-declared canonical/mirror or verified-by pair without updating the other? Did this fix change a code block whose surrounding prose no longer describes it? Does every shell snippet the fix added or changed obey the healthy-path exit-code rule below?
 
 **Healthy-path shell exit-code rule:** any shell snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard blocks don't read as failure to a harness that checks exit codes. Prefer `if [ … ]; then …; fi` over `[ … ] && …` for guards. (This is the same rationale already inline at `validate/SKILL.md:231` and `done/SKILL.md:322/369/467`; stated here once as the general rule a fix author reads.)
 
