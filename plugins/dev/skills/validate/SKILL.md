@@ -194,8 +194,9 @@ Run up to `loops_max` iterations.
    later costs a full cold dispatch, measured at 60k–170k tokens in this repo.
    **Intra-file only.** A declared canonical/mirror counterpart in *another* file is step 3a's job;
    this step does not duplicate it.
-   **This step finds defect-class prose; it grants no licence to polish** — step 4 draws that line and
-   is unchanged by this step.
+   **This step finds defect-class prose; it grants no licence to polish** — step 4 draws the
+   defect-class/polish line, and 3c does not move it. See step 4's *How step 3c composes with this
+   rule*.
    **Why this is 3c and not part of step 4:** step 4 carries a circuit breaker that stops all further
    P3 fixes for the rest of the cycle once one is blamed for a regression. A re-sync rule folded into
    step 4 would inherit that breaker and switch itself off — in exactly the situation where this
