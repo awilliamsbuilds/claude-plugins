@@ -3,12 +3,13 @@
   "feature": "validate-prose-resync",
   "branch": "feature/validate-prose-resync",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/validate-prose-resync/plan.md",
     "validation": "docs/dev/validate-prose-resync/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/87",
+    "pr_number": 87
   },
   "validate": {
     "loops_run": 2,
@@ -86,7 +87,8 @@
       "build_start": "2026-08-19T03:02:58Z",
       "build_end": "2026-08-19T03:05:44Z",
       "validate_start": "2026-08-19T03:05:58Z",
-      "validate_end": "2026-08-19T03:27:32Z"
+      "validate_end": "2026-08-19T03:27:32Z",
+      "pr_created": "2026-08-19T03:28:22Z"
     }
   },
   "handoff_at": "spec"
