@@ -173,7 +173,7 @@ Run up to `loops_max` iterations.
    from the git remotes" (false without `--repo`), and a backwards rationale for
    `git rev-parse --git-common-dir` that stood until loop 3 actually ran the command. Measuring costs
    one command; the reviewer disproving it costs a loop.
-3c. **Re-sync the prose around any code block this loop's fixes edited.** If a fix in this loop
+3c. **Re-sync the prose around any code block this loop's fixes edited.** If a P1/P2 fix in this loop
    changed a fenced code block, then before step 7's commit, re-read the prose inside the **smallest
    heading enclosing that block** and reconcile every statement that no longer describes it. What you
    are checking is a relation — *does this English still describe that block?* — not the presence of
@@ -185,13 +185,18 @@ Run up to `loops_max` iterations.
    `##`. Measured on the failure that produced this rule: the edited fence sat at
    `review/SKILL.md:152-172`, and both stale sentences (`:174`, `:192`) fell inside the same `###`
    subsection opening at `:146` — about 1,062 tokens of that file's ~5,825, so re-reading the whole
-   file would have cost **5.5× the tokens** (the denominator is the file's own total token count) for
-   no additional catch on the evidence available. If the block sits under no heading at all, fall back
+   file would have cost **5.5× the tokens** (5,825 ÷ 1,062: the denominator is the subsection you
+   would have re-read anyway, the numerator the whole file) for no additional catch on the evidence
+   available. If the block sits under no heading at all, fall back
    to the whole file: a file with no headings is small enough that the fallback costs little, which is
    why this needs no second boundary rule.
    **The reconciliation edits ride this loop's own commit** (step 7), which is the entire point — the
    re-read costs roughly a thousand tokens, and the reviewer catching the same staleness one loop
    later costs a full cold dispatch, measured at 60k–170k tokens in this repo.
+   **Steps 4 and 5 re-enter this step.** A defect-class P3 fix, or a Nit fix, that edits a fenced
+   block runs this same re-read before step 7's commit. 3c sits at this position because the P1/P2
+   fixes are the common trigger and because the circuit breaker must not reach it — not because a
+   later fix is exempt. No fix that edits a fenced block leaves the loop with its prose unreconciled.
    **Intra-file only.** A declared canonical/mirror counterpart in *another* file is step 3a's job;
    this step does not duplicate it.
    **This step finds defect-class prose; it grants no licence to polish** — step 4 draws the
@@ -203,7 +208,7 @@ Run up to `loops_max` iterations.
    loop's own edits are churning prose fastest. Sitting at 3c it runs beside the P1/P2 fixes that
    trigger it, where the breaker cannot reach it.
 4. Attempt P3 fixes — **defect-class only.** Classify each open P3 before touching it: does it name a concrete defect (a statement that is wrong, self-contradictory, or ambiguous; a dangling reference; a rule that contradicts a sibling file), or does it propose better phrasing for prose that is already correct (wording, convention alignment, consistency of tone with a sibling)? Fix the first kind inline as before (commit if successful; skip if risky). **Leave the second kind to Step 5a's carrying-cost test — do not rewrite correct prose during the fix loop.** A polish edit carries the same regression risk as any other edit and none of the upside; step 8's re-review is good enough to catch what it breaks, which reopens the loop and invites the next polish edit. That compounding is what this rule exists to stop, and loop position is not the discriminator — a polish P3 is deferred whether or not the same loop is also fixing a P1/P2.
-   **How step 3c composes with this rule.** Read carelessly the two look opposed: 3c sends you back into prose, this step says don't rewrite it. They compose through the classification this step already draws. Prose that *this loop's own code edit just made wrong* is defect-class by the definition above — a statement that is wrong — so it is fixed inline, here, like any other defect-class P3. Prose that is merely improvable stays deferred to Step 5a exactly as today. **Step 3c adds a trigger for finding defect-class prose; it does not widen what counts as defect-class**, and it authorises no polish edit that this step would otherwise have deferred. A fixer following both rules is never in contradiction: 3c decides *where to look*, this step decides *what may be changed*.
+   **How step 3c composes with this rule.** Read carelessly the two look opposed: 3c sends you back into prose, this step says don't rewrite it. They compose through the classification this step already draws. Prose that *this loop's own code edit just made wrong* is defect-class by the definition above — a statement that is wrong — so **3c reconciles it at 3c**, on the same footing as any defect-class fix. A re-sync edit is **not** a step-4 P3 and never becomes one, so this step's circuit breaker cannot reach it — which is the whole reason the rule sits at 3c rather than here. Prose that is merely improvable is not defect-class, and stays deferred to Step 5a exactly as today. **Step 3c adds a trigger for finding defect-class prose; it does not widen what counts as defect-class**, and it authorises no polish edit this step would otherwise have deferred. A fixer following both rules is never in contradiction: 3c decides where to look **and reconciles what it finds there**; this step governs the P3s the review raised.
    **Circuit breaker:** if step 8's re-review attributes a new P1/P2 to a P3 fix, attempt no further P3 fixes for the remainder of this cycle — buffer every one that remains. One such attribution is evidence that this diff's prose is more fragile than its open P3s are valuable.
 5. Attempt Nit fixes only if P1/P2/P3 all resolved
 6. Update state.json `validate` fields:
@@ -216,15 +221,16 @@ Run up to `loops_max` iterations.
    - The re-reviewer gates loop exit on **P1/P2 only**.
    - **`dev:fix`'s `### Review` section carries a marked mirror of this re-review**, with
      `loops_max` pinned to 1. This step stays canonical; a change here should be reflected there.
-     **One declared exception: the prose-resync question** in the checklist below. The mirror's cap is
-     pinned to 1, so the multi-loop cascade that question exists to prevent is structurally
-     unreachable there, and the mirror deliberately omits it. Note the asymmetry: `dev:fix` still
-     names **two** divergences and does not name this one back, so the usual named-at-both-ends
-     convention holds in one direction only here. Whether that single round should carry the re-read
-     anyway is an open question, deferred rather than settled.
+     **How the prose-resync question below reaches that mirror.** `dev:fix` restates no checklist —
+     `fix/SKILL.md:643` reads "**These are calls, not copies.** The lane restates neither checklist" —
+     and its in-session fallback (`fix/SKILL.md:678`) runs *this* checklist. So the question
+     propagates by reference; the mirror does not omit it and `dev:fix` needs no edit. What that lane
+     does **not** get is step 3c: its cap is pinned to 1, so the multi-loop cascade 3c prevents is
+     structurally unreachable there, and whether its single round should carry the re-read anyway is
+     deferred rather than settled.
    - **Same-region recurrence.** Before iterating again, check *where* the re-review's findings land. If a finding is in code **this cycle's previous loop wrote or edited**, and the loop before that also produced a finding in the same region, the loop is circling one unsettled decision rather than converging on it. Stop iterating and route to Step 4a now — even with `loops_max` budget remaining, and regardless of severity. **Run step 8a first if it applies to this loop:** routing from here exits the loop early, so a re-verification skipped on the way out is evidence the user never gets at Step 4a — and a region circling for two rounds is exactly where it is most likely to matter. Name the region and state the unsettled question in one line. Two consecutive rounds in one region is a signal the loop limit would otherwise take the full budget to deliver, and the question underneath it ("which of these two rules wins?") is usually the user's to answer, not the fix loop's. **In autopilot this does not stop the run:** attempt no further fixes in that region and buffer its remaining findings for Step 5a, then continue.
      **Converging-cascade exemption.** A loop can revisit one region for the opposite reason: each round is a consequence of the first round's edit, and the loop is settling rather than circling. Step 3c's re-syncs produce exactly this shape. Before applying the rule above, check all three signals — the exemption needs all three:
-     - **severity is non-increasing across the rounds and strictly lower than the first round's** (the observed cascade ran P2 → P3 → P3). Stated this way deliberately: *monotonically falling* would exclude that cascade, whose last two rounds were both P3. Severity flat *at* the first round's level does not qualify;
+     - **severity is non-increasing across the rounds and strictly lower than the first round in that region** (the observed cascade ran P2 → P3 → P3). "First round in that region" means the round that first produced a finding there — not loop 1 of the cycle, which may be far earlier and unrelated. Stated as non-increasing-and-strictly-below deliberately: *monotonically falling* would exclude the very cascade this was built from, whose last two rounds were both P3. Severity flat *at* that first round's level does not qualify;
      - **no code changed after the first round** — every subsequent round edited prose only;
      - the findings are **consequences of the same earlier edit**, not competing answers to one unsettled question.
      Where all three hold, the loop is converging and the rule does not fire: **standard continues the loop** rather than routing to Step 4a, and **autopilot continues fixing in that region** rather than buffering out of it. The autopilot half matters more, not less — it is the mode with no human present to override a misfire, so a converging cascade there would silently stop being fixed and leave the correction sitting in the buffer.
@@ -242,7 +248,7 @@ extraction" by moving it.
 
 Did any fix introduce a correctness or security regression (P1)? Did any fix break a sibling skill's documented behavior or healthy path (P1/P2)? Did any fix change one side of a plan-declared canonical/mirror or verified-by pair without updating the other? Did this fix change a code block whose surrounding prose no longer describes it? Does every shell snippet the fix added or changed obey the healthy-path exit-code rule below?
 
-**Healthy-path shell exit-code rule:** any shell snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard blocks don't read as failure to a harness that checks exit codes. Prefer `if [ … ]; then …; fi` over `[ … ] && …` for guards. (This is the same rationale already inline at `validate/SKILL.md:231` and `done/SKILL.md:322/369/467`; stated here once as the general rule a fix author reads.)
+**Healthy-path shell exit-code rule:** any shell snippet written into a skill must exit 0 on its healthy path, so `&&` chains and bare guard blocks don't read as failure to a harness that checks exit codes. Prefer `if [ … ]; then …; fi` over `[ … ] && …` for guards. (The same rationale is inline once more in this file, in **Step 6**'s commit block, guarding the `debt-pending.md` add; `done/SKILL.md` applies the `if … fi` pattern without restating why. Both are cited by section rather than line number — line numbers across files go stale silently, which is the same reasoning `done/SKILL.md`'s Step 4a gives for citing its mirror by name.)
 
 **Step 4a — Loop limit reached with open P1/P2, or same-region recurrence:**
 

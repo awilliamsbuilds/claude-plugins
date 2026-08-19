@@ -22,12 +22,14 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
     "p3_open": [],
-    "nits_open": []
+    "nits_open": [
+      "converging-cascade exemption's third signal is an unrecorded judgment (deferred to backlog)"
+    ]
   },
   "challenge": {
     "run": true,
