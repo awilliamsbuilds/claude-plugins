@@ -25,6 +25,29 @@ side's own text so the gap is declared rather than silent.
 2–4's cited lines shift downward by the length of that insertion. Anchor on the **quoted text** each
 task gives, not on the number; the numbers are there to locate the region on a first read.
 
+## Verification — TDD deviation, all four tasks
+
+**This layer has no test runner.** All four tasks edit Markdown prose in a skill file; skills are
+instructions read by an agent, not executable code, so there is no failing test to write first and no
+suite that can regress them. TDD is deviated from for every task in this plan, deliberately and for
+that reason.
+
+**The check that substitutes, and must be re-run against any later fix to these files:**
+1. **Regression guard** — run `python3 plugins/dev/skills/debt/test_viewer.py`. It must stay at
+   **89 tests, OK (skipped=2)**. This suite does not cover the edited file; it is here to prove the
+   cycle broke nothing else in the plugin tree.
+2. **Scope check (SC6)** — `git -C "$WORKDIR" diff --name-only main...HEAD -- plugins/` must print
+   `plugins/dev/skills/validate/SKILL.md` and nothing else.
+3. **Manual walkthrough** — read the amended Step 4 top-to-bottom in file order and confirm it holds
+   against the observed failure the spec describes: a fix edits a fenced block, step 3c fires, the
+   re-read is bounded to the smallest enclosing heading, the reconciliation rides step 7's commit,
+   step 8's checklist would catch a loop that skipped it, and step 8's recurrence rule does not fire
+   on the resulting P2 → P3 → P3 cascade.
+
+`dev:validate` Step 8a keys on exactly this declaration: a fix loop that touches these files must
+re-run all three checks and record the result in `validation.md`, because a green suite is not
+evidence about a layer the suite does not cover.
+
 ## Tasks
 
 ### Task 1: Add step 3c — the prose re-sync rule
