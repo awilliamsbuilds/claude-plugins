@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "feature": "validate-prose-resync",
+  "branch": "feature/validate-prose-resync",
+  "mode": "autopilot",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-08-17T04:17:16Z",
+  "artifacts": {
+    "spec": "docs/dev/validate-prose-resync/spec.md",
+    "design": null,
+    "plan": "docs/dev/validate-prose-resync/plan.md",
+    "validation": "docs/dev/validate-prose-resync/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/87",
+    "pr_number": 87
+  },
+  "validate": {
+    "loops_run": 2,
+    "loops_max": 3,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": [
+      "converging-cascade exemption's third signal is an unrecorded judgment (deferred to backlog)"
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 2,
+    "concerns": 5,
+    "applied": 7,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 3,
+    "applied": 3,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 100,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": "docs/dev/product-plans/dev-process-hardening.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/validate-prose-resync",
+  "metrics": {
+    "spec_questions_asked": 3,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 3,
+    "stage_timestamps": {
+      "spec_start": "2026-08-17T04:17:16Z",
+      "spec_end": "2026-08-18T04:26:29Z",
+      "plan_start": "2026-08-19T02:58:38Z",
+      "plan_end": "2026-08-19T03:00:26Z",
+      "build_start": "2026-08-19T03:02:58Z",
+      "build_end": "2026-08-19T03:05:44Z",
+      "validate_start": "2026-08-19T03:05:58Z",
+      "validate_end": "2026-08-19T03:27:32Z",
+      "pr_created": "2026-08-19T03:28:22Z"
+    }
+  },
+  "handoff_at": "spec"
+}
