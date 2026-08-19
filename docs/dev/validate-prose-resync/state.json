@@ -3,11 +3,12 @@
   "feature": "validate-prose-resync",
   "branch": "feature/validate-prose-resync",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,7 +18,7 @@
     "spec": "docs/dev/validate-prose-resync/spec.md",
     "design": null,
     "plan": "docs/dev/validate-prose-resync/plan.md",
-    "validation": null,
+    "validation": "docs/dev/validate-prose-resync/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -83,7 +84,9 @@
       "plan_start": "2026-08-19T02:58:38Z",
       "plan_end": "2026-08-19T03:00:26Z",
       "build_start": "2026-08-19T03:02:58Z",
-      "build_end": "2026-08-19T03:05:44Z"
+      "build_end": "2026-08-19T03:05:44Z",
+      "validate_start": "2026-08-19T03:05:58Z",
+      "validate_end": "2026-08-19T03:27:32Z"
     }
   },
   "handoff_at": "spec"
