@@ -1,10 +1,12 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 first_recorded: 2026-08-17
 cycles: [extract-review-skills]
 recurrence: 1
+closed: 2026-08-19
+closed_by: validate-prose-resync
 files:
   - plugins/dev/skills/validate/SKILL.md
 ---

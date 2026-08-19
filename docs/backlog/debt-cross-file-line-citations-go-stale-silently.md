@@ -4,8 +4,8 @@ scope: repo
 status: open
 severity: P3
 first_recorded: 2026-08-15
-cycles: [entry-adapters]
-recurrence: 1
+cycles: [entry-adapters, validate-prose-resync]
+recurrence: 2
 files:
   - plugins/dev/skills/autopilot/SKILL.md
   - plugins/dev/skills/fix/SKILL.md
@@ -36,3 +36,12 @@ between those is a contract decision across a dozen skills.
 heading) rather than by line number, and the remaining `file:line` forms are converted; or a check
 exists that resolves every `file:line` citation and fails when one no longer points at what it claims.
 Editing a cited file then cannot silently falsify a citation in a file the editing cycle never opened.
+
+**Recurrence — `validate-prose-resync` (2026-08-19).** Three fresh instances in one cycle. The
+healthy-path exit-code rule cited `validate/SKILL.md:231` and `done/SKILL.md:322/369/467` — all four
+already wrong before the cycle began. The fix for that wrote `validate/SKILL.md:425`, which had
+already moved to 431 by the time it was measured minutes later, inside the same fix loop. The next
+loop's fix then introduced two more (`fix/SKILL.md:643`, `:678`), one of which pointed at a sentence
+about a different checklist than the one it was offered as evidence for — costing a full extra
+validate loop to catch and correct. The repo already has the better convention written down
+(`done/SKILL.md` Step 4a); what is missing is anything that enforces it.
