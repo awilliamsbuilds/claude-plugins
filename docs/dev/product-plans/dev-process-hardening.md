@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 0/5*
+*Created: 2026-08-17 · Cycles completed: 1/5*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -26,7 +26,7 @@ Milestone 1 predecessor has merged. Everything converges on Milestone 4, which r
 resolution in twelve files and so must merge last.
 
 ## Milestone 1: Cheap pipeline wins
-- [ ] validate-prose-resync (feature)
+- [x] validate-prose-resync (feature)
 - [ ] autopilot-resume-stage (feature)
 
 Sources: `debt-validate-fix-prose-desyncs-from-code-in-same-loop`,
