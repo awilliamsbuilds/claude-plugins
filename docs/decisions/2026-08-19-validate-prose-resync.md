@@ -81,3 +81,40 @@ later reviewer — and the reason the final text cites by section name instead o
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: 271a61a on branch feature/validate-prose-resync
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-19*
+
+**Spec:** `challenge.blockers: 2` against `spec_revisions: 0` — the challenger caught what the
+author's own grounding pass missed, which is the net working as designed. The grounding inventory
+itself recorded two inverted claims that measurement reversed, one of which flipped the cycle's core
+recommendation: the bounded-subsection rule had been ruled out on an unmeasured claim that the stale
+prose sat far from the edited fence, and became viable only once someone measured. Confidence
+100%/Ready held — no revisions, no auto-fill.
+
+**Shape:** skipped (no-ui), correctly.
+
+**Plan:** cold review clean — 0 blockers, 3 concerns, all folded into the revision. But the plan
+shipped **without declaring its TDD deviation**, and Build backtracked to add it. `dev:validate`
+Step 8a keys on exactly that declaration, so without it a prose-only cycle silently skips its manual
+verification at Validate. None of the plan challenger's three lenses — spec-coverage, sequencing,
+interface-consistency — would catch a missing verification declaration.
+
+**Validate:** 2 loops / 3. Every P1/P2 was a prose-accuracy defect in the cycle's own new text — the
+exact class the cycle exists to fix — and loop 2's P2 was caused by loop 1's fix, making this a
+converging cascade of the shape the new exemption describes.
+
+**Flow:** tier and stage selection right; no unnecessary stages.
+
+**Token efficiency:** `files_read_in_build: 3`, no outliers. The long `spec_start → plan_start` spans
+are wall-clock across days, not work time.
+
+**Suggestions:**
+- `dev:plan` has no verification lens — neither Step 5's template nor Step 7a's three lenses ask how
+  the work will be checked, so a plan can omit the declaration `dev:validate` Step 8a depends on.
+- Cross-file line-number citations keep being written despite an open item against them. This cycle
+  wrote one that went stale within the same loop, and the re-review caught a second.
+
+**User observations:** none raised.
+
+**Deferred to tech debt:** `plan-declares-no-verification-method`, `cross-file-line-citations-go-stale-silently` (recurrence)
