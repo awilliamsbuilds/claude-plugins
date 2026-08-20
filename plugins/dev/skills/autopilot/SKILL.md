@@ -142,6 +142,15 @@ Execute stages in sequence for the applicable tier:
 **Standard/Deep + no-ui:** Spec → Plan → Build → Validate → PR → Done
 **Standard/Deep + UI:** Spec → Shape → Plan → Build → Validate → PR → Done
 
+**Start stage.** The run begins at the **earliest stage in the selected row that is not present in `completed[]`**, and runs from there through the end of the row. Call that stage **the resolved start stage** — Step 1 refers to it by that name. Stages already in `completed[]` are **skipped, never re-entered.** The rule composes with row selection above rather than replacing it: pick the row first, then find the earliest unfinished stage within it.
+
+- **`completed[]` is the authority; `stage` is a hint.** Where they disagree — `stage: "build"` with `completed: ["spec", "shape"]` — the run starts at **Plan**. This never skips work. The worst case under this rule is redoing a stage that succeeded but was never recorded, which is recoverable; the inverse — building with no `plan.md`, unattended — is not.
+- **An absent or empty `completed[]` selects Spec**, which is the first stage of every row. That is every cold start; row selection then proceeds on the `skipped[]` that Spec writes, unchanged from today.
+- **A skipped stage can never be selected.** A skipped Shape is absent from the `+ no-ui` row entirely, so the earliest-unfinished search never sees it. That is why this rule needs no `skipped[]` check of its own — row selection already applied it.
+- **Resolve once, at the start of the run.** This rule picks the entry point; it is not re-evaluated between stages. A later `completed[]` change — the silent-backtrack rule in Step 2, or `dev:build`'s standard-mode backtrack at `build/SKILL.md:133`, which *removes* `"plan"` from `completed[]` — never sends an in-flight run backwards to a stage it already executed.
+
+**When the resolved start stage is Done,** autopilot runs Done normally. That is the reachable end-of-cycle case. Note that `"done"` is never added to `completed[]` — `dev:done` writes no completion entry, and its Step 7 `rm -rf`s the cycle directory (`done/SKILL.md:504`) — so "every row stage in `completed[]`" is unreachable and must not be the trigger for anything. A cycle that has already finished Done has no `state.json` at all, and Step 1's existing `No /dev cycle found for <feature>` STOP already covers it. This adds **no** stop condition.
+
 After each stage:
 
 ```
@@ -159,16 +168,20 @@ When Done completes (or when autopilot stops on a blocker):
 /dev autopilot complete: <feature-name>
 
 Stages run:
-  Spec ✓   [confidence: XX%]
-  Shape ✓  [or "Shape skipped (no-ui)"]
-  Plan ✓
-  Build ✓
-  Validate ✓ [N loops]
-  PR ✓       [PR URL]
+  Spec ✓   [confidence: XX%]   [or "Spec — already complete"]
+  Shape ✓  [or "Shape skipped (no-ui)"] [or "Shape — already complete"]
+  Plan ✓   [or "Plan — already complete"]
+  Build ✓  [or "Build — already complete"]
+  Validate ✓ [N loops]         [or "Validate — already complete"]
+  PR ✓       [PR URL]           [or "PR — already complete"]
   Done ✓
 
 Retrospective appended to docs/decisions/YYYY-MM-DD-<feature>.md
 ```
+
+Only stages **this invocation actually executed** carry `✓` and their metrics. A stage that was already in `completed[]` when the run resolved its start stage renders as `<Stage> — already complete` instead — it was run by an earlier invocation, and claiming its confidence score or loop count here would report work this run did not do.
+
+**Do not write "skipped" in that form.** The template's existing `Shape skipped (no-ui)` already owns that word for a different meaning — a stage the cycle never runs at all, as against one that ran under a previous invocation. Two senses of "skipped" on adjacent lines is exactly the ambiguity an operator cannot resolve from the report alone.
 
 If stopped on a blocker, show the blocker and what's needed to continue.
 
