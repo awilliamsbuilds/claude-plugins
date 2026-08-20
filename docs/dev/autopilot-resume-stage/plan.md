@@ -344,7 +344,14 @@ Implementation steps:
    - **The run begins at the earliest stage in the selected row that is not present in `completed[]`,
      and runs from there through the end of the row.** Call that stage **the resolved start stage** —
      use that exact phrase, because Step 1 refers to it by name.
-   - Stages already in `completed[]` are **skipped, never re-entered.**
+   - Stages **before the resolved start stage** are **skipped, never re-entered**; from the entry
+     point onward every row stage executes in order, whether or not it appears in `completed[]`. On a
+     non-contiguous `completed[]` (`["spec", "build"]` → resolves to Plan) Build is deliberately
+     re-run, since a Build recorded before a re-planned Plan is stale. Name **PR as the one
+     exception** — `gh pr create` is not idempotent, so a run reaching PR with `artifacts.pr_url`
+     already set (written by `dev:pr` Step 5, `pr/SKILL.md:204`) treats PR as satisfied and continues
+     to Done. Step 4's completion report must key its `— already complete` rendering on the resolved
+     start stage, **not** on `completed[]` membership, or it will report a re-run stage as inherited.
    - **`completed[]` is the authority; `stage` is a hint.** Where they disagree — `stage: "build"`
      with `completed: ["spec", "shape"]` — the run starts at Plan. Give that reasoning: the worst case
      under this rule is redoing a stage that succeeded but was never recorded, which is recoverable,

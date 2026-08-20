@@ -36,7 +36,12 @@ as good as the guarantee that `completed[]` is current when the operator is give
 
 `dev:autopilot` Step 3 gains an explicit start-stage rule: begin at the **earliest stage in the
 selected tier sequence that is not present in `completed[]`**, and run from there to the end. Stages
-already in `completed[]` are skipped, never re-entered.
+**before** that entry point are skipped, never re-entered; from the entry point onward every row
+stage executes in order, whether or not it appears in `completed[]`. The distinction only matters on
+a non-contiguous `completed[]` — `["spec", "build"]` resolves to Plan and then re-runs Build, which
+is correct, since a Build recorded before a re-planned Plan is stale. PR is the single exception:
+`gh pr create` is not idempotent, so a run reaching PR with `artifacts.pr_url` already set treats it
+as satisfied.
 
 The rule composes with the existing tier-row selection rather than replacing it. Step 3 already picks
 one of three rows (Micro / Standard-Deep + no-ui / Standard-Deep + UI), and a skipped Shape is absent
