@@ -3,12 +3,13 @@
   "feature": "autopilot-resume-stage",
   "branch": "feature/autopilot-resume-stage",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/autopilot-resume-stage/plan.md",
     "validation": "docs/dev/autopilot-resume-stage/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/88",
+    "pr_number": 88
   },
   "validate": {
     "loops_run": 3,
@@ -90,7 +91,8 @@
       "build_start": "2026-08-20T05:28:19Z",
       "build_end": "2026-08-20T05:31:48Z",
       "validate_start": "2026-08-20T05:32:03Z",
-      "validate_end": "2026-08-20T05:56:11Z"
+      "validate_end": "2026-08-20T05:56:11Z",
+      "pr_created": "2026-08-20T05:57:15Z"
     }
   },
   "handoff_at": "plan"
