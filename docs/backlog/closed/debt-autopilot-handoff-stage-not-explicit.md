@@ -1,12 +1,14 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
 first_recorded: 2026-08-17
 cycles: [extract-review-skills]
 recurrence: 1
 files:
   - plugins/dev/skills/autopilot/SKILL.md
+closed: 2026-08-20
+closed_by: autopilot-resume-stage
 ---
 
 **What's wrong:** `/dev:autopilot docs/dev/<feature>/spec.md` gives autopilot a *feature*, not a
