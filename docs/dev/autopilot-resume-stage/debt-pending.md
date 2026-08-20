@@ -42,13 +42,12 @@ question, not a clause.
 **Done looks like:** `dev:autopilot` and `dev:pr` agree on one stated rule for re-entering PR on a
 cycle whose `artifacts.pr_url` is already set, with the branch push preserved on every path that
 reaches `dev:done`.
-````
 
-**Cost if not paid:** the next cycle that makes a non-contiguous `completed[]` reachable — any change
-letting a stage after PR be removed, or a new backtrack path — turns a latent stop into a live one,
-and the obvious one-line fix is the one already measured to cause silent work loss. The next person
-to reach for it will reach for the same wrong fix, because the reasoning that makes it wrong lives
-only in this cycle's validation history.
+**Cost if not paid:** the next cycle that makes a non-contiguous `completed[]` reachable — any
+change letting a stage after PR be removed, or a new backtrack path — turns a latent stop into a
+live one. The obvious one-line fix is the one already measured to cause silent work loss, and the
+next person will reach for it, because the reasoning that makes it wrong is recorded nowhere else.
+````
 
 ## To Close
 

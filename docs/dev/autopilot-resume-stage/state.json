@@ -3,11 +3,12 @@
   "feature": "autopilot-resume-stage",
   "branch": "feature/autopilot-resume-stage",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,7 +18,7 @@
     "spec": "docs/dev/autopilot-resume-stage/spec.md",
     "design": null,
     "plan": "docs/dev/autopilot-resume-stage/plan.md",
-    "validation": null,
+    "validation": "docs/dev/autopilot-resume-stage/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -87,7 +88,9 @@
       "plan_start": "2026-08-20T05:07:46Z",
       "plan_end": "2026-08-20T05:12:30Z",
       "build_start": "2026-08-20T05:28:19Z",
-      "build_end": "2026-08-20T05:31:48Z"
+      "build_end": "2026-08-20T05:31:48Z",
+      "validate_start": "2026-08-20T05:32:03Z",
+      "validate_end": "2026-08-20T05:56:11Z"
     }
   },
   "handoff_at": "plan"
