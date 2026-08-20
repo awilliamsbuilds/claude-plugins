@@ -288,4 +288,4 @@ Safe to /clear now — resume with: /dev:build docs/dev/<feature>/plan.md
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-**Autopilot mode:** No gate. Step 7a's revision loop has already resolved or escalated; update state and proceed. (Do not write `challenge_plan.dismissed` in autopilot.)
+**Autopilot mode:** No gate. Step 7a's revision loop has already resolved or escalated; update state and proceed. (Do not write `challenge_plan.dismissed` in autopilot.) No approval is taken and no gate renders, so neither the gate body nor the resume block prints here.

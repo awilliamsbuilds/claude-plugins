@@ -325,7 +325,7 @@ Write to `$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md` (committed to `$INTEG
 Spec, design, and plan committed at: <pre-merge-sha> on branch feature/<name>
 ```
 
-`<Stage>` is the `handoff_at` value capitalized, e.g. Plan or Build. It names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape." A log that *does* read "at Shape" or "at Spec" is not corrupt — it records the stage `completed[]` did not yet hold when autopilot took over, which the marker reports accurately. Do not read it as an anomaly: besides an unprompted early invocation, an approved Branch A Spec gate on a UI cycle legitimately resolves to Shape, and that is ordinary operation. Render the value as it stands; never correct it.
+`<Stage>` is the `handoff_at` value capitalized, e.g. Plan or Build. It names the **first stage that ran unattended**, not the gate stage — so the expected rendering on the Shape-gate route is "Handed off to autopilot at Plan," not "at Shape." A log that *does* read "at Shape" or "at Spec" is not corrupt — it records the stage `completed[]` did not yet hold when autopilot took over, which the marker reports accurately. Do not read it as an anomaly: besides an unprompted early invocation, an approved Spec gate on a UI cycle — `dev:spec` Step 13's **Branch A**, whose next stage is Shape — leaves `completed[]` holding only `"spec"`, so the earliest unfinished stage is legitimately Shape. That is ordinary operation. Render the value as it stands; never correct it.
 
 **When `handoff_at` is absent, the template is byte-identical to today** — no blank line, no placeholder, no "n/a". That is what keeps existing decision logs comparable.
 

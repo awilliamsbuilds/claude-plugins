@@ -624,7 +624,7 @@ Determine the next-stage command the same way as before (Shape if UI needed, Pla
 **Whether the autopilot offer prints** is governed by that same next-stage determination — reuse it, do not recompute it. A *pre-execution gate* is one whose next stage is the cycle's first **execution** stage:
 
 - **Branch A — next stage is Shape.** No offer. Shape is definition, not execution, so this gate is not a pre-execution gate; the resume line printed after approval is the only continuation command this gate hands over.
-- **Branch B — next stage is Plan (`"shape" ∈ skipped[]`) or Build (Micro tier).** Print the offer.
+- **Branch B — next stage is Plan (`"shape" ∈ skipped[]`) or Build (Micro tier).** Print the offer — **once**, in the resume block below the `When approved` write, not on a gate re-display.
 
 ```
 Spec written and committed to docs/dev/<feature-name>/spec.md.

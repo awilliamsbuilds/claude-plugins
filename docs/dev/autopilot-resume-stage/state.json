@@ -22,12 +22,14 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 1,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
     "p3_open": [],
-    "nits_open": []
+    "nits_open": [
+      "spec Step 13 / shape Step 11: explanatory paragraphs now precede the block they describe; a forward pointer would close it"
+    ]
   },
   "challenge": {
     "run": true,
