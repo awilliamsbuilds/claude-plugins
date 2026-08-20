@@ -60,7 +60,11 @@ Picking one unattended would run Build, PR and merge on a cycle the user never n
 
 **This STOP is the only thing the multi-hit case changes.** The zero-hit and single-hit paths are untouched for every invocation form, including `/dev:autopilot no-ui` — that argument fails the artifact-path validation above and falls back to this scan exactly as before, beginning from Spec when nothing is in flight and resuming the one hit when something is. Whether Shape is then skipped is settled by `dev:spec` Step 12, per Step 3's **UI vs no-ui detection** rule below.
 
-**Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
+**Read `tier`, `skipped[]`, `completed[]`, and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read them from the `state.json` that `WORKDIR` resolution found. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
+
+`tier` and `skipped[]` select the stage row; `completed[]` then fixes the entry point within it. Together they yield **the resolved start stage**, per Step 3's **Start stage** rule below — the single statement of it, cited here rather than restated, exactly as this step already defers to Step 3's **UI vs no-ui detection** rule. Both the announce line and `handoff_at` derive from that one value.
+
+On a cold start there is no `state.json`, so `completed[]` is absent and the resolved start stage is **Spec** — Step 1 therefore always has a value, and the rule living in Step 3 creates no ordering problem.
 
 Check for in-progress session. If found:
 
@@ -68,17 +72,23 @@ Check for in-progress session. If found:
 /dev session in progress: <feature-name>
 <stage-status-line>
 
-Resuming from <current-stage> in autopilot mode.
+Resuming from <resolved-start-stage> in autopilot mode.
 ```
+
+`<resolved-start-stage>` is the stage the run will actually start at — the earliest row stage absent from `completed[]` — not the raw `stage` field. The announce and the execution were previously two separate readings of state; deriving them from one value is what keeps the message honest when they diverge.
 
 If no in-progress session: begin from Spec.
 
-Set mode in state.json by these two branches. **Decide which branch applies from the `state.json` that existed when this invocation began** — the one the resolution block found, read before any stage of this run has executed. A `state.json` that this same invocation caused to be created is never a handoff, whatever `mode` it is born with: `dev:spec` Step 6 writes `"mode": "standard"` into every new state file, so re-reading `mode` after Spec has run would see `"standard"` on a cold start and misclassify a pure-autopilot cycle as a handed-off one. Read `stage` **before** flipping `mode` — reading it after records the stage autopilot advances to rather than the one it took over at.
+Set mode in state.json by these two branches. **Decide which branch applies from the `state.json` that existed when this invocation began** — the one the resolution block found, read before any stage of this run has executed. A `state.json` that this same invocation caused to be created is never a handoff, whatever `mode` it is born with: `dev:spec` Step 6 writes `"mode": "standard"` into every new state file, so re-reading `mode` after Spec has run would see `"standard"` on a cold start and misclassify a pure-autopilot cycle as a handed-off one. Read **`completed[]`** before any stage of this run has executed, for the same reason: a stage this invocation completes would otherwise be counted as one it inherited, and the marker would name a stage the run did not take over at.
 
-- **A prior session existed and its `mode` read `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
+- **A prior session existed and its `mode` read `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to **the resolved start stage** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
 - **A prior session existed and its `mode` already read `"autopilot"`, or there was no prior session** (a fresh cycle this invocation starts from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string.
 
-`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the **approved** path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro, and not `"spec"`/`"shape"`, because gate approval advances `stage` to the next stage before the user pastes the command. A user who pastes the command *before* approving — a path both gates document as harmless — legitimately produces `"spec"` or `"shape"` here; that is a correct marker for what actually happened, not corruption. The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
+`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the **approved** path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro: the gate writes its own stage into `completed[]` before the command is printed at all, so the earliest unfinished row stage — and therefore `handoff_at` — is the next one.
+
+Stated by cause rather than by route: **`handoff_at` names whatever stage `completed[]` does not yet record**, and the marker reports it accurately. Two distinct paths reach a `"spec"` or `"shape"` value, and both are correct records rather than corruption — (a) a user who types `/dev:autopilot` unprompted at a gate before approving, so `completed[]` lacks that stage; and (b) an **approved Branch A Spec gate on a UI cycle**, where `completed[]` holds only `"spec"` and the earliest unfinished row stage is legitimately Shape. Route (b) is ordinary correct operation, not an early paste.
+
+The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
 
 **Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:done` Step 5): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
 
@@ -142,6 +152,19 @@ Execute stages in sequence for the applicable tier:
 **Standard/Deep + no-ui:** Spec → Plan → Build → Validate → PR → Done
 **Standard/Deep + UI:** Spec → Shape → Plan → Build → Validate → PR → Done
 
+**Start stage.** The run begins at the **earliest stage in the selected row that is not present in `completed[]`**, and runs from there through the end of the row. Call that stage **the resolved start stage** — Step 1 refers to it by that name. The rule composes with row selection above rather than replacing it: pick the row first, then find the earliest unfinished stage within it.
+
+**The skip applies only ahead of the entry point.** Stages **before** the resolved start stage are skipped and never re-entered; once the run starts, **every remaining row stage executes in order**, whether or not it appears in `completed[]`. The two halves only look equivalent while `completed[]` is contiguous. It need not be: `completed: ["spec", "build"]` on a no-ui row resolves to Plan, and the run then executes Plan → Build → Validate → PR → Done — re-running Build deliberately, because a Build recorded before a re-planned Plan is exactly the stale work this rule must not carry forward into Validate. A re-entered stage appends to `completed[]` again (`dev:build` Step 6 and its siblings do not dedupe); a duplicate entry is inert, since every consumer tests membership.
+
+**No stage is exempted from that rule here** — including PR, whose `gh pr create` is not idempotent. A `completed[]` holding `"pr"` while an earlier row stage is missing would re-enter PR and fail on create. That shape has no documented producer today (`dev:build`'s backtrack removes only `"plan"`, which sits before Build), the failure is loud rather than silent, and settling it properly means deciding what a re-run owes an already-open PR — a question this rule has no business answering in passing. Tracked in `docs/backlog/` rather than guessed at.
+
+- **`completed[]` is the authority; `stage` is a hint.** Where they disagree — `stage: "build"` with `completed: ["spec", "shape"]` — the run starts at **Plan**. This never skips work. The worst case under this rule is redoing a stage that succeeded but was never recorded, which is recoverable; the inverse — building with no `plan.md`, unattended — is not.
+- **An absent or empty `completed[]` selects Spec**, which is the first stage of every row. That is every cold start; row selection then proceeds on the `skipped[]` that Spec writes, unchanged from today.
+- **A skipped stage can never be selected.** A skipped Shape is absent from the `+ no-ui` row entirely, so the earliest-unfinished search never sees it. That is why this rule needs no `skipped[]` check of its own — row selection already applied it.
+- **Resolve once, at the start of the run.** This rule picks the entry point; it is not re-evaluated between stages, so a `completed[]` change made *during* the run — by Step 2's silent-backtrack rule — never sends an in-flight run backwards to a stage it already executed. `dev:build`'s standard-mode backtrack (`build/SKILL.md:133`), which *removes* `"plan"` from `completed[]`, cannot fire inside an autopilot run at all: Step 2's rules override the standard-mode behavior of every stage skill. It matters here only in the other direction — as a **prior** standard-mode session's edit, already on disk when this run resolves. That is one route to the non-contiguous `completed[]` the paragraph above handles: it removes only `"plan"`, so it leaves the array contiguous on an ordinary first-Build backtrack, and yields the `["spec", "build"]` shape only where a completed Build had already recorded `"build"` before Build was re-invoked.
+
+**When the resolved start stage is Done,** autopilot runs Done normally. That is the reachable end-of-cycle case. Note that `"done"` is never added to `completed[]` — `dev:done` writes no completion entry, and its Step 7 `rm -rf`s the cycle directory (`done/SKILL.md:504`) — so "every row stage in `completed[]`" is unreachable and must not be the trigger for anything. A cycle that has already finished Done has no `state.json` at all, and Step 1's existing `No /dev cycle found for <feature>` STOP already covers it. This adds **no** stop condition.
+
 After each stage:
 
 ```
@@ -159,16 +182,22 @@ When Done completes (or when autopilot stops on a blocker):
 /dev autopilot complete: <feature-name>
 
 Stages run:
-  Spec ✓   [confidence: XX%]
-  Shape ✓  [or "Shape skipped (no-ui)"]
-  Plan ✓
-  Build ✓
-  Validate ✓ [N loops]
-  PR ✓       [PR URL]
+  Spec ✓   [confidence: XX%]   [or "Spec — already complete"]
+  Shape ✓  [or "Shape skipped (no-ui)"] [or "Shape — already complete"]
+  Plan ✓   [or "Plan — already complete"]
+  Build ✓  [or "Build — already complete"]
+  Validate ✓ [N loops]         [or "Validate — already complete"]
+  PR ✓       [PR URL]           [or "PR — already complete"]
   Done ✓
 
 Retrospective appended to docs/decisions/YYYY-MM-DD-<feature>.md
 ```
+
+Only stages **this invocation actually executed** carry `✓` and their metrics. A stage **before the resolved start stage** renders as `<Stage> — already complete` instead — it was run by an earlier invocation, and claiming its confidence score or loop count here would report work this run did not do.
+
+**Key this on the resolved start stage, not on `completed[]` membership.** Per Step 3's Start stage rule, every row stage from the entry point onward executes — including one that already appears in `completed[]` on a non-contiguous state file. Such a stage *did* run under this invocation and takes `✓` with its metrics; keying the alternative rendering on membership would report it as inherited work and be false.
+
+**Do not write "skipped" in that form.** The template's existing `Shape skipped (no-ui)` already owns that word for a different meaning — a stage the cycle never runs at all, as against one that ran under a previous invocation. Two senses of "skipped" on adjacent lines is exactly the ambiguity an operator cannot resolve from the report alone.
 
 If stopped on a blocker, show the blocker and what's needed to continue.
 
