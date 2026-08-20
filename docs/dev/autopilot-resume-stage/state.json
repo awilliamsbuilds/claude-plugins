@@ -3,9 +3,10 @@
   "feature": "autopilot-resume-stage",
   "branch": "feature/autopilot-resume-stage",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
