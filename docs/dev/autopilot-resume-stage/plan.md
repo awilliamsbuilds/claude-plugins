@@ -347,11 +347,12 @@ Implementation steps:
    - Stages **before the resolved start stage** are **skipped, never re-entered**; from the entry
      point onward every row stage executes in order, whether or not it appears in `completed[]`. On a
      non-contiguous `completed[]` (`["spec", "build"]` → resolves to Plan) Build is deliberately
-     re-run, since a Build recorded before a re-planned Plan is stale. Name **PR as the one
-     exception** — `gh pr create` is not idempotent, so a run reaching PR with `artifacts.pr_url`
-     already set (written by `dev:pr` Step 5, `pr/SKILL.md:204`) treats PR as satisfied and continues
-     to Done. Step 4's completion report must key its `— already complete` rendering on the resolved
-     start stage, **not** on `completed[]` membership, or it will report a re-run stage as inherited.
+     re-run, since a Build recorded before a re-planned Plan is stale. **Exempt no stage**, PR
+     included: `gh pr create` is not idempotent, but the shape that would re-enter PR has no
+     documented producer, the failure is loud, and the design question it raises belongs in
+     `docs/backlog/` rather than in this rule. Step 4's completion report must key its
+     `— already complete` rendering on the resolved start stage, **not** on `completed[]` membership,
+     or it will report a re-run stage as inherited.
    - **`completed[]` is the authority; `stage` is a hint.** Where they disagree — `stage: "build"`
      with `completed: ["spec", "shape"]` — the run starts at Plan. Give that reasoning: the worst case
      under this rule is redoing a stage that succeeded but was never recorded, which is recoverable,
@@ -390,9 +391,14 @@ Implementation steps:
    six stages ran when only Done did.
 
    Add one bracketed alternative to the template, in the shape the template already uses for
-   `[or "Shape skipped (no-ui)"]`: a stage that was already in `completed[]` at the start of the run
-   renders as **`<Stage> — already complete`** instead of `✓` plus metrics. Add one sentence below the
-   fence stating that only stages this invocation actually executed carry `✓` and metrics.
+   `[or "Shape skipped (no-ui)"]`: a stage **before the resolved start stage** renders as
+   **`<Stage> — already complete`** instead of `✓` plus metrics. Add one sentence below the fence
+   stating that only stages this invocation actually executed carry `✓` and metrics.
+
+   **Key this on position, not on `completed[]` membership.** A stage at or after the entry point
+   executes even if it already appears in `completed[]` (the non-contiguous case above), so a
+   membership test would report work this run really did as inherited — the same falsity in the
+   opposite direction.
 
    **Do not use the word "skipped" in the new form.** The template's existing `Shape skipped (no-ui)`
    already owns that word for a different meaning — a stage the cycle never runs at all, versus one
