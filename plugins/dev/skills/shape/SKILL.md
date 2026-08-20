@@ -222,27 +222,21 @@ git -C "$WORKDIR" commit -m "shape: write design for <feature>"
 This is a **pre-execution gate** — an approval gate whose next stage is the cycle's first execution stage — so it prints the autopilot offer. The two branches governing that, stated in full as they apply here:
 
 - **Branch A — next stage is Shape.** *Unreachable from this gate.* Shape's next stage is always Plan, so the no-offer branch never fires here. It is named rather than dropped so a reader comparing this site to `dev:spec` Step 13 sees the branch was considered.
-- **Branch B — next stage is Plan.** Always taken; the offer prints on every render of this gate.
+- **Branch B — next stage is Plan.** Always taken; the offer prints **once**, in the resume block below the `When approved` write — not on a gate re-display.
 
 ```
 Design written and committed to docs/dev/<feature>/design.md.
 
 Please review it and let me know if you'd like any changes before we move to Plan.
-
-Safe to /clear now — resume with: /dev:plan docs/dev/<feature>/design.md
-Or hand the rest of the cycle to autopilot — Plan → Build → Validate → PR → Done run
-unattended: approve above, then /clear and run
-  /dev:autopilot docs/dev/<feature>/design.md
-[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
+**What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. It prints after the `When approved` state write, which sits **below** the Design Status confirmation — so the confirmation is reached and answered before the offer exists at all. The old concern that the offer might pre-empt that question is not merely still-handled; it is structurally gone. The Design Status confirmation, `Wait for explicit user approval`, and the `When approved` write are unchanged in content and order.
 
-**What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. The Design Status confirmation below and the `Wait for explicit user approval` / `When approved` flow are untouched and still run in their existing order. That matters more here than at the Spec gate, because this gate is followed by a confirmation: since the offer cannot be "accepted," there is no path by which it can pre-empt the Design Status question.
+**The command is not printed until approval is recorded.** The resume line and the offer print below the `When approved` state write, so the operator cannot receive either while `completed[]` lacks `"shape"`, and cannot receive them without having answered the Design Status question first.
 
-**The command is only meaningful after approval.** The offer prints above `Wait for explicit user approval`, so pasting it early resumes autopilot *at Shape* with `stage` still `"shape"` — harmless, but it finishes the shape stage unattended rather than handing off at the execution boundary, and it does so without the Design Status confirmation having been made. The copy tells the user to approve first. No guard, for the same reason as the canonical at `dev:spec` Step 13: a guard would couple the offer to approval state.
+**No guard was added**, for the same reason as the canonical at `dev:spec` Step 13: moving the print below the write removes the state a guard would have had to inspect, so the offer stays uncoupled from approval state.
 
-Because the offer holds no state, a gate re-display after requested changes is idempotent — the same text re-renders.
+Because the gate body holds no state, a re-display after requested changes renders it identically. The resume block is not part of that re-render: it prints once, after approval.
 
 Confirm **Design Status** before moving on: is this design **locked** (Plan and Build must follow it exactly) or **directional** (Plan may adapt specifics)? Record it in the Design Status block so Plan knows how strictly to follow it.
 
@@ -250,4 +244,16 @@ Wait for explicit user approval. If changes requested: update design.md, re-run 
 
 When approved: update state.json — add `"shape"` to `completed[]`, set `stage` to `"plan"`. Commit state update.
 
-**Autopilot mode:** No gate. After self-review, update state and proceed. Because the gate does not render, the autopilot offer never prints here either.
+Then print the resume block:
+
+```
+Safe to /clear now — resume with: /dev:plan docs/dev/<feature>/design.md
+Or hand the rest of the cycle to autopilot — Plan → Build → Validate → PR → Done run
+unattended: /clear now and run
+  /dev:autopilot docs/dev/<feature>/design.md
+[If worktreePath is set: Worktree: <worktreePath>]
+```
+
+Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
+
+**Autopilot mode:** No gate. After self-review, update state and proceed. No approval is taken and no gate renders, so neither the gate body nor the resume block prints here.
