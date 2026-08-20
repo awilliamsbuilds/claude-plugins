@@ -395,9 +395,13 @@ Implementation steps:
    This is not a new stop condition and does not touch the `## Purpose` stop list — it is the report
    line for a run that completed normally, having started partway down its row.
 
-7. Re-read Step 3 top to bottom and confirm it now answers "which stage does this start at" without
-   consulting another skill (success criterion 4). A forward reference to another *step* of this same
-   file is acceptable; a reference to another skill is not.
+7. Re-read Step 3 top to bottom and confirm a reader gets the answer to "which stage does this start
+   at" **without having to open another skill** (success criterion 4). The test is whether the answer
+   *requires* the lookup, not whether citations appear: Step 3 already cites `dev:spec` Step 12 and
+   `spec/SKILL.md:478` in the UI-detection paragraph step 2 preserves verbatim, and step 3's own
+   resolve-once rationale cites `build/SKILL.md:133`. Those are supporting references for reasoning
+   stated in full on the page, and they stay. What must not happen is the rule itself being stated
+   elsewhere and pointed at from here.
 
 ### Task 5: Bind Step 1's announce line and `handoff_at` to the resolved start stage
 
@@ -473,11 +477,14 @@ Implementation steps:
      Build on micro.
    - **The deleted citation.** Replace "A user who pastes the command *before* approving — a path both
      gates document as harmless — legitimately produces `"spec"` or `"shape"` here" with Task 1's
-     replacement sentence: a user who types `/dev:autopilot` at a gate before approving has still
-     handed off there, and the marker records it accurately. The path is no longer *offered* — the
-     command is not printed until approval is recorded — but a user may still type it unprompted, in
-     which case `completed[]` correctly lacks that stage and the resolved start stage is that stage.
-     Do not use the word "harmless."
+     replacement sentence, **stated by cause rather than by route**: `handoff_at` names whatever stage
+     `completed[]` does not yet record, and the marker reports it accurately. Two distinct paths reach
+     a `"spec"`/`"shape"` value and the wording must cover both — (a) a user who types
+     `/dev:autopilot` unprompted at a gate before approving, so `completed[]` lacks that stage; and
+     (b) an **approved Branch A Spec gate on a UI cycle**, where `completed[]` holds only `"spec"` and
+     the earliest unfinished row stage is legitimately Shape. Route (b) is ordinary correct operation,
+     not an early paste, so a clause naming only (a) would read as an anomaly report for the common
+     case. Do not use the word "harmless."
    - **What must not change:** the value domain stays **deliberately open** — any stage name, not an
      enum — and the final sentence about the Validate and PR gates (no offer is printed there, but a
      user who types `/dev:autopilot` has still handed off, and the marker records that stage
@@ -515,9 +522,11 @@ Implementation steps:
 
 2. Edit the sentence at `:328`: "A log that *does* read 'at Shape' or 'at Spec' is not corrupt — it
    records a user who pasted the command before approving the gate, which both gates document as
-   harmless." Keep the first half. Replace the trailing clause so it reads: it records a user who
-   typed `/dev:autopilot` at a gate before approving, which the marker reports accurately. Do not use
-   the word "harmless."
+   harmless." Keep the first half. Replace the trailing clause with a **cause-based** statement
+   matching Task 5 step 6: it records the stage `completed[]` did not yet hold when autopilot took
+   over, which the marker reports accurately. Do not use the word "harmless," and do not narrow it to
+   the early-paste route — an approved Branch A Spec gate on a UI cycle legitimately renders "at
+   Shape," and that is ordinary operation rather than an anomaly.
 
 3. Change nothing else in the region. Specifically, all of these stay exactly as they are:
    - `<Stage>` is the `handoff_at` value capitalized;

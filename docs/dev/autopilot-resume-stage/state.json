@@ -38,9 +38,9 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 1,
+    "blockers": 0,
     "concerns": 2,
-    "applied": 8,
+    "applied": 10,
     "dismissed": 0,
     "loops_run": 2,
     "loops_max": 3
