@@ -623,7 +623,7 @@ Determine the next-stage command the same way as before (Shape if UI needed, Pla
 
 **Whether the autopilot offer prints** is governed by that same next-stage determination — reuse it, do not recompute it. A *pre-execution gate* is one whose next stage is the cycle's first **execution** stage:
 
-- **Branch A — next stage is Shape.** No offer. Shape is definition, not execution, so this gate is not a pre-execution gate; the block below renders byte-identically to today.
+- **Branch A — next stage is Shape.** No offer. Shape is definition, not execution, so this gate is not a pre-execution gate; the resume line printed after approval is the only continuation command this gate hands over.
 - **Branch B — next stage is Plan (`"shape" ∈ skipped[]`) or Build (Micro tier).** Print the offer.
 
 ```
@@ -634,24 +634,15 @@ Spec written and committed to docs/dev/<feature-name>/spec.md.
 [If the verdict has findings: Reply `apply` to take all suggested fixes, apply them selectively, edit directly, or dismiss. — omit this line entirely on a clean verdict; there is nothing to apply.]
 
 Please review it and let me know if you'd like any changes before we continue.
-
-Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
-[If Branch B and the next stage is Plan: Or hand the rest of the cycle to autopilot — Plan → Build
-→ Validate → PR → Done run unattended: approve above, then /clear and run
-  /dev:autopilot docs/dev/<feature-name>/spec.md]
-[If Branch B and the next stage is Build (Micro tier): Or hand the rest of the cycle to autopilot —
-Build → Validate → PR → Done run unattended: approve above, then /clear and run
-  /dev:autopilot docs/dev/<feature-name>/spec.md]
-[If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
+**What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. It prints **after** the `When approved` state write, so a user who wants the gated flow simply ignores the extra line. The approval flow itself — "Wait for explicit user approval," Path A, Path B, and the `When approved` state write — is unchanged in content and order; only what prints after it moved.
 
-**What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. Everything below — "Wait for explicit user approval," Path A, Path B, and the `When approved` state write — is untouched and still runs in its existing order. A user who wants the gated flow simply ignores the extra line.
+**The command is not printed until approval is recorded.** The resume line and the offer print below the `When approved` state write, so the operator cannot receive either one while `completed[]` still lacks `"spec"`. A continuation command is never in the operator's hands before the state it depends on exists.
 
-**The command is only meaningful after approval.** The offer prints above "Wait for explicit user approval," so a user can clear and paste it while `stage` is still `"spec"`. Nothing breaks: autopilot resumes *at Spec*, and the resume-mid-approval check re-enters Step 12a — the cycle just finishes its spec stage unattended instead of handing off at the execution boundary. The copy tells the user to approve first so the intended behavior is the easy one. Do not add a guard; a guard would require the offer to know about approval state, which is the coupling this design avoids.
+**No guard was added.** That constraint is honored, not overridden: moving the print below the write removes the state a guard would have had to inspect, so the offer still knows nothing about approval state — the coupling this design avoids stays avoided.
 
-Because the offer holds no state, a gate re-display after a Path A or Path B revision is idempotent — the same text re-renders.
+Because the gate body holds no state, a Path A or Path B revision re-displays it identically. The resume block is not part of that re-render: it prints once, after approval, so a revision loop never re-renders it.
 
 Wait for explicit user approval. If changes are requested, take the path that matches where the change came from:
 
@@ -676,4 +667,19 @@ The user raising missed edge cases and nuances here (Path B) is exactly the chur
 
 When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage, and carry any pending `challenge.*` writes from Step 12a into this same commit (per Step 12a's "which commit carries the counters"). **If the verdict surfaced findings and the user approved without acting on them, increment `challenge.dismissed` by the number left unactioned before committing** — approving past a finding is declining it, and this is the only path a fully-dismissed verdict takes, since dismissing everything requests no changes and so never reaches Path A. A high `dismissed` is precisely the signal `dev:reflect` reads as "the brief has become noise the user learns to skip." Commit the state update.
 
-**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed. Because the gate does not render, the autopilot offer never prints here either.
+Then print the resume block:
+
+```
+Safe to /clear now — resume with: /dev:<next-stage> docs/dev/<feature-name>/spec.md
+[If Branch B and the next stage is Plan: Or hand the rest of the cycle to autopilot — Plan → Build
+→ Validate → PR → Done run unattended: /clear now and run
+  /dev:autopilot docs/dev/<feature-name>/spec.md]
+[If Branch B and the next stage is Build (Micro tier): Or hand the rest of the cycle to autopilot —
+Build → Validate → PR → Done run unattended: /clear now and run
+  /dev:autopilot docs/dev/<feature-name>/spec.md]
+[If worktreePath is set: Worktree: <worktreePath>]
+```
+
+Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
+
+**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed. No approval is taken and no gate renders, so neither the gate body nor the resume block prints here.
