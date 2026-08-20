@@ -89,6 +89,14 @@ Implementation steps:
    printed after approval is the only continuation command it hands over. Do not otherwise touch
    `:622–627`.
 
+4b. Rewrite the offer's lead-in clause in **both** Branch B lines (`spec:640` for Plan, `spec:643` for
+   Build). Each currently ends `… run unattended: approve above, then /clear and run`. Printed below
+   the `When approved` write, "approve above" instructs the operator to do something they have already
+   done, and contradicts the ordering steps 5–6 of this task assert. Change the clause to
+   `… run unattended: /clear now and run`. The `/dev:autopilot docs/dev/<feature-name>/spec.md`
+   **command line itself is untouched** (`spec:641`, `spec:644`) — only the prose leading into it
+   changes.
+
 5. Rewrite the paragraph titled **"What this offer deliberately does not do"** (`spec:650`). It
    currently claims the offer prints above `Wait for explicit user approval` and that "everything
    below … is untouched." Both are false after step 4. The rewritten paragraph must state:
@@ -199,6 +207,12 @@ Implementation steps:
    Leave the Branch A clause at `shape:224` alone. It says Branch A is unreachable from this gate and
    is named only so a reader comparing this site to `dev:spec` Step 13 sees it was considered — a
    claim the move does not touch.
+
+4b. Rewrite the offer's lead-in clause at `shape:234`, which currently ends `… run unattended: approve
+   above, then /clear and run`. Printed below the `When approved` write, "approve above" tells the
+   operator to do something already done. Change it to `… run unattended: /clear now and run`. The
+   `/dev:autopilot docs/dev/<feature>/design.md` **command line itself is untouched** (`shape:235`).
+   This mirrors Task 1 step 4b, which makes the same edit at `spec:640` and `spec:643`.
 
 5. Rewrite the paragraph titled **"What this offer deliberately does not do"** (`shape:241`). It
    currently argues that because the offer cannot be "accepted," there is no path by which it can
@@ -370,8 +384,13 @@ Implementation steps:
 
    Add one bracketed alternative to the template, in the shape the template already uses for
    `[or "Shape skipped (no-ui)"]`: a stage that was already in `completed[]` at the start of the run
-   renders as **`<Stage> — already complete (skipped)`** instead of `✓` plus metrics. Add one sentence
-   below the fence stating that only stages this invocation actually executed carry `✓` and metrics.
+   renders as **`<Stage> — already complete`** instead of `✓` plus metrics. Add one sentence below the
+   fence stating that only stages this invocation actually executed carry `✓` and metrics.
+
+   **Do not use the word "skipped" in the new form.** The template's existing `Shape skipped (no-ui)`
+   already owns that word for a different meaning — a stage the cycle never runs at all, versus one
+   that ran under a previous invocation. Two senses of "skipped" on adjacent lines of the same report
+   is exactly the ambiguity an operator cannot resolve from the report alone.
 
    This is not a new stop condition and does not touch the `## Purpose` stop list — it is the report
    line for a run that completed normally, having started partway down its row.
@@ -432,9 +451,15 @@ Implementation steps:
    intact: it still fires only when a prior session existed with `mode` reading `"standard"`, and both
    writes still go in the same `state.json` update.
 
-   Keep the surrounding instruction that state is read **before** any stage of this run has executed,
-   and before the `mode` flip. The reason it gives is unchanged — reading after the flip would record
-   the stage autopilot advances to rather than the one it took over at.
+   Keep the surrounding instruction at `:76` that state is read **before** any stage of this run has
+   executed, and before the `mode` flip — that constraint is unchanged and still load-bearing.
+
+   But amend its *justification*. It currently reads "Read `stage` **before** flipping `mode` —
+   reading it after records the stage autopilot advances to rather than the one it took over at."
+   After this task the value no longer comes from `stage`, so that sentence points a reader at the
+   wrong input. Restate it in terms of the field the rule now depends on: read **`completed[]`** before
+   any stage of this run has executed, because a stage this invocation completes would otherwise be
+   counted as one it inherited, and the marker would name a stage the run did not take over at.
 
 5. Leave the second mode branch at `:79` untouched: no prior session, or `mode` already `"autopilot"`
    → do not write `handoff_at` at all; absent is the value.
@@ -526,11 +551,12 @@ Implementation steps:
 
 ## Out of Scope
 
-- **No new stage token.** `/dev:autopilot plan docs/dev/<feature>/spec.md` was declined at spec. No
-  task changes the command text, and no printer site changes its wording — the six printer sites
-  (`spec:641`, `spec:644`, `shape:235`, `dev:252`, `autopilot:50`, `autopilot:179`) and the Component
-  Registry row keep their current text. Tasks 1 and 2 **move** two of those sites within their files;
-  they do not reword them.
+- **No new stage token.** `/dev:autopilot plan docs/dev/<feature>/spec.md` was declined at spec. The
+  six printer sites (`spec:641`, `spec:644`, `shape:235`, `dev:252`, `autopilot:50`, `autopilot:179`)
+  and the Component Registry row keep their **command text** exactly as it stands — no argument, no
+  token, no path change. Tasks 1 and 2 move two of those sites within their files and reword only the
+  **lead-in prose** around them (steps 4b), never the command line itself. `dev:252`, `autopilot:50`,
+  and `autopilot:179` are not touched at all.
 - **No way to force a re-run through autopilot.** To redo a finished stage, invoke that stage's own
   skill.
 - **`/dev`'s jump-to-stage (Step 5a) keeps its re-run hole.** `dev/SKILL.md` is not in the file set.
