@@ -77,3 +77,55 @@ most expensive decision and it was reached by reversal.
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 6fbd82a on branch feature/autopilot-resume-stage
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-20*
+
+**Spec:** 4 challenger blockers against 1 revision, 0 dismissed — the "author's own grounding pass is
+weak, challenger catching it" quadrant, working as designed. The spec caught itself in one place worth
+keeping: its grounding inventory recorded that the open-debt sweep said 10 when the answer was 15,
+because the sweep ran against the pre-expansion file set and was never re-run after `plan` and `done`
+entered scope — `debt-spec-grounding-sweep-file-set-lags-scope` recurring inside the cycle that
+surfaced it. Confidence 100%/Ready was not overconfident: all three auto-filled dimensions survived
+Build unchanged.
+
+**Shape:** Skipped (no-ui) — correctly; the deliverable is five Markdown files.
+
+**Plan:** Challenger ran 2 blocker-driven loops, 10 fixes applied, 0 dismissed. Both blockers were
+real and both would have shipped: the Branch paragraphs whose claims the move falsified (which the
+plan itself instructed Build to leave alone), and the offer copy reading "approve above, then /clear
+and run" printed *below* the approval. A third catch corrected a wrong Registry-ownership citation
+inherited from the spec.
+
+**Validate:** 3 loops / 3 max — reached the cap but exited **clean**, not by exhaustion. The pattern
+that matters: **both Step 2 reviewers returned zero P1/P2 on the build diff.** Every P1/P2 recorded
+this cycle came from a fix-diff cold re-review of a fix the validation stage had just made. Spec and
+Plan did their job; the loop budget was spent on defects validation introduced.
+
+**Flow:** Tier (standard) and no-ui both correct, no unnecessary stages, no backtrack into an earlier
+stage's skill. Two artifact backtracks, both correct and both cheap.
+
+**Token efficiency:** `files_read_in_build` 8, `visual_screens_shown` 0 — no outliers. The 17h spec
+span is an overnight session gap plus the backtrack's `spec_end` re-stamp, not a signal. The three
+fix-diff re-reviews cost ~260k subagent tokens and two of the three returned a real P1/P2 — the cold
+dispatch paid for itself.
+
+**Suggestions:**
+- `dev:validate` Step 4 step 3b should require measuring **every conjunct of a compound claim**, not
+  the conjunct that is easiest to check. This cycle's P1 was one sentence containing two claims; the
+  cheap half (`artifacts.pr_url` exists) was verified and the load-bearing half ("the re-run stages
+  pushed their commits") was not.
+- `dev:validate` Step 4 step 8's **same-region recurrence rule has no severity floor on its autopilot
+  arm**. It says to stop fixing in-region and buffer the remaining findings — but the finding in the
+  circling region here was a **P1**, and buffering it would have shipped a known correctness blocker.
+  The stage escaped only because the region was deleted outright, which the rule does not require.
+- **Scope creep entered through the fix loop.** Loop 1's reviewer flagged PR re-entry as "latent, not
+  live" — explicitly out of scope — and the fix loop implemented it as behavior anyway, then spent two
+  loops getting it wrong. Step 4 classifies P3s as defect-class vs polish but says nothing about a P3
+  that proposes **new behavior outside spec scope**, which should be deferred rather than built where
+  it gets neither spec review nor plan review.
+
+**Deferred to tech debt:** `debt-validate-3b-partial-measurement-of-compound-claims`,
+`debt-same-region-recurrence-no-severity-floor-autopilot`,
+`debt-fix-loop-admits-out-of-scope-behavior-changes` (plus
+`debt-autopilot-pr-re-entry-not-idempotent`, recorded at Validate).
