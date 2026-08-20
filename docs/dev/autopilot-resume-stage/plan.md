@@ -5,6 +5,13 @@ The deliverable is skill prose in five Markdown files. There is no executable ve
 `## Technical Constraints`), so every task names the exact anchor it edits and the exact claim the
 new text must make.
 
+**Line numbers are pre-edit addresses.** Every `file:NNN` in this plan was read against the files as
+they stand before any task runs. Within a task, the numbers cited *after* that task's own cut or
+insert step no longer point where they say — Task 1 removes eight lines before it cites `:650`,
+`:652`, `:654`, `:677`, `:679`. Each anchor is therefore paired with a paragraph title or a verbatim
+quote, and **the title or quote governs**: find the text, not the line. Re-read the file after each
+edit rather than trusting a later number.
+
 ## Files
 
 | File | Action | Purpose |
@@ -12,7 +19,7 @@ new text must make.
 | plugins/dev/skills/spec/SKILL.md | Modify | Step 13 — move the resume block below the `When approved` write; rewrite the three paragraphs that describe its old position (**canonical** for this procedure) |
 | plugins/dev/skills/shape/SKILL.md | Modify | Step 11 — same move, mirror of Task 1; keeps citing `dev:spec` Step 13 as canonical |
 | plugins/dev/skills/plan/SKILL.md | Modify | Step 8 — same move, mirror of Task 1; resume line + `Worktree:` line only, no offer and none of the three paragraphs |
-| plugins/dev/skills/autopilot/SKILL.md | Modify | Step 3 — the start-stage rule; Step 1 — announce line and `handoff_at` bind to the resolved start stage, and the `:81` justification loses the deleted citation |
+| plugins/dev/skills/autopilot/SKILL.md | Modify | Step 3 — the start-stage rule; Step 4 — the completion report marks inherited stages; Step 1 — announce line and `handoff_at` bind to the resolved start stage, and the `:81` justification loses the deleted citation |
 | plugins/dev/skills/done/SKILL.md | Modify | Step 5 (`:328`) — restate the justification that cited the deleted "harmless" claim; rendering behavior unchanged |
 
 Tasks 1–3 (the gate reorder) run before Tasks 4–6 (the consumers). That order is deliberate: the
@@ -70,8 +77,17 @@ Implementation steps:
    > Then print the resume block:
 
    Preserve the block's internal order exactly: resume line, then the Branch A/B offer lines, then
-   the `Worktree:` line **last**. Branch A/B selection is unchanged — it is still the next-stage
-   determination made at `spec:622–627`, which stays where it is at the top of Step 13.
+   the `Worktree:` line **last**. Branch A/B *selection* is unchanged — it is still the next-stage
+   determination made at `spec:622–627`, and that passage keeps its position at the top of Step 13.
+   One clause inside it is rewritten by step 4a below; nothing else in `:622–627` is touched.
+
+4a. Rewrite the Branch A clause at `spec:626`. It currently reads: "**Branch A — next stage is
+   Shape.** No offer. Shape is definition, not execution, so this gate is not a pre-execution gate;
+   the block below renders byte-identically to today." The final clause is false once step 2 cuts
+   eight lines out of that block. Keep the first two sentences; replace "the block below renders
+   byte-identically to today" with a statement that this gate prints **no offer**, so the resume line
+   printed after approval is the only continuation command it hands over. Do not otherwise touch
+   `:622–627`.
 
 5. Rewrite the paragraph titled **"What this offer deliberately does not do"** (`spec:650`). It
    currently claims the offer prints above `Wait for explicit user approval` and that "everything
@@ -108,9 +124,11 @@ Implementation steps:
    resume block prints. The rest of the line (no gate; Step 12a's loop has resolved or escalated;
    update state and notify the orchestrator to proceed) is unchanged.
 
-9. Re-read Step 13 top to bottom and confirm the `completed[]` write now appears **above** the resume
-   command in the step's own text, and that no sentence anywhere in the file still says the offer
-   prints above `Wait for explicit user approval` (success criterion 5).
+9. Re-read Step 13 top to bottom and confirm all four hold: the `completed[]` write now appears
+   **above** the resume command in the step's own text; no sentence anywhere in the file still says
+   the offer prints above `Wait for explicit user approval` (success criterion 5); the Branch A clause
+   at `:626` no longer claims byte-identical rendering; and no remaining sentence describes the resume
+   block as part of what the gate renders.
 
 ### Task 2: Move the Shape gate's resume block below the state write
 
@@ -167,8 +185,20 @@ Implementation steps:
    `shape:251` and above the `**Autopilot mode:**` line at `:253`, introduced with `Then print the
    resume block:`. Preserve internal order: resume line, offer, `Worktree:` line last.
 
-   The Branch A/B paragraphs at `shape:222–225` stay where they are, above the gate body. They govern
-   *whether* the offer prints, not where it prints.
+   The Branch A/B paragraphs at `shape:222–225` keep their position above the gate body — they govern
+   *whether* the offer prints, not where it prints. One clause inside them is rewritten by step 4a
+   below.
+
+4a. Rewrite the Branch B clause at `shape:225`. It currently reads: "**Branch B — next stage is Plan.**
+   Always taken; the offer prints on every render of this gate." The second half is false after step
+   4: a Path-equivalent re-display (the "if changes requested" path at `shape:249`) renders the gate
+   body **without** the resume block. Keep "Always taken"; replace "the offer prints on every render
+   of this gate" with a statement that the offer prints **once**, in the resume block below the
+   `When approved` write — not on a gate re-display.
+
+   Leave the Branch A clause at `shape:224` alone. It says Branch A is unreachable from this gate and
+   is named only so a reader comparing this site to `dev:spec` Step 13 sees it was considered — a
+   claim the move does not touch.
 
 5. Rewrite the paragraph titled **"What this offer deliberately does not do"** (`shape:241`). It
    currently argues that because the offer cannot be "accepted," there is no path by which it can
@@ -203,8 +233,10 @@ Implementation steps:
    from the new position: in autopilot no gate renders and no approval is taken, so neither the gate
    body nor the resume block prints.
 
-9. Re-read Step 11 and confirm the `completed[]` write appears above the resume command, and that no
-   sentence in the file still says the offer prints above `Wait for explicit user approval`.
+9. Re-read Step 11 and confirm all four hold: the `completed[]` write appears above the resume
+   command; no sentence in the file still says the offer prints above `Wait for explicit user
+   approval`; the Branch B clause at `:225` no longer claims the offer prints on every render; and no
+   remaining sentence describes the resume block as part of what the gate renders.
 
 ### Task 3: Move the Plan gate's resume line below the state write
 
@@ -238,7 +270,7 @@ Implementation steps:
 
 1. Read `plugins/dev/skills/plan/SKILL.md` lines 254–287 (Step 8) in full before editing.
 
-2. **Cut** from the fenced gate block at `plan:256–268`:
+2. **Cut** from the fenced gate block at `plan:257–268` (the fence opens at `:257`; `:256` is blank):
    - `Safe to /clear now — resume with: /dev:build docs/dev/<feature>/plan.md` (`:266`)
    - `[If worktreePath is set: Worktree: <worktreePath>]` (`:267`)
 
@@ -266,7 +298,8 @@ Implementation steps:
 ### Task 4: Give `dev:autopilot` Step 3 an explicit start-stage rule
 
 What: Add to `dev:autopilot` Step 3 the rule that a run begins at the earliest stage in the selected
-tier row that is absent from `completed[]`, and runs from there to the end.
+tier row that is absent from `completed[]`, and runs from there to the end — then make Step 4's
+completion report distinguish stages this run executed from stages it inherited as already complete.
 Used by: Every autopilot invocation on a resumed cycle — this is the behavior change the cycle exists
 for. Task 5 reads the value this rule resolves.
 Depends on: Tasks 1, 2, 3 — the rule is keyed on `completed[]`, and is only sound once the three gated
@@ -329,7 +362,21 @@ Implementation steps:
    `dev:plan`'s cross-skill ripple rule applied in the negative direction: no new stopping behavior is
    introduced, so the stop list and every mirror of it stay untouched.
 
-6. Re-read Step 3 top to bottom and confirm it now answers "which stage does this start at" without
+6. Make Step 4's completion report honest about a resumed run. The template at `autopilot:158–171`
+   prints every row stage with a `✓` and a stage-specific metric (`Spec ✓ [confidence: XX%]`,
+   `Validate ✓ [N loops]`). Once this task lets a run start mid-row, those lines assert work the
+   invocation did not do — on success criterion 3's `completed: […, "pr"]` case the report would claim
+   six stages ran when only Done did.
+
+   Add one bracketed alternative to the template, in the shape the template already uses for
+   `[or "Shape skipped (no-ui)"]`: a stage that was already in `completed[]` at the start of the run
+   renders as **`<Stage> — already complete (skipped)`** instead of `✓` plus metrics. Add one sentence
+   below the fence stating that only stages this invocation actually executed carry `✓` and metrics.
+
+   This is not a new stop condition and does not touch the `## Purpose` stop list — it is the report
+   line for a run that completed normally, having started partway down its row.
+
+7. Re-read Step 3 top to bottom and confirm it now answers "which stage does this start at" without
    consulting another skill (success criterion 4). A forward reference to another *step* of this same
    file is acceptable; a reference to another skill is not.
 
@@ -346,8 +393,10 @@ Files: modify `plugins/dev/skills/autopilot/SKILL.md`
 Interfaces:
 - Consumes: **the resolved start stage** from Task 4, by that exact phrase; and Task 1's replacement
   sentence for the early-paste claim.
-- Produces: nothing — no later task reads this file. (`dev:done` Step 5, edited in Task 6, is a
-  consumer of the `handoff_at` *value*, whose domain and rendering this task leaves unchanged.)
+- Produces: **the unchanged `handoff_at` value domain** — the statement that the domain stays open
+  (any stage name, not an enum) and that a gate-stage value is recorded rather than corrected. Task 6
+  consumes it by that name, and its `dev:done` Step 5 sentence must not contradict it. No other task
+  reads this file.
 - State keys: no **new** key. `handoff_at` already exists and keeps its existing
   `(writes: autopilot-only)` mode — this task changes only what value is written, not who writes it or
   when. Do not alter the write-mode annotation at `:78`.
@@ -423,7 +472,8 @@ What: In `dev:done` Step 5, replace the clause citing "which both gates document
 Task 1's replacement sentence. Rendering behavior is unchanged.
 Used by: The reader of a decision log whose `handoff_at` reads `"spec"` or `"shape"`, and the agent
 deciding whether to "correct" it (it must not).
-Depends on: Tasks 1 and 2, which delete the documentation this line cites.
+Depends on: Tasks 1 and 2, which delete the documentation this line cites; and Task 5, whose `:81`
+rewrite this line must not contradict.
 Files: modify `plugins/dev/skills/done/SKILL.md`
 Interfaces:
 - Consumes: Task 1's replacement sentence for the early-paste claim; the unchanged `handoff_at` value
@@ -491,7 +541,9 @@ Implementation steps:
   That stays true after the move — the offer still prints at those gates, just later within them — so
   neither is a sixth file. Checked at plan time by reading both lines; Build must not edit them.
 - **The Component Registry row for `dev:autopilot`** (`CLAUDE.md:29`), which currently says the skill
-  "reads `tier`/`stage` from the resolved `state.json`". Reconciled at Done by `dev:done` Step 4a, as
-  on any cycle — not a Build task.
+  "reads `tier`/`stage` from the resolved `state.json`". Reconciled at Done by `dev:done` **Step 4**,
+  which is that table's sole writer (`done:217`) — **not** Step 4a, which is hard-forbidden from
+  touching it (`done:241`, and invariant #8 at `done:296`). Spec `## Dependencies` cites Step 4a; that
+  citation is wrong and this line corrects it. Either way it is not a Build task.
 - **No test harness.** `backlog-dev-skill-test-harness` tracks that gap and is not paid here.
 - **The other fourteen open backlog items touching these files.** Surfaced at spec Step 7, left open.
