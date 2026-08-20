@@ -14,7 +14,7 @@
   "artifacts": {
     "spec": "docs/dev/autopilot-resume-stage/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/autopilot-resume-stage/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -79,7 +79,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-19T12:34:18Z",
-      "spec_end": "2026-08-20T05:04:38Z"
+      "spec_end": "2026-08-20T05:04:38Z",
+      "plan_start": "2026-08-20T05:07:46Z",
+      "plan_end": "2026-08-20T05:12:30Z"
     }
   },
   "handoff_at": "plan"
