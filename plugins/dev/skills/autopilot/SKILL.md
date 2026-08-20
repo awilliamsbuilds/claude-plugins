@@ -60,7 +60,11 @@ Picking one unattended would run Build, PR and merge on a cycle the user never n
 
 **This STOP is the only thing the multi-hit case changes.** The zero-hit and single-hit paths are untouched for every invocation form, including `/dev:autopilot no-ui` — that argument fails the artifact-path validation above and falls back to this scan exactly as before, beginning from Spec when nothing is in flight and resuming the one hit when something is. Whether Shape is then skipped is settled by `dev:spec` Step 12, per Step 3's **UI vs no-ui detection** rule below.
 
-**Read `tier` and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read both from the `state.json` that `WORKDIR` resolution found, and use them to pick the remaining-stage list in Step 3. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
+**Read `tier`, `skipped[]`, `completed[]`, and `stage` from the resolved `state.json`, not from the request.** On the artifact-path form — and on any resumed session — read them from the `state.json` that `WORKDIR` resolution found. A pasted resume command carries no initial request to infer from, so without this a micro cycle would have no way to select its `Spec → Build → Validate → PR → Done` sequence.
+
+`tier` and `skipped[]` select the stage row; `completed[]` then fixes the entry point within it. Together they yield **the resolved start stage**, per Step 3's **Start stage** rule below — the single statement of it, cited here rather than restated, exactly as this step already defers to Step 3's **UI vs no-ui detection** rule. Both the announce line and `handoff_at` derive from that one value.
+
+On a cold start there is no `state.json`, so `completed[]` is absent and the resolved start stage is **Spec** — Step 1 therefore always has a value, and the rule living in Step 3 creates no ordering problem.
 
 Check for in-progress session. If found:
 
@@ -68,17 +72,23 @@ Check for in-progress session. If found:
 /dev session in progress: <feature-name>
 <stage-status-line>
 
-Resuming from <current-stage> in autopilot mode.
+Resuming from <resolved-start-stage> in autopilot mode.
 ```
+
+`<resolved-start-stage>` is the stage the run will actually start at — the earliest row stage absent from `completed[]` — not the raw `stage` field. The announce and the execution were previously two separate readings of state; deriving them from one value is what keeps the message honest when they diverge.
 
 If no in-progress session: begin from Spec.
 
-Set mode in state.json by these two branches. **Decide which branch applies from the `state.json` that existed when this invocation began** — the one the resolution block found, read before any stage of this run has executed. A `state.json` that this same invocation caused to be created is never a handoff, whatever `mode` it is born with: `dev:spec` Step 6 writes `"mode": "standard"` into every new state file, so re-reading `mode` after Spec has run would see `"standard"` on a cold start and misclassify a pure-autopilot cycle as a handed-off one. Read `stage` **before** flipping `mode` — reading it after records the stage autopilot advances to rather than the one it took over at.
+Set mode in state.json by these two branches. **Decide which branch applies from the `state.json` that existed when this invocation began** — the one the resolution block found, read before any stage of this run has executed. A `state.json` that this same invocation caused to be created is never a handoff, whatever `mode` it is born with: `dev:spec` Step 6 writes `"mode": "standard"` into every new state file, so re-reading `mode` after Spec has run would see `"standard"` on a cold start and misclassify a pure-autopilot cycle as a handed-off one. Read **`completed[]`** before any stage of this run has executed, for the same reason: a stage this invocation completes would otherwise be counted as one it inherited, and the marker would name a stage the run did not take over at.
 
-- **A prior session existed and its `mode` read `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to the value of `stage` **as read before the flip** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
+- **A prior session existed and its `mode` read `"standard"`** — this is a handoff. Set `handoff_at` `(writes: autopilot-only)` to **the resolved start stage** (the stage this invocation is resuming at), then set `mode` to `"autopilot"`. Both writes go in the same state.json update.
 - **A prior session existed and its `mode` already read `"autopilot"`, or there was no prior session** (a fresh cycle this invocation starts from Spec) — set `mode` to `"autopilot"` as today and **do not write `handoff_at` at all.** Absent is the value; do not write `null`, `false`, or an empty string.
 
-`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the **approved** path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro, and not `"spec"`/`"shape"`, because gate approval advances `stage` to the next stage before the user pastes the command. A user who pastes the command *before* approving — a path both gates document as harmless — legitimately produces `"spec"` or `"shape"` here; that is a correct marker for what actually happened, not corruption. The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
+`handoff_at` holds the stage autopilot is resuming at — the first stage that runs unattended. On the **approved** path offered at the Spec and Shape gates that is `"plan"`, or `"build"` on micro: the gate writes its own stage into `completed[]` before the command is printed at all, so the earliest unfinished row stage — and therefore `handoff_at` — is the next one.
+
+Stated by cause rather than by route: **`handoff_at` names whatever stage `completed[]` does not yet record**, and the marker reports it accurately. Two distinct paths reach a `"spec"` or `"shape"` value, and both are correct records rather than corruption — (a) a user who types `/dev:autopilot` unprompted at a gate before approving, so `completed[]` lacks that stage; and (b) an **approved Branch A Spec gate on a UI cycle**, where `completed[]` holds only `"spec"` and the earliest unfinished row stage is legitimately Shape. Route (b) is ordinary correct operation, not an early paste.
+
+The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
 
 **Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:done` Step 5): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
 
