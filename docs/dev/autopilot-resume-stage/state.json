@@ -2,10 +2,14 @@
   "version": "1.0",
   "feature": "autopilot-resume-stage",
   "branch": "feature/autopilot-resume-stage",
-  "mode": "standard",
-  "stage": "spec",
-  "completed": [],
-  "skipped": ["shape"],
+  "mode": "autopilot",
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
+  "skipped": [
+    "shape"
+  ],
   "startedAt": "2026-08-19T12:34:18Z",
   "artifacts": {
     "spec": "docs/dev/autopilot-resume-stage/spec.md",
@@ -18,28 +22,49 @@
   "validate": {
     "loops_run": 0,
     "loops_max": 3,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": []
   },
   "challenge": {
-    "run": true, "blockers": 4, "concerns": 3,
-    "applied": 7, "dismissed": 0,
-    "loops_run": 0, "loops_max": 3
+    "run": true,
+    "blockers": 4,
+    "concerns": 3,
+    "applied": 7,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
   },
   "challenge_plan": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
-    "loops_run": 0, "loops_max": 3
+    "run": false,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 0,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
   },
   "confidence": {
     "final_score": 100,
     "final_level": "Ready",
     "dimensions": {
-      "intent": true, "scope": true, "success_criteria": true,
-      "happy_path": true, "edge_cases": true, "out_of_scope": true,
-      "ui_needed": true, "technical_constraints": true,
-      "audience": true, "dependencies": true
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
     },
-    "auto_filled": ["happy_path", "ui_needed", "dependencies"]
+    "auto_filled": [
+      "happy_path",
+      "ui_needed",
+      "dependencies"
+    ]
   },
   "cycle_type": "feature",
   "tier": "standard",
@@ -56,5 +81,6 @@
       "spec_start": "2026-08-19T12:34:18Z",
       "spec_end": "2026-08-20T05:04:38Z"
     }
-  }
+  },
+  "handoff_at": "plan"
 }
