@@ -57,6 +57,25 @@ at **zero cost** — 0.45.1 retains all 30 skills. This is a machine-local confi
 change; a fresh machine will reproduce the problem until the stale marketplace entry is gone
 everywhere.
 
+**Progress (2026-08-17).** Clause (1) is half done and clause (2) is drafted:
+
+- **Located the actual registration.** The `vercel` marketplace is **not** in `~/.claude/settings.json`
+  — that file held only the disabled plugin entry. The marketplace is registered in
+  `~/.claude/plugins/known_marketplaces.json` (`source: github`, `repo: vercel/vercel-plugin`,
+  `lastUpdated: 2026-04-12`), with state mirrored across `installed_plugins.json` and two cache
+  directories holding **18.6M** (`marketplaces/vercel` 6.6M + `cache/vercel` 12M).
+- **Done:** the orphaned `"vercel-plugin@vercel": false` entry was removed from
+  `~/.claude/settings.json`'s `enabledPlugins`. Safe because plugins require an explicit `true` —
+  absence never enables. Validated: 22 entries remain, `vercel@claude-plugins-official: true` intact.
+- **Still open in (1):** unregistering the marketplace itself. Deliberately **not** hand-edited: the
+  registry, `installed_plugins.json`, and the two cache dirs are coupled state Claude Code owns, and
+  editing them by hand risks desync. The supported action is `/plugin marketplace remove vercel`.
+- **(2) drafted, not filed.** Full bug report written, covering both defects — the lexical-recall boost
+  being applied *after* the `minScore` check (so `minScore` bounds nothing), and trigger terms matching
+  as substrings (`end` inside `append`/`depend`/`recommend`). Also flags the unnormalized `raw 1968.6`
+  pre-cap score and the duplicated term in `allOf [test, end, end]`. Needs filing at
+  `github.com/vercel/vercel-plugin`.
+
 **Done looks like:** two things still open. (1) The `vercel` marketplace entry that supplied 0.32.6 is
 removed rather than left disabled, so it cannot be re-enabled by accident or reappear on another
 machine. (2) The matcher bug is reported upstream — the score line above is the reproduction, and the
