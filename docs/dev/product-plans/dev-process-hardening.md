@@ -66,7 +66,7 @@ the cycle must decide explicitly whether the merge-tail ones are deferred or dro
 ## Milestone 4: Persistent project context
 - [ ] project-scoped-worktree (feature, deep)
 
-Source: `backlog-project-context-lost-between-cycles`.
+Sources: `backlog-project-context-lost-between-cycles`, `debt-plan-item-cycles-never-set-product-plan`.
 
 Blocked by everything above — it changes the identity of the cycle directory from `<feature>` to a
 plan slug, so **12 files** that hardcode `.dev-worktrees/<feature>/` or `.dev-worktrees/*/` all move
@@ -78,6 +78,18 @@ sharing one worktree need different branches checked out, and whether several cy
 Worth stating plainly: **this milestone fixes the problem that made this plan necessary.** The item
 records the user losing track of which milestone is current and unintentionally skipping order — which
 this plan is itself exposed to until Milestone 4 lands.
+
+**The second source is in scope and must be disposed of explicitly.**
+`debt-plan-item-cycles-never-set-product-plan` is the machine-readable half of the same failure: a
+cycle that is a milestone item never sets `state.json.product_plan`, so `dev:done` Step 3 skips the
+check-off and the plan under-reports its own progress. This bit on `autopilot-resume-stage`, whose box
+had to be ticked by hand after the fact. Putting the plan slug in the cycle directory's identity would
+very likely fix it as a side effect — but the first source's "Done looks like" speaks only to what a
+*human* can see across a session boundary, so this milestone could satisfy that criterion in full and
+still leave the check-off broken. **Its spec must either adopt this item as in-scope or state why it
+stays open** — the two cheaper owners named in the item (`/dev` Step 6 forwarding the chosen plan
+path, or a `dev:spec` path (C) that adopts a plan by matching feature name) remain available if this
+milestone declines it.
 
 ---
 
