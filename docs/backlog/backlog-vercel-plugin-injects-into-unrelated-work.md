@@ -67,7 +67,7 @@ everywhere.
 - **Done:** the orphaned `"vercel-plugin@vercel": false` entry was removed from
   `~/.claude/settings.json`'s `enabledPlugins`. Safe because plugins require an explicit `true` —
   absence never enables. Validated: 22 entries remain, `vercel@claude-plugins-official: true` intact.
-- **Still open in (1):** unregistering the marketplace itself. Deliberately **not** hand-edited: the
+- **Then open in (1):** unregistering the marketplace itself. Deliberately **not** hand-edited: the
   registry, `installed_plugins.json`, and the two cache dirs are coupled state Claude Code owns, and
   editing them by hand risks desync. The supported action is `/plugin marketplace remove vercel`.
 - **(2) drafted, not filed.** Full bug report written, covering both defects — the lexical-recall boost
@@ -76,9 +76,19 @@ everywhere.
   pre-cap score and the duplicated term in `allOf [test, end, end]`. Needs filing at
   `github.com/vercel/vercel-plugin`.
 
-**Done looks like:** two things still open. (1) The `vercel` marketplace entry that supplied 0.32.6 is
-removed rather than left disabled, so it cannot be re-enabled by accident or reappear on another
-machine. (2) The matcher bug is reported upstream — the score line above is the reproduction, and the
+**Clause (1) complete — verified 2026-08-20.** `/plugin marketplace remove vercel` was run, and the
+coupled state is clean on all four surfaces: `known_marketplaces.json` holds five marketplaces with no
+`vercel` among them; `marketplaces/vercel` and `cache/vercel` (the 18.6M) are both gone;
+`installed_plugins.json`'s only vercel-related key is `vercel@claude-plugins-official`; and
+`settings.json` carries `vercel@claude-plugins-official: true` across 22 entries. The `vercel:*` skills
+still listed in a session are served from `cache/claude-plugins-official/vercel` — the wanted copy —
+so their presence is not evidence the removal failed.
+
+  Recorded because the check is not obvious: the 2026-08-17 progress note above was written before the
+  removal and read as still-open for three days afterwards, and was committed on 2026-08-20 without
+  being re-verified against the actual state.
+
+**Done looks like:** one thing still open. (2) The matcher bug is reported upstream — the score line above is the reproduction, and the
 substantive complaint is that a lexical-recall boost can override the matcher's own `minScore`, and
 that trigger terms match as fragments inside unrelated English. Reporting it matters beyond this
 machine: 0.45.1 unhooked the injector but the scoring code is still shipped, so anything that
