@@ -39,8 +39,10 @@ Read once:
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
 - `metrics.spec_revisions` — how many times spec.md was revised after its first draft: the user's changes at the standard-mode gate, plus autopilot's silent backtracks
-- `challenge.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the cold review's findings and their disposition. **A missing `challenge` block means the challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
-- `challenge_plan.run` / `blockers` / `concerns` / `applied` / `dismissed` / `loops_run` — the **plan** cold review's findings and disposition, read separately from `challenge.*` (which is the spec net). **A missing `challenge_plan` block means the plan challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
+- `challenge.run` / `blockers` / `concerns` / `applied` / `applied_concerns` / `dismissed` / `loops_run` — the cold review's findings and their disposition. **A missing `challenge` block means the challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
+- `challenge_plan.run` / `blockers` / `concerns` / `applied` / `applied_concerns` / `dismissed` / `loops_run` — the **plan** cold review's findings and disposition, read separately from `challenge.*` (which is the spec net). **A missing `challenge_plan` block means the plan challenger did not run** (the cycle predates the feature) — read it as "did not run," not as an error and not as a zero-finding run.
+- **A missing `applied_concerns` key, in either namespace, reads as "not recorded" — never as `0`.** It is the same rule as the missing-block semantics above, one level down: cycles predating this counter are not retrofitted, and reading absence as zero would report every concern fix they made as blocker-driven. `applied_concerns` is the concern-driven share of `applied`, so blocker-driven fixes are `applied - applied_concerns` — a subtraction that is only meaningful when the key was actually recorded.
+- **A `null` counter means "no verdict returned this round," distinct from `0` meaning "a round ran and found nothing."** `blockers` and `concerns` are the two that can hold `null`: a challenger dispatch that errored sets them `null` rather than leaving the previous round's numbers standing. Read `null` as absence of a measurement, and never average, sum, or compare it as if it were zero.
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
 - `validate.loops_run` / `validate.loops_max`
@@ -66,6 +68,7 @@ Analyze the cycle across these dimensions. Note findings briefly — one sentenc
   | high | high | Step 7 grounding is weak upstream; both nets catching spillover |
 
 - `challenge.dismissed` is the instrument that reveals whether the challenger has become noise the user learns to skip. A cycle where nearly everything was dismissed is a signal about the brief, not about the spec.
+- `challenge.applied_concerns` attributes the churn: it says how much of `applied` the *non-fatal* findings caused, with the remainder (`applied - applied_concerns`) blocker-driven. It answers "what was this cycle's revision effort actually spent on," not "was that too much" — report the split, and read a large concern share alongside `loops_run` and `spec_revisions` rather than as a finding on its own.
 - **This reading is qualitative — do not introduce numeric thresholds.** No real distribution of these counters exists yet, so any cutoff would be guesswork presented as a finding.
 - Did the confidence score (final_score) reflect actual clarity? Cross-check it against `spec_revisions` and any mid-build plan updates — a high score with high churn means the score was overconfident, not that the spec was good.
 - Were auto-filled dimensions `confidence.auto_filled[]` correct? (If they caused problems in Build → auto-fill was wrong)
@@ -79,7 +82,7 @@ Analyze the cycle across these dimensions. Note findings briefly — one sentenc
 **Plan quality:**
 - Were there unplanned tasks added during Build? (plan.md updated mid-build → plan was underspecified)
 - Was the sequence right? (No task ordering problems in Build → good)
-- The plan challenger's disposition: what `challenge_plan.blockers` / `concerns` caught (coverage gaps, sequencing errors, interface mismatches the self-review missed), and `challenge_plan.dismissed` as the "has the plan challenger become noise the user skips" signal — the plan-stage analogue of the spec reading above. Keep it qualitative — **no numeric thresholds** (no distribution of these counters exists yet).
+- The plan challenger's disposition: what `challenge_plan.blockers` / `concerns` caught (coverage gaps, sequencing errors, interface mismatches the self-review missed), and `challenge_plan.dismissed` as the "has the plan challenger become noise the user skips" signal — the plan-stage analogue of the spec reading above. `challenge_plan.applied_concerns` attributes the plan's revision effort the same way `challenge.applied_concerns` does for the spec: the concern-driven share of `challenge_plan.applied`, with the remainder blocker-driven. Keep it qualitative — **no numeric thresholds** (no distribution of these counters exists yet).
 
 **Validate efficiency:**
 - Loops run vs. max: `validate.loops_run` / `validate.loops_max`
