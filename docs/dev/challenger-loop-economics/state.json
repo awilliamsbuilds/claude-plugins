@@ -3,11 +3,12 @@
   "feature": "challenger-loop-economics",
   "branch": "feature/challenger-loop-economics",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,7 +18,7 @@
     "spec": "docs/dev/challenger-loop-economics/spec.md",
     "design": null,
     "plan": "docs/dev/challenger-loop-economics/plan.md",
-    "validation": null,
+    "validation": "docs/dev/challenger-loop-economics/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -28,7 +29,7 @@
     "p2_open": [],
     "p3_open": [],
     "nits_open": [
-      "plan-challenger errored dispatch has no defined handling (scoped out by spec; backlog candidate)"
+      "plan-challenger-errored-dispatch-undefined \u2014 recorded to debt-pending.md (Step 5a)"
     ]
   },
   "challenge": {
@@ -83,7 +84,9 @@
       "plan_start": "2026-08-22T22:28:35Z",
       "plan_end": "2026-08-22T22:32:38Z",
       "build_start": "2026-08-22T22:42:41Z",
-      "build_end": "2026-08-22T22:48:38Z"
+      "build_end": "2026-08-22T22:48:38Z",
+      "validate_start": "2026-08-22T22:48:56Z",
+      "validate_end": "2026-08-22T23:05:11Z"
     }
   },
   "handoff_at": "plan"
