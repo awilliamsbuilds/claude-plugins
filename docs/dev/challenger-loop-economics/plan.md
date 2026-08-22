@@ -18,8 +18,8 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `plugins/dev/skills/spec/SKILL.md` | Modify | Step 12a: Blocker/Concern definitions, exit-as-consequence, drafting-history prohibition, errored-dispatch rule, `applied_concerns` semantics; Step 13 Path A: one new increment line; state.json template: new key in both blocks |
-| `plugins/dev/skills/plan/SKILL.md` | Modify | Step 7a: divergence sentence below the Output contract, `challenge_plan.applied_concerns` semantics, SC5-invariant bullet extended; Step 8 Path A: one new increment line |
+| `plugins/dev/skills/spec/SKILL.md` | Modify | Step 12a: Blocker/Concern definitions + worked example, exit-as-consequence, drafting-history prohibition, errored-dispatch rule, `applied_concerns` semantics; Step 1 resume check + Step 13 Path A: one line each; state.json template: new key in both blocks |
+| `plugins/dev/skills/plan/SKILL.md` | Modify | Step 7a: divergence sentence below the Output contract, `challenge_plan.applied_concerns` semantics, invariant bullet extended; Step 1 resume check + Step 8 Path A: one line each |
 | `plugins/dev/skills/autopilot/SKILL.md` | Modify | Spec- and plan-challenger sections gain the counter split and the errored-dispatch rule; `## Purpose` stop list gains the twice-errored dispatch |
 | `plugins/dev/skills/reflect/SKILL.md` | Modify | Reads `applied_concerns` in both namespaces; `null` counter semantics |
 | `CLAUDE.md` | Modify | Component Registry rows for `dev:spec`, `dev:autopilot`, `dev:plan`, `dev:reflect` |
@@ -44,7 +44,8 @@ Implementation steps:
 3. Replace the **Concern** bullet — currently *"worth flagging, not fatal"* — with "everything else worth flagging: a finding a builder can act on or ignore without shipping something broken." Give one concrete example drawn from a real class of finding, e.g. a duplicate section label or an imprecise line range.
 4. Do **not** add a third severity, a numeric threshold, or a "kind" field. The class has two members and the file has two severities.
 5. Leave the **Scope-blocker exception** paragraph byte-unchanged — member (b) is exactly what it keys on, so it keeps working with no edit.
-6. Leave the `Verdict format:` fenced block's shape unchanged (`Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅`); this task changes what earns a `⛔`, not how one renders.
+6. **Fix the worked example, which currently teaches the opposite of the new definition.** The `Verdict format:` fenced block is the file's only worked classification example, and its second entry reads `⚠️ Concern (scope) — §Scope / "Retry/backoff may be its own cycle. Seam: ship send-path first."` — a right-sizing finding, which is exactly Blocker member (b), the class that bypasses the loop and STOPs immediately. Re-label it `⛔ Blocker (scope)` and change the header counter from `Scope ⚠️1` to `Scope ⛔1`. Then add a short `⚠️ Concern` entry of the widened kind — a bookkeeping finding such as a duplicate section label — so the block still demonstrates both symbols and, between them, both members of the Blocker class and the widened Concern.
+7. Change nothing else about the block: same fence, same header line shape (`Clarity … · Consistency … · Scope … · Grounding …`), same three-line entry format. This task changes what earns a `⛔`, not how one renders.
 
 ### Task 2: State the loop exit as a consequence of the definitions
 What: Add one sentence to Step 12a saying the loop's exit follows from Task 1's definitions plus the existing "concerns never extend the loop" rule — no new step, test, or severity concept.
@@ -86,6 +87,7 @@ Interfaces:
 - Consumes: nothing
 - Produces: the STOP condition **"a challenger dispatch errored twice"** — the exact behavior Task 10 adds to `dev:autopilot`'s `## Purpose` stop list, and the `null` counter values Task 11's reflect prose reads.
 - State keys: no new key. `challenge.blockers` and `challenge.concerns` gain a third legal value, `null`, alongside their existing integers. Their write mode is unchanged — `(writes: both)`, per Step 12a's existing counter semantics.
+- Shared procedure: **the errored-dispatch rule.** This task is the **canonical** statement; Task 9 restates the loop-bookkeeping half in `dev:autopilot`. Say so in the prose so the duplication is named at both ends, matching the repo's convention.
 
 Implementation steps:
 1. Insert a new bolded paragraph in `## Step 12a: Cold Review`, immediately **after** the `**Re-run rule.**` paragraph and **before** `**Counter-write semantics.**`, so it sits directly above where the counters it sets are defined.
@@ -141,7 +143,8 @@ Implementation steps:
 3. Edit Step 13 Path A accordingly. It currently reads `- increment challenge.applied by the number of findings applied`; insert directly after it `- increment challenge.applied_concerns by the number of those findings that were Concerns`. **This is the only edit Step 13 takes for this counter** — add no other statement there, and do not touch the surrounding Path A/Path B structure.
 4. State the purpose in one clause so the counter is not mistaken for a severity: the split exists so concern-driven growth is **attributable** — on the cycle that produced this item, nobody could say how much of the 346-line growth concerns caused.
 5. Leave the existing `**Reading `applied` in autopilot.**` paragraph's claim intact — `applied` is still "fixes the challenger caused," not "blockers found." Extend it only to note that `applied_concerns` is what makes that reading checkable rather than inferred.
-6. Do **not** make concerns loop-extending. Concerns stay foldable and never extend the loop (Task 2's rule); this task changes the **instrument**, not the behavior.
+6. Extend Step 1's **Resume-mid-approval check**, which enumerates which counters survive a resumed gate. It currently reads *"Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward."* Change the second clause to name all three cumulative counters: `applied`, `applied_concerns`, and `dismissed` carry forward. An enumeration that silently omits the new counter is how a resumed cycle loses its attribution.
+7. Do **not** make concerns loop-extending. Concerns stay foldable and never extend the loop (Task 2's rule); this task changes the **instrument**, not the behavior.
 
 **Does not collide with Task 4.** Task 4's step 7 pins "do not edit Step 13," which is about not adding a *gate-rendering variant* for the errored-dispatch STOP. Step 3 here edits Path A's counter list, a different concern in a different part of Step 13. Both hold.
 
@@ -183,7 +186,8 @@ Implementation steps:
 3. Edit Step 8 Path A accordingly. It currently reads `- increment challenge_plan.applied by the number of findings applied`; insert directly after it `- increment challenge_plan.applied_concerns by the number of those findings that were Concerns`. **This is the only edit Step 8 takes for this counter** — add no other statement there, and do not touch the surrounding Path A/Path B structure.
 4. Extend Step 7a's existing invariant bullet — the one reading *"The SC5 invariant holds by construction: no counter's non-default autopilot value depends on a gate write — `applied` has an autopilot-path writer here (the revision loop), and `dismissed`'s autopilot-correct value is its init default `0`"* — to name `applied_concerns` as also having an autopilot-path writer (the revision loop). Extend the **enumeration only**; leave the `SC5` label alone, since it refers to a prior cycle's criterion. An enumeration that silently omits a third counter is how the next editor concludes the invariant was never checked for it.
 5. Add the one-clause deference: this is the same rule as `dev:spec` Step 12a's, which governs both challengers — named by step, not line.
-6. This task carries the **counter shape** change only. It must not touch Step 7a's Blocker definition (Task 7's step 2 pins that byte-unchanged), and it must not import Step 12a's build-breaking bar by reference.
+6. Extend Step 1's **Resume-mid-approval check** in this file, which carries its own copy of the surviving-counter enumeration: *"Per Step 7a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward."* Change the second clause to name all three cumulative counters: `applied`, `applied_concerns`, and `dismissed` carry forward.
+7. This task carries the **counter shape** change only. It must not touch Step 7a's Blocker definition (Task 7's step 2 pins that byte-unchanged), and it must not import Step 12a's build-breaking bar by reference.
 
 ### Task 9: Carry the counter split and the errored-dispatch rule into `dev:autopilot`'s challenger sections
 What: Update `dev:autopilot` Step 2's spec-challenger and plan-challenger paragraphs so the loop they describe writes `applied_concerns` and does not count an errored dispatch as an iteration.
@@ -194,7 +198,7 @@ Interfaces:
 - Consumes: Task 4's errored-dispatch rule; Task 6's and Task 8's `applied` / `applied_concerns` branch structure.
 - Produces: nothing — terminal for the autopilot loop-body thread.
 - State keys: `challenge.applied_concerns` `(writes: both)`, `challenge_plan.applied_concerns` `(writes: both)` — introduced by Task 5; this task states the autopilot-side write for both.
-- Shared procedure: **counter-write semantics for the `applied` / `applied_concerns` pair.** This task is a **summary restatement**, not a third independent definition: `dev:spec` Step 12a (Task 6) is **canonical** and `dev:plan` Step 7a (Task 8) is its **mirror**. Say so in the prose and cite Step 12a by step name, so an editor reading `autopilot/SKILL.md` alone can see where the rule is owned — the repo's convention is that duplication is named at **both** ends.
+- Shared procedure: **two of them, both restatements.** (1) **Counter-write semantics for the `applied` / `applied_concerns` pair** — a summary restatement, not a third independent definition: `dev:spec` Step 12a (Task 6) is **canonical** and `dev:plan` Step 7a (Task 8) is its **mirror**. (2) **The errored-dispatch rule** — Task 4 in Step 12a is **canonical**; this task restates only its loop-bookkeeping half. Name both relationships in the prose and cite Step 12a by step name, so an editor reading `autopilot/SKILL.md` alone can see where each rule is owned — the repo's convention is that duplication is named at **both** ends.
 
 Implementation steps:
 1. In `**Spec challenger: bounded revision loop.**` (currently ~line 139), extend the existing sentence *"`applied` therefore counts blocker and concern fixes alike; `loops_run` is the blocker-driven number"* so it also names `applied_concerns`: a concern fix increments both `applied` and `applied_concerns`; a blocker fix increments `applied` only; blocker-driven fixes are the difference.
