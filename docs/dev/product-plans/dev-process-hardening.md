@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 2/5*
+*Created: 2026-08-17 · Cycles completed: 3/5*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -39,7 +39,7 @@ saved 2 of 4 validate loops on the cycle that produced it, and this repo is enti
 fires almost every cycle.
 
 ## Milestone 2: Challenger economics
-- [ ] challenger-loop-economics (feature)
+- [x] challenger-loop-economics (feature)
 
 Source: `debt-spec-challenger-loop-lacks-blocker-kind-exit`, plus one open question folded in.
 
