@@ -18,8 +18,8 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `plugins/dev/skills/spec/SKILL.md` | Modify | Step 12a: Blocker/Concern definitions, exit-as-consequence, drafting-history prohibition, errored-dispatch rule, `applied_concerns` semantics; state.json template: new key in both blocks |
-| `plugins/dev/skills/plan/SKILL.md` | Modify | Step 7a: divergence sentence below the Output contract; `challenge_plan.applied_concerns` semantics |
+| `plugins/dev/skills/spec/SKILL.md` | Modify | Step 12a: Blocker/Concern definitions, exit-as-consequence, drafting-history prohibition, errored-dispatch rule, `applied_concerns` semantics; Step 13 Path A: one new increment line; state.json template: new key in both blocks |
+| `plugins/dev/skills/plan/SKILL.md` | Modify | Step 7a: divergence sentence below the Output contract, `challenge_plan.applied_concerns` semantics, SC5-invariant bullet extended; Step 8 Path A: one new increment line |
 | `plugins/dev/skills/autopilot/SKILL.md` | Modify | Spec- and plan-challenger sections gain the counter split and the errored-dispatch rule; `## Purpose` stop list gains the twice-errored dispatch |
 | `plugins/dev/skills/reflect/SKILL.md` | Modify | Reads `applied_concerns` in both namespaces; `null` counter semantics |
 | `CLAUDE.md` | Modify | Component Registry rows for `dev:spec`, `dev:autopilot`, `dev:plan`, `dev:reflect` |
@@ -110,7 +110,7 @@ Files: `plugins/dev/skills/spec/SKILL.md` (modify)
 Interfaces:
 - Consumes: nothing
 - Produces: the state.json key `applied_concerns` (integer, initialized `0`) in **both** the `challenge` and `challenge_plan` blocks — the key Task 6's semantics, Task 8's mirrored semantics, Task 9's autopilot loops, and Task 11's reflect reads all name.
-- State keys: `challenge.applied_concerns` `(writes: both)` and `challenge_plan.applied_concerns` `(writes: both)`. Both mirror the write mode of the existing `applied` counter they sit beside: the autopilot revision loop writes them (Task 6 / Task 8 / Task 9), and in standard mode the existing gate path writes them under the counter-write semantics Tasks 6 and 8 extend. Neither counter's non-default autopilot value depends on a gate write, so the SC5 invariant Step 12a already states holds by construction.
+- State keys: `challenge.applied_concerns` `(writes: both)` and `challenge_plan.applied_concerns` `(writes: both)`. Both mirror the write mode of the existing `applied` counter they sit beside: the autopilot revision loop writes them (Task 6 / Task 8 / Task 9), and in standard mode each gate's **Path A increment list** writes them — a list that enumerates its counters explicitly, so Tasks 6 and 8 each add the missing line rather than assuming coverage. Neither counter's non-default autopilot value depends on a gate write, so the invariant stated in **`dev:plan` Step 7a's counter bullet** ("no counter's *non-default* autopilot value depends on a gate write") continues to hold. Note that bullet's `SC5` label refers to a **prior cycle's** success criterion, not this cycle's errored-dispatch SC5; Task 8 extends the bullet's enumeration without touching that label.
 
 Implementation steps:
 1. Locate the state.json template fenced block in `plugins/dev/skills/spec/SKILL.md` (currently ~line 219, in the state-initialization step).
@@ -137,10 +137,13 @@ Implementation steps:
    - **A fix landed for a Concern** increments `applied` **and** `applied_concerns`.
    - Therefore blocker-driven fixes are `applied - applied_concerns`, and `applied` keeps its current meaning as the total. No fix increments `applied_concerns` without also incrementing `applied`.
    - **Autopilot:** the revision loop writes both itself, per iteration — there is no gate.
-   - **Standard:** the Step 13 gate's Path A write covers both under this same rule, exactly as it already does for `applied`. Do not add a second statement in Step 13.
-3. State the purpose in one clause so the counter is not mistaken for a severity: the split exists so concern-driven growth is **attributable** — on the cycle that produced this item, nobody could say how much of the 346-line growth concerns caused.
-4. Leave the existing `**Reading `applied` in autopilot.**` paragraph's claim intact — `applied` is still "fixes the challenger caused," not "blockers found." Extend it only to note that `applied_concerns` is what makes that reading checkable rather than inferred.
-5. Do **not** make concerns loop-extending. Concerns stay foldable and never extend the loop (Task 2's rule); this task changes the **instrument**, not the behavior.
+   - **Standard:** the Step 13 gate's Path A list writes both. That list enumerates its counters explicitly, so it does **not** cover `applied_concerns` by inheritance — step 3 below adds the line.
+3. Edit Step 13 Path A accordingly. It currently reads `- increment challenge.applied by the number of findings applied`; insert directly after it `- increment challenge.applied_concerns by the number of those findings that were Concerns`. **This is the only edit Step 13 takes for this counter** — add no other statement there, and do not touch the surrounding Path A/Path B structure.
+4. State the purpose in one clause so the counter is not mistaken for a severity: the split exists so concern-driven growth is **attributable** — on the cycle that produced this item, nobody could say how much of the 346-line growth concerns caused.
+5. Leave the existing `**Reading `applied` in autopilot.**` paragraph's claim intact — `applied` is still "fixes the challenger caused," not "blockers found." Extend it only to note that `applied_concerns` is what makes that reading checkable rather than inferred.
+6. Do **not** make concerns loop-extending. Concerns stay foldable and never extend the loop (Task 2's rule); this task changes the **instrument**, not the behavior.
+
+**Does not collide with Task 4.** Task 4's step 7 pins "do not edit Step 13," which is about not adding a *gate-rendering variant* for the errored-dispatch STOP. Step 3 here edits Path A's counter list, a different concern in a different part of Step 13. Both hold.
 
 ### Task 7: Add the divergence sentence below Step 7a's Output contract
 What: Add one sentence of adjacent prose to `dev:plan` Step 7a naming why its Blocker definition diverges from Step 12a's — interpretive vs. mechanical lenses — while leaving the Blocker bullet byte-unchanged.
@@ -176,9 +179,11 @@ Implementation steps:
    - **A fix landed for a Concern** increments `challenge_plan.applied` **and** `challenge_plan.applied_concerns`.
    - Blocker-driven fixes are `applied - applied_concerns`; no fix increments `applied_concerns` without also incrementing `applied`.
    - **Autopilot:** the revision loop writes both itself, per iteration.
-   - **Standard:** the Step 8 gate's Path A write covers both under this same rule. Do not add a second statement in Step 8.
-3. Add the one-clause deference: this is the same rule as `dev:spec` Step 12a's, which governs both challengers — named by step, not line.
-4. This task carries the **counter shape** change only. It must not touch Step 7a's Blocker definition (Task 7's step 2 pins that byte-unchanged), and it must not import Step 12a's build-breaking bar by reference.
+   - **Standard:** the Step 8 gate's Path A list writes both. That list enumerates its counters explicitly, so it does **not** cover `applied_concerns` by inheritance — step 3 below adds the line.
+3. Edit Step 8 Path A accordingly. It currently reads `- increment challenge_plan.applied by the number of findings applied`; insert directly after it `- increment challenge_plan.applied_concerns by the number of those findings that were Concerns`. **This is the only edit Step 8 takes for this counter** — add no other statement there, and do not touch the surrounding Path A/Path B structure.
+4. Extend Step 7a's existing invariant bullet — the one reading *"The SC5 invariant holds by construction: no counter's non-default autopilot value depends on a gate write — `applied` has an autopilot-path writer here (the revision loop), and `dismissed`'s autopilot-correct value is its init default `0`"* — to name `applied_concerns` as also having an autopilot-path writer (the revision loop). Extend the **enumeration only**; leave the `SC5` label alone, since it refers to a prior cycle's criterion. An enumeration that silently omits a third counter is how the next editor concludes the invariant was never checked for it.
+5. Add the one-clause deference: this is the same rule as `dev:spec` Step 12a's, which governs both challengers — named by step, not line.
+6. This task carries the **counter shape** change only. It must not touch Step 7a's Blocker definition (Task 7's step 2 pins that byte-unchanged), and it must not import Step 12a's build-breaking bar by reference.
 
 ### Task 9: Carry the counter split and the errored-dispatch rule into `dev:autopilot`'s challenger sections
 What: Update `dev:autopilot` Step 2's spec-challenger and plan-challenger paragraphs so the loop they describe writes `applied_concerns` and does not count an errored dispatch as an iteration.
@@ -189,6 +194,7 @@ Interfaces:
 - Consumes: Task 4's errored-dispatch rule; Task 6's and Task 8's `applied` / `applied_concerns` branch structure.
 - Produces: nothing — terminal for the autopilot loop-body thread.
 - State keys: `challenge.applied_concerns` `(writes: both)`, `challenge_plan.applied_concerns` `(writes: both)` — introduced by Task 5; this task states the autopilot-side write for both.
+- Shared procedure: **counter-write semantics for the `applied` / `applied_concerns` pair.** This task is a **summary restatement**, not a third independent definition: `dev:spec` Step 12a (Task 6) is **canonical** and `dev:plan` Step 7a (Task 8) is its **mirror**. Say so in the prose and cite Step 12a by step name, so an editor reading `autopilot/SKILL.md` alone can see where the rule is owned — the repo's convention is that duplication is named at **both** ends.
 
 Implementation steps:
 1. In `**Spec challenger: bounded revision loop.**` (currently ~line 139), extend the existing sentence *"`applied` therefore counts blocker and concern fixes alike; `loops_run` is the blocker-driven number"* so it also names `applied_concerns`: a concern fix increments both `applied` and `applied_concerns`; a blocker fix increments `applied` only; blocker-driven fixes are the difference.
