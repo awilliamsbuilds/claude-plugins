@@ -617,6 +617,16 @@ Clarity ⛔1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
 
+**An errored dispatch is not an iteration.** When a dispatch returns an error rather than a verdict — the subagent fails, the harness refuses, the reviewer returns something that is not a verdict — do **not** advance `challenge.loops_run`, and set `challenge.blockers` and `challenge.concerns` to `null` rather than leaving the previous round's values standing. **Retry once** — once per stage, not once per round. A **second** error **STOPs** the stage and surfaces the failure.
+
+`null` is a third value distinct from `0`: `0` means a round ran and found nothing, `null` means no round produced a verdict. `challenge.run` is unaffected by an error — it records whether *any* dispatch this stage returned a verdict, so a clean round followed by an errored one leaves it `true`. `run: false` alongside `blockers: null` is the shape meaning no dispatch ever returned.
+
+**This rule is not mode-split.** It holds identically in standard and autopilot, matching `dev:validate`'s **"A reviewer that cannot run stops the stage"** — the same question, answered the same way, rather than a second answer invented here. In standard mode the STOP costs almost nothing to recover from: `spec.md` is already committed and `stage` is still `"spec"`, so re-running `/dev:spec` re-enters here through Step 1's **resume-mid-approval check**, which already treats a resumed gate as a new gate arrival and re-dispatches. No new re-entry mechanism is needed, and none may be added.
+
+**Step 13's gate does not render on a STOP.** There is no "could not run" gate variant. Letting the gate render without a verdict would invite approving a spec that got no cold review at all — the exact condition this step exists to prevent — so no path approves a spec whose cold review never returned.
+
+This step is **canonical** for the errored-dispatch rule. `dev:autopilot`'s spec-challenger section restates its loop-bookkeeping half; the reasoning above is not duplicated there.
+
 **Counter-write semantics.**
 - Set `challenge.run` to `true`, and `challenge.blockers` / `challenge.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
 - `challenge.applied` `(writes: both)` and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes both at the gate. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge.applied` by the number of fixes it applied — **blocker and concern fixes alike**, since both are changes the challenger caused. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
