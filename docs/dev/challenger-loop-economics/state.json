@@ -3,8 +3,8 @@
   "feature": "challenger-loop-economics",
   "branch": "feature/challenger-loop-economics",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": ["spec"],
   "skipped": ["shape"],
   "startedAt": "2026-08-21T01:57:45Z",
   "artifacts": {
