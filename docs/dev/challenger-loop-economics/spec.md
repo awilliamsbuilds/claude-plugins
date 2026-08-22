@@ -1,5 +1,5 @@
 # Challenger Loop Economics
-*Branch: feature/challenger-loop-economics · Confidence: 90% — Ready · 2026-08-22*
+*Branch: feature/challenger-loop-economics · Confidence: 100% — Ready · 2026-08-22*
 *Cycle type: feature · Tier: standard*
 
 ## Intent
@@ -14,6 +14,9 @@ Three consequences follow, and this cycle settles all of them together because e
 the same twenty lines of `spec/SKILL.md`: splitting them across cycles means three cycles re-editing
 one region.
 
+The loop is already gated on blockers existing — a round returning zero blockers ends it today. What
+it lacks is a test of what *kind* of blocker keeps it going.
+
 ## Scope
 
 Four changes, all to `/dev`'s own process prose.
@@ -23,6 +26,13 @@ Four changes, all to `/dev`'s own process prose.
 requirement reads two ways, sections contradict, a load-bearing claim is unverified, in-scope spans
 two cycles."* That is broader than the bar the loop should run against. Tighten it, and widen Concern
 to absorb what falls out.
+
+**The right-sizing class survives the tightening unchanged.** A finding that in-scope spans more than
+one cycle does not make a builder ship something broken, so the tightened bar alone would demote it to
+a Concern — and a Concern can never STOP. That would silently delete Step 12a's scope-blocker
+exception, which bypasses the loop and STOPs immediately, and which this cycle's Out of Scope
+reasoning depends on. Blocker is therefore defined as a two-member class: the build-breaking bar, plus
+the existing right-sizing criterion carried over verbatim.
 
 The exit rule is a **consequence of this change, not a new mechanism.** Step 12a already states that
 concerns are "never loop-extending" — never a reason to run another iteration, re-dispatch, or STOP.
@@ -43,8 +53,18 @@ already shows what each round changed. Only "why draft 2 was wrong" is discarded
 **3. An errored dispatch is not an iteration.**
 When a dispatch returns an error instead of a verdict: do not advance `challenge.loops_run`, and set
 `challenge.blockers` / `challenge.concerns` to `null` rather than leaving the previous round's values
-in place. Retry once. A second error STOPs and surfaces the failure — the same shape as
-`dev:validate`'s "A reviewer that cannot run stops the stage."
+in place. Retry once. A second error STOPs and surfaces the failure.
+
+**The STOP is not mode-split.** `dev:validate`'s "A reviewer that cannot run stops the stage" applies
+in both modes, and this rule matches it rather than inventing a second answer to the same question. A
+standard-mode STOP costs almost nothing to recover from: `spec.md` is already committed, `stage` is
+still `"spec"`, so re-running `/dev:spec` re-enters at Step 12a through the resume-mid-approval check
+that already exists. Letting the Step 13 gate render without a verdict would instead invite approving
+a spec that got no cold review at all — the exact condition Step 12a exists to prevent.
+
+`null` is a third value distinct from `0`: `0` means a round ran and found nothing, `null` means no
+round produced a verdict. `challenge.run` is unaffected by an error — it records whether any dispatch
+this stage returned a verdict, so a clean round followed by an errored one leaves it `true`.
 
 **4. `applied` splits so concern-driven growth is attributable.**
 Concerns stay foldable in autopilot — the existing rationale holds, and nothing measured disproves it.
@@ -72,10 +92,12 @@ the total, so blocker-driven fixes are `applied - applied_concerns`.
   of the incident cycle caught load-bearing defects — early rounds earn their keep.
 - **`debt-cross-file-line-citations-go-stale-silently`.** 37 `file:line` citations exist across 6
   skills; 5 sit in this cycle's edit surface, one already broken (`autopilot/SKILL.md:149` cites
-  `spec/SKILL.md:478`, which today reads `## Happy Path`). This cycle edits `spec/SKILL.md` at
-  ~556–690, below line 478, so it breaks **zero new** citations. Folding it in would be opportunistic
-  rather than caused by this work, and the item's own "Done looks like" is a contract decision across
-  a dozen skills.
+  `spec/SKILL.md:478`, which today reads `## Happy Path`). This cycle's only edit above line 478 is
+  the state.json template at ~219; the sole citation into `spec/SKILL.md` below that point is `:478`,
+  already broken, and the only other citation into the file (`fix/SKILL.md:363` → `spec/SKILL.md:161`)
+  sits above the template and is unaffected. **Zero new citations break.** Folding it in would be
+  opportunistic rather than caused by this work, and the item's own "Done looks like" is a contract
+  decision across a dozen skills.
 - **Persisting the challenger verdict text.** Out of scope; `spec/SKILL.md:51` already documents that
   it is not persisted and this cycle does not change that.
 - **Numeric thresholds for the new counter in `dev:reflect`.** No distribution exists yet, matching
@@ -84,27 +106,36 @@ the total, so blocker-driven fixes are `applied - applied_concerns`.
 
 ## Success Criteria
 
-1. `dev:spec` Step 12a's Output contract defines **Blocker** as a finding where a builder following
-   the spec literally ships something broken, and **Concern** as everything else worth flagging. Both
-   definitions carry at least one concrete example drawn from a real class of finding.
+1. `dev:spec` Step 12a's Output contract defines **Blocker** as either (a) a finding where a builder
+   following the spec literally ships something broken, or (b) a right-sizing finding that in-scope
+   spans more than one cycle — the existing scope-blocker class, carried over unchanged — and
+   **Concern** as everything else worth flagging. Both definitions carry at least one concrete example
+   drawn from a real class of finding.
 2. Step 12a states in one sentence that the loop's exit is a consequence of those definitions plus the
    existing "concerns never extend the loop" rule. **No separate exit step, exit test, or second
    severity concept is added.**
-3. `dev:plan` Step 7a's Blocker definition is byte-unchanged, and gains one sentence naming why it
-   diverges from Step 12a's — interpretive vs mechanical lenses.
+3. `dev:plan` Step 7a's Blocker definition bullet is byte-unchanged. One sentence naming why it
+   diverges from Step 12a's — interpretive vs mechanical lenses — is added as **adjacent prose below
+   the Output contract block**, not inside the bullet.
 4. Step 12a states the drafting-history prohibition, and the rule explicitly distinguishes drafting
    history from product reasoning, naming `## Out of Scope` as unaffected.
 5. An errored dispatch does not advance `challenge.loops_run` and sets `challenge.blockers` /
-   `challenge.concerns` to `null`. One retry; a second error STOPs.
+   `challenge.concerns` to `null`. One retry; a second error STOPs. **This rule is stated once and is
+   not mode-split** — it holds identically in standard and autopilot, matching `dev:validate`'s
+   "A reviewer that cannot run stops the stage."
 6. `dev:autopilot`'s "When autopilot stops" list names the twice-errored challenger dispatch.
-7. In standard mode an errored dispatch renders the Step 13 gate with a "cold review could not run —
-   `<reason>`" line in place of the verdict, and `challenge.run` stays `false`. Approval is not blocked.
+7. Step 12a states that a standard-mode STOP is recovered by re-running `/dev:spec`, which re-enters
+   at Step 12a via the Step 1 resume-mid-approval check. The Step 13 gate does **not** render on a
+   STOP — there is no "could not run" gate variant, and no path approves a spec whose cold review
+   never returned a verdict.
 8. `spec/SKILL.md`'s state.json template initializes `applied_concerns: 0` in **both** the `challenge`
    and `challenge_plan` blocks.
 9. Step 12a's and Step 7a's counter-write semantics each state which fixes increment `applied` and
    which additionally increment `applied_concerns`.
-10. `dev:reflect` reads `applied_concerns` and treats a missing key as "not recorded" — matching its
-    existing missing-block semantics — never as `0`.
+10. `dev:reflect` reads **both** `challenge.applied_concerns` and `challenge_plan.applied_concerns`,
+    in the two namespaces it already reads separately, and treats a missing key as "not recorded" —
+    matching its existing missing-block semantics — never as `0`. It also documents `null` counters as
+    "no verdict returned this round," distinct from `0` meaning "a round ran and found nothing."
 11. **No counter is renamed or removed.** Every state.json written before this cycle stays readable by
     every reader this cycle touches.
 12. `CLAUDE.md`'s Component Registry rows for `dev:spec`, `dev:autopilot`, `dev:plan`, and
@@ -126,11 +157,14 @@ The autopilot run this cycle is trying to produce:
 
 ## Edge Cases
 
-- **Errored dispatch.** Covered by scope item 3. The retry is once, not per-round.
-- **Scope blockers are untouched.** The right-sizing lens keeps producing Blockers under its own
-  criterion, and Step 12a's scope-blocker exception still bypasses the loop and STOPs immediately. A
-  scope blocker therefore never reaches the exit rule and cannot interact with it. The tightened
-  definition must be worded so this stays true.
+- **Errored dispatch.** Covered by scope item 3. The retry is once, not per-round, and the STOP is
+  identical in both modes.
+- **Scope blockers are untouched.** SC1 defines Blocker as a two-member class precisely so the
+  right-sizing criterion survives; Step 12a's scope-blocker exception still bypasses the loop and
+  STOPs immediately. A scope blocker therefore never reaches the exit rule and cannot interact with it.
+- **`challenge.run` after a mixed sequence.** A clean round 1 followed by an errored round 2 leaves
+  `run: true` — it records whether any dispatch returned a verdict this stage, not whether the last
+  one did. `run: false` alongside `blockers: null` is the shape meaning no dispatch ever returned.
 - **A reviewer that mis-classifies severity defeats the exit.** Accepted, deliberately: option
   "tighten the definition" was chosen over "tighten and add a backstop test" because a backstop
   reintroduces the second severity concept SC2 forbids. The failure is visible at Reflect — high
@@ -173,4 +207,4 @@ No.
 
 ---
 *Auto-filled dimensions: none*
-*Grounding inventory: `spec/SKILL.md:603` + `autopilot/SKILL.md:139` → loop bounded by count only, no kind test anywhere; `spec/SKILL.md:612` → `blockers` overwritten per dispatch, nothing clears it; `spec/SKILL.md:616` → `loops_run` increments unconditionally on a verdict returning; grep `rationale|justif|explain` across `spec/SKILL.md` → **zero hits**, inverting the assumption that an instruction exists to amend; `grep -rn 'challenge\.' plugins/` → readers are exactly `spec`, `plan`, `autopilot`, `reflect` (the `humanize` hit is the English word); `docs/decisions/2026-08-17-extract-review-skills.md:3` → "Handed off to autopilot at Spec", confirming `loops_run: 5` came from the autopilot loop; sweep of `docs/decisions/` for plan-challenger outcomes → blockers 0, 1, 1, 0, 0 with one early exit at 2/3, so the runaway is spec-only; `done/SKILL.md:355` → `rm -rf "$WORKDIR/docs/dev/<feature>/"`, so `spec.md` does not survive the cycle; `done/SKILL.md:313` → decision log's Key Decisions generated from `spec.md`/`plan.md`, so product reasoning is already durable; `validate/SKILL.md:121` → "A reviewer that cannot run stops the stage" precedent; `validate/SKILL.md:236-243` → same-region recurrence + converging-cascade exemption, the repo's existing kind-based loop rule; `sed -n '478p' spec/SKILL.md` → `## Happy Path`, confirming `autopilot/SKILL.md:149`'s citation is broken today.*
+*Grounding inventory: `spec/SKILL.md:603` + `autopilot/SKILL.md:139` → loop bounded by count only, no kind test anywhere; `spec/SKILL.md:612` → `blockers` overwritten per dispatch, nothing clears it; `spec/SKILL.md:616` → `loops_run` "increments per autopilot iteration", with no condition that a verdict returned — so an errored round advances it; grep `rationale|justif|explain` across `spec/SKILL.md` → **zero hits**, inverting the assumption that an instruction exists to amend; `grep -rn 'challenge\.' plugins/` → readers are exactly `spec`, `plan`, `autopilot`, `reflect` (the `humanize` hit is the English word); `docs/decisions/2026-08-17-extract-review-skills.md:3` → "Handed off to autopilot at Spec", confirming `loops_run: 5` came from the autopilot loop; sweep of `docs/decisions/` for plan-challenger outcomes → blockers 0, 1, 1, 0, 0 with one early exit at 2/3, so the runaway is spec-only; `done/SKILL.md:355` → `rm -rf "$WORKDIR/docs/dev/<feature>/"`, so `spec.md` does not survive the cycle; `done/SKILL.md:313` → decision log's Key Decisions generated from `spec.md`/`plan.md`, so product reasoning is already durable; `validate/SKILL.md:121` → "A reviewer that cannot run stops the stage" precedent; `validate/SKILL.md:236-243` → same-region recurrence + converging-cascade exemption, the repo's existing kind-based loop rule; `sed -n '478p' spec/SKILL.md` → `## Happy Path`, confirming `autopilot/SKILL.md:149`'s citation is broken today.*
