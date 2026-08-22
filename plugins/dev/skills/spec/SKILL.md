@@ -579,23 +579,28 @@ Deliberately excluded: this session's conversation history, and `state.json`'s c
 
 Runs on all tiers. **All four lenses always run — Micro shortens the brief and the verdict, it does not drop a lens.**
 
-**Output contract.** Two severities:
-- **Blocker** — cannot stand as written: a requirement reads two ways, sections contradict, a load-bearing claim is unverified, in-scope spans two cycles.
-- **Concern** — worth flagging, not fatal.
+**Output contract.** Two severities. **Blocker is a two-member class** — a finding is a Blocker if it satisfies either member, and nothing else qualifies:
+
+- **Blocker (a) — build-breaking.** A builder following this spec literally ships something broken. Example: a requirement that reads two ways, so two builders shipping it faithfully ship different behavior; or a load-bearing as-is claim that is false, so the work rests on a wrong premise.
+- **Blocker (b) — right-sizing.** What is *in* scope spans more than one build cycle. Example: the spec's Scope section describes a send path and a retry/backoff subsystem, either of which is a cycle on its own. This member is what the **Scope-blocker exception** below keys on.
+- **Concern** — everything else worth flagging: a finding a builder can act on or ignore without shipping something broken. Example: a duplicate section label, an imprecise line range, a paragraph that would read better reordered.
 
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean.** A reviewer that always finds something trains the user to skip it. Do not manufacture findings to appear useful.
 
 Verdict format:
 ```
 ## Cold Review — <feature>
-Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅
+Clarity ⛔1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 ⛔ Blocker (clarity) — §Success Criteria
    "notify the user" reads two ways: email or in-app.
    Suggested: "notify via in-app toast."
 
-⚠️ Concern (scope) — §Scope
-   Retry/backoff may be its own cycle. Seam: ship send-path first.
+⛔ Blocker (scope) — §Scope
+   Retry/backoff is its own cycle. Seam: ship send-path first.
+
+⚠️ Concern (clarity) — §Edge Cases
+   "Timeout" labels two different cases. Suggested: rename the second "Stale read."
 ```
 
 **Mode behaviour — standard: advisory.** The verdict renders at the Step 13 gate, above the approval prompt. Nothing is auto-applied; the user decides. A forced pre-gate revision would resolve judgment calls by the reviewer's taste rather than the user's and hide the disagreement behind an already-clean spec, with no upside, because the decision-maker is present. In standard mode `challenge.loops_run` stays `0` — the loop is an autopilot-only mechanism.
