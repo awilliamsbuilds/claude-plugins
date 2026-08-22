@@ -227,6 +227,8 @@ Deliberately excluded: this session's conversation history and `state.json`. Bot
 - **Blocker** — cannot stand as written: a spec requirement is uncovered, a task depends on a later task's output, an interface name/type is inconsistent across tasks.
 - **Concern** — worth flagging, not fatal.
 
+This Blocker definition deliberately diverges from `dev:spec` Step 12a's build-breaking bar, and the divergence is not an oversight to reconcile: the plan's three lenses are **mechanical** (coverage, sequencing, interfaces) while the spec's are **interpretive**, which is why severity inflated there and not here — so rewording these precise mechanical tests into build-breaking language would only make them vaguer.
+
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean — do not manufacture findings.** A reviewer that always finds something trains the user to skip it.
 
 Verdict format:
