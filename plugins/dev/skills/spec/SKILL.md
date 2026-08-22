@@ -48,7 +48,7 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
-**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied`, `applied_concerns`, and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
 
 **Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
 1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
@@ -629,9 +629,17 @@ This step is **canonical** for the errored-dispatch rule. `dev:autopilot`'s spec
 
 **Counter-write semantics.**
 - Set `challenge.run` to `true`, and `challenge.blockers` / `challenge.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
-- `challenge.applied` `(writes: both)` and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes both at the gate. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge.applied` by the number of fixes it applied — **blocker and concern fixes alike**, since both are changes the challenger caused. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- `challenge.applied` `(writes: both)`, `challenge.applied_concerns` `(writes: both)`, and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes them at the gate. In autopilot there is no gate, so the revision loop writes `applied` and `applied_concerns` itself: each iteration increments `challenge.applied` by the number of fixes it applied — **blocker and concern fixes alike**, since both are changes the challenger caused. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- **Which counter a fix increments** — the full branch structure, in both modes:
+  - a fix landed for a **Blocker** increments `applied` **only**;
+  - a fix landed for a **Concern** increments `applied` **and** `applied_concerns`;
+  - so blocker-driven fixes are `applied - applied_concerns`, `applied` keeps its existing meaning as the total, and no fix ever increments `applied_concerns` without also incrementing `applied`.
+  - **Autopilot:** the revision loop writes both itself, per iteration.
+  - **Standard:** Step 13's Path A increment list writes both. That list enumerates its counters explicitly, so it does not cover `applied_concerns` by inheritance — it names the counter directly.
 
-**Reading `applied` in autopilot.** It is "fixes the challenger caused," not "blockers found." A high `applied` against `blockers: 0` is the healthy shape — it means the reviewer's non-fatal catches were absorbed cheaply — so `dev:reflect` must not read it as blocker volume. Pair it with `loops_run` for that: loops are what blockers actually drive.
+  The split exists so concern-driven growth is **attributable**: with one merged number, a cycle whose spec grew by hundreds of lines cannot say how much of that growth concerns caused. `applied_concerns` is an attribution instrument, not a third severity — it changes what is measured, never what extends the loop.
+
+**Reading `applied` in autopilot.** It is "fixes the challenger caused," not "blockers found." A high `applied` against `blockers: 0` is the healthy shape — it means the reviewer's non-fatal catches were absorbed cheaply — so `dev:reflect` must not read it as blocker volume. Pair it with `loops_run` for that: loops are what blockers actually drive. `applied_concerns` is what makes that reading checkable rather than inferred — it says outright how much of `applied` was concern-driven.
 - `challenge.loops_run` `(writes: autopilot-only)` increments per autopilot iteration; unused in standard mode.
 
 **Which commit carries the counters.** Step 12a does **not** commit. It updates `state.json` in place; the write is carried by the next commit Step 13 makes (the `spec: apply challenger fixes for <feature-name>` commit, or the approval commit that adds `"spec"` to `completed[]`). In autopilot, each revision-loop commit carries them. Do not create a separate commit here.
@@ -668,6 +676,7 @@ Wait for explicit user approval. If changes are requested, take the path that ma
 **Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
 - update `spec.md` with the accepted suggested fixes
 - increment `challenge.applied` by the number of findings applied
+- increment `challenge.applied_concerns` by the number of those findings that were Concerns
 - increment `challenge.dismissed` by the number of surfaced findings the user declined
 - re-stamp `metrics.stage_timestamps.spec_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` again)
 - **do not** increment `metrics.spec_revisions`
