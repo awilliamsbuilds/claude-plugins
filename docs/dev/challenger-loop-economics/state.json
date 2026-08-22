@@ -3,9 +3,10 @@
   "feature": "challenger-loop-economics",
   "branch": "feature/challenger-loop-economics",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
