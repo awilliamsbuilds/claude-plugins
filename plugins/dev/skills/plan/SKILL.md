@@ -51,7 +51,7 @@ Read `docs/dev/<feature>/state.json` first. Check:
 - If `artifacts.spec` is null: STOP — "Plan requires spec.md. Run /dev:spec first."
 - If mode is not `no-ui` and `skipped` does not include `"shape"` and `artifacts.design` is null: STOP — "Plan requires design.md. Run /dev:shape first, or use /dev:plan with no-ui mode."
 
-**Resume-mid-approval check:** if `plan.md` already exists for this feature and `state.json.stage` is still `"plan"` (the plan was written but never approved — e.g. a `/clear` happened while waiting at Step 8), skip straight to **Step 7a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 7a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward. Do not re-run Steps 2–7 from scratch.
+**Resume-mid-approval check:** if `plan.md` already exists for this feature and `state.json.stage` is still `"plan"` (the plan was written but never approved — e.g. a `/clear` happened while waiting at Step 8), skip straight to **Step 7a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 7a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied`, `applied_concerns`, and `dismissed` carry forward. Do not re-run Steps 2–7 from scratch.
 
 Read once, work from this throughout:
 - `docs/dev/<feature>/spec.md`
@@ -227,6 +227,8 @@ Deliberately excluded: this session's conversation history and `state.json`. Bot
 - **Blocker** — cannot stand as written: a spec requirement is uncovered, a task depends on a later task's output, an interface name/type is inconsistent across tasks.
 - **Concern** — worth flagging, not fatal.
 
+This Blocker definition deliberately diverges from `dev:spec` Step 12a's build-breaking bar, and the divergence is not an oversight to reconcile: the plan's three lenses are **mechanical** (coverage, sequencing, interfaces) while the spec's are **interpretive**, which is why severity inflated there and not here — so rewording these precise mechanical tests into build-breaking language would only make them vaguer.
+
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean — do not manufacture findings.** A reviewer that always finds something trains the user to skip it.
 
 Verdict format:
@@ -240,13 +242,19 @@ Coverage ✅ · Sequencing ⛔1 · Interfaces ✅
 
 **Mode behaviour — standard: advisory.** The verdict renders at the Step 8 gate, above the approval prompt. Nothing is auto-applied; the user decides. In standard mode `challenge_plan.loops_run` stays `0` — the loop is an autopilot-only mechanism.
 
-**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge_plan.loops_max` (standard 3 / deep 5 — micro never reaches Plan), re-dispatching on the revised `plan.md` each iteration, incrementing `challenge_plan.loops_run` per iteration and `challenge_plan.applied` by the fixes each iteration lands. Concerns are counted in `challenge_plan.concerns`; autopilot **may** fold a concern's fix into an iteration it is already running, but a concern may never extend the loop, re-dispatch it, or halt it — see `dev:spec` Step 12a's "Concerns: countable, foldable, never loop-extending," which governs both challengers. **Single stop path:** blockers surviving the cap → STOP and request human input. **There is NO scope-blocker bypass class** — unlike `dev:spec` Step 12a, all three plan lenses produce text-fixable findings, so every blocker goes through the loop and the only STOP is "blockers survive the cap." (The rare "plan reveals two cycles" case still halts via this single path — spec Out of Scope.) This mirrors `dev:autopilot` Step 2's matching rule.
+**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge_plan.loops_max` (standard 3 / deep 5 — micro never reaches Plan), re-dispatching on the revised `plan.md` each iteration, incrementing `challenge_plan.loops_run` per iteration and `challenge_plan.applied` (with `challenge_plan.applied_concerns` for the concern-driven share) by the fixes each iteration lands. Concerns are counted in `challenge_plan.concerns`; autopilot **may** fold a concern's fix into an iteration it is already running, but a concern may never extend the loop, re-dispatch it, or halt it — see `dev:spec` Step 12a's "Concerns: countable, foldable, never loop-extending," which governs both challengers. **Single stop path:** blockers surviving the cap → STOP and request human input. **There is NO scope-blocker bypass class** — unlike `dev:spec` Step 12a, all three plan lenses produce text-fixable findings, so every blocker goes through the loop and the only STOP is "blockers survive the cap." (The rare "plan reveals two cycles" case still halts via this single path — spec Out of Scope.) This mirrors `dev:autopilot` Step 2's matching rule.
 
 **Counter-write semantics.**
 - Set `challenge_plan.run` to `true`, and `challenge_plan.blockers` / `challenge_plan.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
-- `challenge_plan.applied` `(writes: both)` and `challenge_plan.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 8's gate writes both. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge_plan.applied` by the number of fixes it applied — **blocker and concern fixes alike**, per `dev:spec` Step 12a's counter semantics, which govern both challengers. `challenge_plan.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- `challenge_plan.applied` `(writes: both)`, `challenge_plan.applied_concerns` `(writes: both)`, and `challenge_plan.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 8's gate writes them. In autopilot there is no gate, so the revision loop writes `applied` and `applied_concerns` itself: each iteration increments `challenge_plan.applied` by the number of fixes it applied — **blocker and concern fixes alike**, per `dev:spec` Step 12a's counter semantics, which govern both challengers. `challenge_plan.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- **Which counter a fix increments** — this is the same rule as `dev:spec` Step 12a's, which is **canonical** and governs both challengers; it is restated here in full rather than referenced, so the plan side cannot drift from it:
+  - a fix landed for a **Blocker** increments `challenge_plan.applied` **only**;
+  - a fix landed for a **Concern** increments `challenge_plan.applied` **and** `challenge_plan.applied_concerns`;
+  - so blocker-driven fixes are `applied - applied_concerns`, `applied` keeps its existing meaning as the total, and no fix ever increments `applied_concerns` without also incrementing `applied`.
+  - **Autopilot:** the revision loop writes both itself, per iteration.
+  - **Standard:** Step 8's Path A increment list writes both. That list enumerates its counters explicitly, so it does not cover `applied_concerns` by inheritance — it names the counter directly.
 - `challenge_plan.loops_run` `(writes: autopilot-only)` increments per autopilot iteration; unused in standard mode.
-- The SC5 invariant holds by construction: no counter's *non-default* autopilot value depends on a gate write — `applied` has an autopilot-path writer here (the revision loop), and `dismissed`'s autopilot-correct value is its init default `0`.
+- The SC5 invariant holds by construction: no counter's *non-default* autopilot value depends on a gate write — `applied` and `applied_concerns` both have an autopilot-path writer here (the revision loop), and `dismissed`'s autopilot-correct value is its init default `0`.
 
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
 
@@ -269,6 +277,7 @@ Wait for explicit user approval. If changes are requested, take the path that ma
 **Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
 - update `plan.md` with the accepted suggested fixes
 - increment `challenge_plan.applied` by the number of findings applied
+- increment `challenge_plan.applied_concerns` by the number of those findings that were Concerns
 - increment `challenge_plan.dismissed` by the number of surfaced findings the user declined
 - commit:
   ```bash

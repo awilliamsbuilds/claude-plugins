@@ -48,7 +48,7 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
-**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied` and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied`, `applied_concerns`, and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
 
 **Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
 1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
@@ -218,12 +218,12 @@ Initialize `docs/dev/<feature-name>/state.json`:
   },
   "challenge": {
     "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "applied": 0, "applied_concerns": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "challenge_plan": {
     "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "applied": 0, "applied_concerns": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "confidence": {
@@ -579,40 +579,70 @@ Deliberately excluded: this session's conversation history, and `state.json`'s c
 
 Runs on all tiers. **All four lenses always run — Micro shortens the brief and the verdict, it does not drop a lens.**
 
-**Output contract.** Two severities:
-- **Blocker** — cannot stand as written: a requirement reads two ways, sections contradict, a load-bearing claim is unverified, in-scope spans two cycles.
-- **Concern** — worth flagging, not fatal.
+**Output contract.** Two severities. **Blocker is a two-member class** — a finding is a Blocker if it satisfies either member, and nothing else qualifies:
+
+- **Blocker (a) — build-breaking.** A builder following this spec literally ships something broken. Example: a requirement that reads two ways, so two builders shipping it faithfully ship different behavior; or a load-bearing as-is claim that is false, so the work rests on a wrong premise.
+- **Blocker (b) — right-sizing.** What is *in* scope spans more than one build cycle. Example: the spec's Scope section describes a send path and a retry/backoff subsystem, either of which is a cycle on its own. This member is what the **Scope-blocker exception** below keys on.
+- **Concern** — everything else worth flagging: a finding a builder can act on or ignore without shipping something broken. Example: a duplicate section label, an imprecise line range, a paragraph that would read better reordered.
+
+The autopilot loop's exit follows from these two definitions plus the existing **Concerns: countable, foldable, never loop-extending** rule below — the loop is already gated on blockers existing, so tightening what counts as one is the whole mechanism, and there is no separate exit step, exit test, or second severity concept anywhere in this stage.
 
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean.** A reviewer that always finds something trains the user to skip it. Do not manufacture findings to appear useful.
 
-Verdict format:
+Verdict format. **The header tallies every finding, per lens** — `⛔N` for that lens's blockers, `⚠️N` for its concerns, `✅` only where the lens found nothing at all. A lens that produced both shows both, as Clarity does below. A concern is never invisible in the header: a verdict of zero blockers and five concerns must not render as four `✅`s above five real findings.
+
 ```
 ## Cold Review — <feature>
-Clarity ⛔1 · Consistency ✅ · Scope ⚠️1 · Grounding ✅
+Clarity ⛔1 ⚠️1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 ⛔ Blocker (clarity) — §Success Criteria
    "notify the user" reads two ways: email or in-app.
    Suggested: "notify via in-app toast."
 
-⚠️ Concern (scope) — §Scope
-   Retry/backoff may be its own cycle. Seam: ship send-path first.
+⛔ Blocker (scope) — §Scope
+   Retry/backoff is its own cycle. Seam: ship send-path first.
+
+⚠️ Concern (clarity) — §Edge Cases
+   "Timeout" labels two different cases. Suggested: rename the second "Stale read."
 ```
 
 **Mode behaviour — standard: advisory.** The verdict renders at the Step 13 gate, above the approval prompt. Nothing is auto-applied; the user decides. A forced pre-gate revision would resolve judgment calls by the reviewer's taste rather than the user's and hide the disagreement behind an already-clean spec, with no upside, because the decision-maker is present. In standard mode `challenge.loops_run` stays `0` — the loop is an autopilot-only mechanism.
 
-**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` by the fixes each iteration lands. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
+**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` (with `challenge.applied_concerns` for the concern-driven share) by the fixes each iteration lands. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
 
 **Concerns: countable, foldable, never loop-extending.** Concerns are counted in `challenge.concerns`. Autopilot **may** apply a concern's suggested fix within an iteration it is already running — and should, when the fix is mechanical and the alternative is the same defect resurfacing at Validate, where it costs a full fix loop instead of a line. What a concern may **never** do is extend the loop: a concern is never a reason to run another iteration, never a reason to re-dispatch, and never a reason to STOP. That bound is what the cap protects, and it is untouched. In standard mode nothing is auto-applied at all — the decision-maker is present, and Step 13's gate hands them every finding.
+
+**A revision replaces text; it does not narrate drafts.** `spec.md` carries no drafting history. A revision **replaces** the text it corrects — it never appends an account of what an earlier draft got wrong, why draft 2 differs from draft 1, or what the challenger caught. The line is drawn at **drafting history**, not at reasoning: `## Out of Scope` explaining why something is excluded is *product reasoning about the feature* and is unaffected, as is any other reasoning about what the thing being built should do. Only the account of how this file got to its current wording is prohibited. Nothing is lost by dropping it — `dev:done`'s decision-log step already generates Key Decisions from `spec.md` and `plan.md`, so product reasoning is durable past the cycle, and `git log -p` on the spec already shows what each round changed. This rule is not mode-split: it holds identically in autopilot's revision loop and in the standard-mode gate's Path A and Path B edits.
 
 **Scope-blocker exception.** A right-sizing blocker is not text-fixable — a cycle cannot be split by editing prose. Scope blockers bypass the revision loop and STOP immediately in autopilot. The loop handles only clarity, consistency, and grounding. In standard mode a scope blocker is advisory like any other finding, and acting on it means rescoping through Step 4's decomposition path (a product plan), not an inline edit.
 
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
 
+**An errored dispatch is not an iteration.** When a dispatch returns an error rather than a verdict — the subagent fails, a dispatch is refused, the reviewer returns something that is not a verdict — do **not** advance `challenge.loops_run`, and set `challenge.blockers` and `challenge.concerns` to `null` rather than leaving the previous round's values standing. **Retry once** — once per stage, not once per round. A **second** error **STOPs** the stage and surfaces the failure.
+
+**This is not the Fallback case above, and the two must not be confused.** The **Fallback** covers a harness with no subagent facility at all: there, the checklist runs in-session, a real verdict is produced, and the review *happened* — degraded but not absent, so `run` is set and the counters are ordinary numbers. This rule covers a dispatch that was **attempted and failed**. Where both readings seem to fit, the discriminator is whether a verdict came back: no verdict means this rule, and taking the fallback branch instead would write `run: true` over a review that never returned — which is precisely the "reports clean when it did not run" failure both rules exist to prevent.
+
+`null` is a third value distinct from `0`: `0` means a round ran and found nothing, `null` means no round produced a verdict. `challenge.run` is unaffected by an error — it records whether *any* dispatch this stage returned a verdict, so a clean round followed by an errored one leaves it `true`. `run: false` alongside `blockers: null` is the shape meaning no dispatch ever returned.
+
+**This rule is not mode-split.** It holds identically in standard and autopilot, matching `dev:validate`'s **"A reviewer that cannot run stops the stage"** — the same question, answered the same way, rather than a second answer invented here. In standard mode the STOP costs almost nothing to recover from: `spec.md` is already committed and `stage` is still `"spec"`, so re-running `/dev:spec` re-enters here through Step 1's **resume-mid-approval check**, which already treats a resumed gate as a new gate arrival and re-dispatches. No new re-entry mechanism is needed, and none may be added.
+
+**Step 13's gate does not render on a STOP.** There is no "could not run" gate variant. Letting the gate render without a verdict would invite approving a spec that got no cold review at all — the exact condition this step exists to prevent — so no path approves a spec whose cold review never returned.
+
+This step is **canonical** for the errored-dispatch rule. `dev:autopilot`'s spec-challenger section restates its loop-bookkeeping half; the reasoning above is not duplicated there.
+
 **Counter-write semantics.**
 - Set `challenge.run` to `true`, and `challenge.blockers` / `challenge.concerns` to this verdict's counts. These three are **overwritten** by each dispatch, not accumulated `(writes: both)`.
-- `challenge.applied` `(writes: both)` and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes both at the gate. In autopilot there is no gate, so the revision loop writes `applied` itself: each iteration increments `challenge.applied` by the number of fixes it applied — **blocker and concern fixes alike**, since both are changes the challenger caused. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- `challenge.applied` `(writes: both)`, `challenge.applied_concerns` `(writes: both)`, and `challenge.dismissed` `(writes: standard; =default 0 in autopilot)` are **cumulative** and are never reset here. In standard mode Step 13 writes them at the gate. In autopilot there is no gate, so the revision loop writes `applied` and `applied_concerns` itself: each iteration increments `challenge.applied` by the number of fixes it applied — **blocker and concern fixes alike**, since both are changes the challenger caused. `challenge.dismissed` stays `0` in autopilot — nothing is declined there, since unactioned concerns pass through by design and unresolved blockers are surfaced at the STOP rather than dropped.
+- **Which counter a fix increments** — the full branch structure, in both modes:
+  - a fix landed for a **Blocker** increments `applied` **only**;
+  - a fix landed for a **Concern** increments `applied` **and** `applied_concerns`;
+  - so blocker-driven fixes are `applied - applied_concerns`, `applied` keeps its existing meaning as the total, and no fix ever increments `applied_concerns` without also incrementing `applied`.
+  - **Autopilot:** the revision loop writes both itself, per iteration.
+  - **Standard:** Step 13's Path A increment list writes both. That list enumerates its counters explicitly, so it does not cover `applied_concerns` by inheritance — it names the counter directly.
 
-**Reading `applied` in autopilot.** It is "fixes the challenger caused," not "blockers found." A high `applied` against `blockers: 0` is the healthy shape — it means the reviewer's non-fatal catches were absorbed cheaply — so `dev:reflect` must not read it as blocker volume. Pair it with `loops_run` for that: loops are what blockers actually drive.
+  The split exists so concern-driven growth is **attributable**: with one merged number, a cycle whose spec grew by hundreds of lines cannot say how much of that growth concerns caused. `applied_concerns` is an attribution instrument, not a third severity — it changes what is measured, never what extends the loop.
+
+**Reading `applied` in autopilot.** It is "fixes the challenger caused," not "blockers found." A high `applied` against `blockers: 0` is the healthy shape — it means the reviewer's non-fatal catches were absorbed cheaply — so `dev:reflect` must not read it as blocker volume. Pair it with `loops_run` for that: loops are what blockers actually drive. `applied_concerns` is what makes that reading checkable rather than inferred — it says outright how much of `applied` was concern-driven.
 - `challenge.loops_run` `(writes: autopilot-only)` increments per autopilot iteration; unused in standard mode.
 
 **Which commit carries the counters.** Step 12a does **not** commit. It updates `state.json` in place; the write is carried by the next commit Step 13 makes (the `spec: apply challenger fixes for <feature-name>` commit, or the approval commit that adds `"spec"` to `completed[]`). In autopilot, each revision-loop commit carries them. Do not create a separate commit here.
@@ -649,6 +679,7 @@ Wait for explicit user approval. If changes are requested, take the path that ma
 **Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
 - update `spec.md` with the accepted suggested fixes
 - increment `challenge.applied` by the number of findings applied
+- increment `challenge.applied_concerns` by the number of those findings that were Concerns
 - increment `challenge.dismissed` by the number of surfaced findings the user declined
 - re-stamp `metrics.stage_timestamps.spec_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` again)
 - **do not** increment `metrics.spec_revisions`
