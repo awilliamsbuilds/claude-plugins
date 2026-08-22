@@ -589,10 +589,11 @@ The autopilot loop's exit follows from these two definitions plus the existing *
 
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean.** A reviewer that always finds something trains the user to skip it. Do not manufacture findings to appear useful.
 
-Verdict format:
+Verdict format. **The header tallies every finding, per lens** — `⛔N` for that lens's blockers, `⚠️N` for its concerns, `✅` only where the lens found nothing at all. A lens that produced both shows both, as Clarity does below. A concern is never invisible in the header: a verdict of zero blockers and five concerns must not render as four `✅`s above five real findings.
+
 ```
 ## Cold Review — <feature>
-Clarity ⛔1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
+Clarity ⛔1 ⚠️1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 ⛔ Blocker (clarity) — §Success Criteria
    "notify the user" reads two ways: email or in-app.
@@ -607,7 +608,7 @@ Clarity ⛔1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 **Mode behaviour — standard: advisory.** The verdict renders at the Step 13 gate, above the approval prompt. Nothing is auto-applied; the user decides. A forced pre-gate revision would resolve judgment calls by the reviewer's taste rather than the user's and hide the disagreement behind an already-clean spec, with no upside, because the decision-maker is present. In standard mode `challenge.loops_run` stays `0` — the loop is an autopilot-only mechanism.
 
-**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` by the fixes each iteration lands. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
+**Mode behaviour — autopilot: teeth.** Blockers drive a bounded auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` (with `challenge.applied_concerns` for the concern-driven share) by the fixes each iteration lands. Blockers surviving the cap → STOP and request human input. This mirrors `dev:autopilot` Step 2's matching rule.
 
 **Concerns: countable, foldable, never loop-extending.** Concerns are counted in `challenge.concerns`. Autopilot **may** apply a concern's suggested fix within an iteration it is already running — and should, when the fix is mechanical and the alternative is the same defect resurfacing at Validate, where it costs a full fix loop instead of a line. What a concern may **never** do is extend the loop: a concern is never a reason to run another iteration, never a reason to re-dispatch, and never a reason to STOP. That bound is what the cap protects, and it is untouched. In standard mode nothing is auto-applied at all — the decision-maker is present, and Step 13's gate hands them every finding.
 
@@ -617,7 +618,9 @@ Clarity ⛔1 · Consistency ✅ · Scope ⛔1 · Grounding ✅
 
 **Re-run rule.** Standard mode dispatches the challenger **once per gate arrival** — applying its fixes re-displays the gate but does not re-dispatch it, because re-reviewing its own accepted suggestions is exactly the loop drift the advisory design exists to avoid. Autopilot re-runs once per loop iteration; that is what bounds the loop.
 
-**An errored dispatch is not an iteration.** When a dispatch returns an error rather than a verdict — the subagent fails, the harness refuses, the reviewer returns something that is not a verdict — do **not** advance `challenge.loops_run`, and set `challenge.blockers` and `challenge.concerns` to `null` rather than leaving the previous round's values standing. **Retry once** — once per stage, not once per round. A **second** error **STOPs** the stage and surfaces the failure.
+**An errored dispatch is not an iteration.** When a dispatch returns an error rather than a verdict — the subagent fails, a dispatch is refused, the reviewer returns something that is not a verdict — do **not** advance `challenge.loops_run`, and set `challenge.blockers` and `challenge.concerns` to `null` rather than leaving the previous round's values standing. **Retry once** — once per stage, not once per round. A **second** error **STOPs** the stage and surfaces the failure.
+
+**This is not the Fallback case above, and the two must not be confused.** The **Fallback** covers a harness with no subagent facility at all: there, the checklist runs in-session, a real verdict is produced, and the review *happened* — degraded but not absent, so `run` is set and the counters are ordinary numbers. This rule covers a dispatch that was **attempted and failed**. Where both readings seem to fit, the discriminator is whether a verdict came back: no verdict means this rule, and taking the fallback branch instead would write `run: true` over a review that never returned — which is precisely the "reports clean when it did not run" failure both rules exist to prevent.
 
 `null` is a third value distinct from `0`: `0` means a round ran and found nothing, `null` means no round produced a verdict. `challenge.run` is unaffected by an error — it records whether *any* dispatch this stage returned a verdict, so a clean round followed by an errored one leaves it `true`. `run: false` alongside `blockers: null` is the shape meaning no dispatch ever returned.
 
