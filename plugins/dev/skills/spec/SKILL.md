@@ -585,6 +585,8 @@ Runs on all tiers. **All four lenses always run — Micro shortens the brief and
 - **Blocker (b) — right-sizing.** What is *in* scope spans more than one build cycle. Example: the spec's Scope section describes a send path and a retry/backoff subsystem, either of which is a cycle on its own. This member is what the **Scope-blocker exception** below keys on.
 - **Concern** — everything else worth flagging: a finding a builder can act on or ignore without shipping something broken. Example: a duplicate section label, an imprecise line range, a paragraph that would read better reordered.
 
+The autopilot loop's exit follows from these two definitions plus the existing **Concerns: countable, foldable, never loop-extending** rule below — the loop is already gated on blockers existing, so tightening what counts as one is the whole mechanism, and there is no separate exit step, exit test, or second severity concept anywhere in this stage.
+
 **Every Blocker must carry a pre-drafted suggested fix** — that is what makes one-word acceptance possible at the gate. **The reviewer must be able to return clean.** A reviewer that always finds something trains the user to skip it. Do not manufacture findings to appear useful.
 
 Verdict format:
