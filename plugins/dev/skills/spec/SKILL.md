@@ -218,12 +218,12 @@ Initialize `docs/dev/<feature-name>/state.json`:
   },
   "challenge": {
     "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "applied": 0, "applied_concerns": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "challenge_plan": {
     "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "dismissed": 0,
+    "applied": 0, "applied_concerns": 0, "dismissed": 0,
     "loops_run": 0, "loops_max": 3
   },
   "confidence": {
