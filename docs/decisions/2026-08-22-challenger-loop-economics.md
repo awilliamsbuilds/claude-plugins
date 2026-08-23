@@ -42,3 +42,28 @@
 ## Artifacts (archived)
 
 Spec, plan, and validation committed at: c6e1b89 on branch feature/challenger-loop-economics
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-22*
+
+**Spec:** 2 blockers and 6 concerns from the cold review, all 8 applied, none dismissed, against 0 spec revisions of the author's own — the "grounding pass is weak, challenger is catching it" reading, working as designed. Confidence read 100% with no auto-filled dimensions, and nothing downstream contradicted it. The 1d20h `spec_end − spec_start` span is a session gap, not work time.
+
+**Shape:** skipped (no-ui) — correct for a cycle that is entirely prose in skill files.
+
+**Plan:** the plan challenger exited at round 2 of 3 when round 2 returned zero blockers — the exact behavior this cycle shipped, observed one stage later on itself. It did miss one thing: the P2 Validate caught (a verdict header leaving concerns untallied) originated in plan Task 1 step 6, which specified the example relabel but never said to tally it. The code reviewer said so outright — "the build followed the plan faithfully." All three lenses passed it because a *task* existed for that success criterion; coverage is checked at task granularity, not step granularity.
+
+**Validate:** 3 loops / 3 max — hit the cap. Loop 1 carried all the substance (2 P2, 2 defect-class P3, 2 nits). Loops 2 and 3 were one nit each, both consequences of loop 1's own edits, and loop 3 spent a full cold dispatch re-reviewing a one-word synonym swap in a registry description no skill executes.
+
+**Flow:** tier was right — 12 tasks across 5 files is squarely Standard, and no stage was unnecessary.
+
+**Token efficiency:** `files_read_in_build: 2` — the plan was specific enough that Build barely needed to look around. No stage-duration outliers (Plan 4min, Build 6min, Validate 16min).
+
+**A dogfood note worth keeping:** this cycle's own `state.json` has no `applied_concerns` key — it was initialized before the counter existed. That is precisely the historical-cycle case SC10 covers, and `dev:reflect` read it as "not recorded" rather than `0`, live, on the cycle that introduced it.
+
+**Suggestions:**
+1. `dev:validate`'s fix loop has no kind-based exit — the same defect this cycle fixed at Spec, one stage later. Nothing asks whether the remaining findings are worth another cold dispatch, and the converging-cascade exemption actively keeps it looping in exactly this shape.
+2. The plan challenger's spec-coverage lens checks tasks, not steps. A task can exist for a success criterion while its implementation steps under-specify it, and all three lenses pass.
+
+**User observations:** none raised.
+
+**Deferred to tech debt:** `plan-challenger-errored-dispatch-undefined`, `validate-loop-lacks-kind-based-exit`, `plan-challenger-coverage-lens-is-task-granular`
