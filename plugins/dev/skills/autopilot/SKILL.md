@@ -135,7 +135,7 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 **Debt surfacing: print, never ask.** `dev:spec` Step 7's fourth pass cross-checks open tech debt against the grounding inventory and, in standard mode, asks whether to fold matches into scope. In autopilot it **prints its matches into the run log and folds nothing in** — scope changes need a human. Nothing is written to `## To Close`. This is not a stop condition; the run continues normally. (The debt *writes* in `dev:build`, `dev:validate`, `dev:pr`, `dev:reflect`, and `dev:done` are unconditional and self-applied — they run identically here. Only the fold-in question is suppressed.)
 
 **Plan-order check: print, never ask.** `dev:spec` Step 6's plan-order check
-(`../references/product-plans.md` §L4) asks for confirmation in standard mode on its **mismatch** and
+(`../../references/product-plans.md` §L4) asks for confirmation in standard mode on its **mismatch** and
 **already-done** outcomes. In autopilot it **prints the outcome into the run log and continues** — no
 question, no stop. This is **not** a stop condition and is deliberately absent from `## Purpose`'s
 "When autopilot stops" list: the check never refuses in any mode, so there is nothing to stop on. The
