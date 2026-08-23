@@ -40,11 +40,11 @@
   "challenge_plan": {
     "run": true,
     "blockers": 2,
-    "concerns": 3,
-    "applied": 10,
-    "applied_concerns": 7,
+    "concerns": 1,
+    "applied": 13,
+    "applied_concerns": 8,
     "dismissed": 0,
-    "loops_run": 2,
+    "loops_run": 3,
     "loops_max": 5
   },
   "confidence": {
