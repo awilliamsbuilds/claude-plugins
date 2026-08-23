@@ -2,7 +2,7 @@
   "version": "1.0",
   "feature": "retro-inside-pr",
   "branch": "feature/retro-inside-pr",
-  "mode": "standard",
+  "mode": "autopilot",
   "stage": "plan",
   "completed": [
     "spec"
@@ -14,7 +14,7 @@
   "artifacts": {
     "spec": "docs/dev/retro-inside-pr/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/retro-inside-pr/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -77,7 +77,10 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-23T01:28:24Z",
-      "spec_end": "2026-08-23T03:01:36Z"
+      "spec_end": "2026-08-23T03:01:36Z",
+      "plan_start": "2026-08-23T03:06:18Z",
+      "plan_end": "2026-08-23T03:12:50Z"
     }
-  }
+  },
+  "handoff_at": "plan"
 }
