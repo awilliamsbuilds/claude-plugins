@@ -5,7 +5,9 @@
   "mode": "standard",
   "stage": "spec",
   "completed": [],
-  "skipped": [],
+  "skipped": [
+    "shape"
+  ],
   "startedAt": "2026-08-23T20:37:05Z",
   "artifacts": {
     "spec": "docs/dev/project-scoped-worktree/spec.md",
@@ -18,26 +20,45 @@
   "validate": {
     "loops_run": 0,
     "loops_max": 5,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": []
   },
   "challenge": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "applied_concerns": 0, "dismissed": 0,
-    "loops_run": 0, "loops_max": 5
+    "run": false,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 0,
+    "applied_concerns": 0,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 5
   },
   "challenge_plan": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "applied_concerns": 0, "dismissed": 0,
-    "loops_run": 0, "loops_max": 5
+    "run": false,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 0,
+    "applied_concerns": 0,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 5
   },
   "confidence": {
-    "final_score": 0,
-    "final_level": "Low",
+    "final_score": 90,
+    "final_level": "Ready",
     "dimensions": {
-      "intent": false, "scope": false, "success_criteria": false,
-      "happy_path": false, "edge_cases": false, "out_of_scope": false,
-      "ui_needed": false, "technical_constraints": false,
-      "audience": true, "dependencies": false
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
     },
     "auto_filled": []
   },
@@ -48,12 +69,13 @@
   "parentFeature": null,
   "worktreePath": ".dev-worktrees/project-scoped-worktree",
   "metrics": {
-    "spec_questions_asked": 0,
+    "spec_questions_asked": 10,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
     "files_read_in_build": 0,
     "stage_timestamps": {
-      "spec_start": "2026-08-23T20:37:05Z"
+      "spec_start": "2026-08-23T20:37:05Z",
+      "spec_end": "2026-08-23T21:02:46Z"
     }
   }
 }
