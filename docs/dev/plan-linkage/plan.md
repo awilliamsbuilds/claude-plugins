@@ -77,7 +77,11 @@ Implementation steps:
    `item-checked` (bool), `item-milestone` (the nearest preceding `##` heading, or `"(top of file)"`
    where none precedes it), plus the plan's header cycles-completed string as written — or **no
    plan**. State the read root explicitly: `$PRIMARY`, not `$WORKDIR`, because both call sites run
-   before their working tree exists. State that a missing or empty `docs/dev/product-plans/`
+   before their working tree exists. State the **returned type** just as explicitly: `plan-path` is
+   **repo-relative** — `docs/dev/product-plans/<slug>.md` — and `$PRIMARY` is the read root only,
+   never part of the returned value. This is what `dev:spec` path (C) writes into
+   `state.json.product_plan` and what `dev:done` Step 3 later resolves inside `$WORKDIR`; a
+   `$PRIMARY`-absolute value would silently address the wrong working tree. State that a missing or empty `docs/dev/product-plans/`
    directory returns no plan and is not an error.
 3. Write **§L2 — Collision.** If the name matches items in **more than one** plan file, return **no
    plan** and print both matches:
@@ -173,8 +177,9 @@ Implementation steps:
    **`$PRIMARY` must be bound before this subsection reads it.** §L1's read root is `$PRIMARY`, and
    Step 6 currently derives it *inside* the worktree paragraph that now follows
    (`GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }` then
-   `PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)`, `spec/SKILL.md:169-170`, verified). **Hoist that
-   existing two-line pair above the inserted subsection**, unchanged and with its existing guard
+   `PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)`, `spec/SKILL.md:170-171`, verified — locate the
+   pair by that quoted text, never by line number, since the insertions in this task shift them).
+   **Hoist that existing two-line pair above the inserted subsection**, unchanged and with its existing guard
    intact, and have the `git -C "$PRIMARY" fetch origin` / `git -C "$PRIMARY" worktree add …` commands
    below reuse the already-bound value. This is a **move, not a second derivation** — the repo's count
    of guarded `PRIMARY` derivations must not grow. (`dev:fix` needs no equivalent: it binds `PRIMARY`
@@ -197,8 +202,14 @@ Implementation steps:
 5. Directly after that paragraph, add **Product-plan adoption (path (C) — this cycle's name is an item
    in exactly one plan).** `(writes: both)` Set `state.json.product_plan` to the `plan-path` held from
    step 2's lookup. State the three cases that do **not** write: no match (`product_plan` stays
-   `null`), a §L2 collision (stays `null` — the lookup already returned no plan), and paths (A)/(B)
-   having already run. State that this write rides the initial state.json commit at the end of Step 6,
+   `null`); a §L2 collision (stays `null` — the lookup already returned no plan); and paths (A)/(B)
+   owning the value. Test that third case on **what was prepared, not on the key's current value** —
+   path (B) has already written by this point, but path (A) writes in its *own* commit at the end of
+   this step, so `product_plan` is still `null` at (C)'s decision point on a product-scale cycle. The
+   test is therefore: *did Step 2 or Step 4 prepare a product plan (path (A) will run and owns the
+   value), or did Step 1's Nesting Detection supply an inherited value (path (B) ran)?* Either way (C)
+   does not write. A builder testing "is `product_plan` non-null" would let (C) write on a
+   product-scale cycle, harmless only by accident because (A) overwrites it moments later. State that this write rides the initial state.json commit at the end of Step 6,
    like path (B)'s, and creates no new commit.
 6. Add one sentence to path (C) naming its consumer, so a later reader can see why it exists:
    `dev:done` Step 3 reads this value to check the item's box and bump the plan's cycles-completed
@@ -221,7 +232,7 @@ Interfaces:
 - Shared procedure: *plan-order check* — **call site**, not an implementation. Task 1 is canonical.
   This site's divergences from the contract, stated in full at the site: (i) the checked name is
   resolved per dispatch — `<item>` on the `backlog` dispatch, the normalized issue title on the
-  `linear` dispatch (the same `<short-title>` value Task 2's Linear path resolves), and the
+  `linear` dispatch — §A6's `<short-title>`, the same value Task 2's Linear path resolves — and the
   normalized raw argument on free text; (ii) it runs after Step 2a and
   before Step 3, so `switch` unwinds nothing; (iii) the lane has no autopilot mode, so §L5's asking
   arm always applies here.
@@ -237,11 +248,13 @@ Implementation steps:
 3. State that **every dispatch reaches this step**, including free text — Step 2a's "free-text
    dispatch skips this step entirely" applies to Step 2a alone and must not be read forward.
 4. Give the name resolution per dispatch, as a three-row table: `backlog` → the normalized `<item>`
-   basename bound in Step 2a; `linear` → the issue title normalized by `dev:spec` Step 6's
-   construction (lowercase, collapse runs outside `[a-z0-9]` to a single `-`, strip leading/trailing
-   `-`) — **the same `<short-title>` value Task 2 checks after stripping the `<ID>-` prefix from
-   §A6's slug, so both Linear entry points resolve one name**; free text → the raw argument put
-   through that same normalization. Add the one-line reason
+   basename bound in Step 2a; `linear` → **§A6's `<short-title>`** — derive the §A6 cycle slug
+   (`<ID>-<short-title>`) from the fetched issue title and strip the `<ID>-` prefix, which is exactly
+   the value Task 2 checks, so both Linear entry points resolve one name. Do **not** use `dev:spec`
+   Step 6's whole-title normalization here: that is the non-Linear construction, and it yields
+   `fix-broken-logout-button-on-mobile` where §A6 yields `fix-logout-button` — two different names for
+   one issue. Free text → the raw argument put through `dev:spec` Step 6's construction (lowercase,
+   collapse runs outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`). Add the one-line reason
    free text is safe to check: normalization of a sentence yields a long hyphenated string that
    matches no plan item, so §L4 returns `unlinked` and prints nothing — which is the spec's
    free-text edge case.
@@ -311,9 +324,14 @@ Implementation steps:
 2. Leave the null-skip behaviour itself **unchanged**: `product_plan` null still skips the step
    entirely. That branch is still correct and still reachable — a standalone cycle, a §L2 collision,
    and a plan not present in the primary checkout all reach `dev:done` with `null`.
-3. Add one sentence to step **1. Check off this cycle's item** noting that its "match by feature name"
-   is the same match §L1 performed at Spec, so a cycle linked by path (C) is guaranteed to find its
-   line item. Do not change the matching procedure.
+3. Make step **1. Check off this cycle's item** able to find the item a path (C) link points at.
+   Its "match by feature name" matches the plan item name, which equals `state.json.feature` on every
+   path **except** a Linear-sourced cycle: there `feature` is §A6's full `<ID>-<short-title>` slug,
+   while §L1 matched — and the plan item is named — the ID-stripped `<short-title>`. Add that one-line
+   strip rule to step 1: match on `feature` with a leading `<ID>-` prefix removed when
+   `state.json.linear_issue` is non-null, otherwise on `feature` unchanged. Without it a Linear-sourced
+   path (C) cycle reaches Done linked but unmatchable, and Success Criteria 1 and 6 fail for that
+   cycle class. Change nothing else about the matching procedure.
 
 ### Task 6: Buffer the close-intent for the adopted backlog item
 What: Write this cycle's `debt-pending.md` buffer with a `## To Close` close-intent for
@@ -342,7 +360,13 @@ Implementation steps:
    and its front-matter `status` is `open` — a close-intent naming a missing or already-closed item is
    what `dev:done` Step 8 reports as `(couldn't find: …)`. (Verified at plan time: the file exists in
    `docs/backlog/`.)
-5. Do **not** mark the item `promoted` or add a `promoted_to` back-link. The governing plan's
+5. Name the one contract divergence explicitly in the buffer's own prose, so a later reader does not
+   read it as an oversight: `../../references/tech-debt.md` §P4's *Who writes what* scopes `## To
+   Close` close-intents to `dev:spec`, while this write happens at Build. The **decision** is still
+   Spec's — `spec.md`'s `## Scope` records the adoption of this item and requires it be disposed of
+   explicitly — and this task only transcribes that recorded decision into the buffer `dev:done` Step
+   6a reads. No producing-stage role is widened: Build originates no close-intent of its own.
+6. Do **not** mark the item `promoted` or add a `promoted_to` back-link. The governing plan's
    `## Notes` records that decision for all five of its source items, and its second source is
    explicitly "disposed of, not deferred" — closed by this cycle through the ordinary buffer, which is
    what this task does.
