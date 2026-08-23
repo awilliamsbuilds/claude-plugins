@@ -186,15 +186,23 @@ pathspec keeps anything else already staged in `$WORKDIR` out of a commit labell
 retrospective," and the `--quiet` guard keeps a re-entry that reproduces byte-identical content from
 exiting non-zero on an empty index.
 
-**Standalone route.** Step 6's *Standalone invocation* paragraph covers the case where the cycle
-directory is already gone and `WORKDIR` is undefined. On that route resolve `LOG` against `$PRIMARY`
-instead, and **skip the commit and push entirely** — the primary checkout is usually on the default
-branch, and the standing convention is never to commit there. Say where the file was written, as
-Step 6's standalone path does.
+**Standalone route — `$WORKDIR` absent, or not on this cycle's feature branch.** Two shapes reach
+it, and the second is why the trigger is stated as a branch test rather than as `WORKDIR` being
+undefined. (a) The cycle directory is already gone, so no location matches the resolution block and
+`WORKDIR` is undefined — Step 6's *Standalone invocation* paragraph's case. (b) `dev:reflect` is
+invoked standalone **during `dev:done`**, after Step 2's `checkout --detach` and before Step 7's
+teardown: `$WORKDIR` exists but is detached on `$INTEGRATION`, where the bare `git push` above has no
+upstream and fails. On either shape resolve `LOG` against `$PRIMARY` and **skip the commit and push
+entirely** — the primary checkout is usually on the default branch, and the standing convention is
+never to commit there. Say where the file was written, as Step 6's standalone path does. Step 6's
+`<source-repo-path> == $WORKDIR` stop names shape (b) as a live hazard; this is the same route, and
+the two must agree.
 
-**The bare `git push` is correct here.** At PR stage `$WORKDIR` is on the feature branch, whose
-upstream `dev:pr` Step 4 already set with `push -u origin <branch-name>`. The detached-HEAD failure
-this command used to hit belonged to the post-merge home it no longer has.
+**The bare `git push` is correct on the `dev:pr` Step 5d route** — the one this skill is invoked
+from. There `$WORKDIR` is on the feature branch, whose upstream `dev:pr` Step 4 already set with
+`push -u origin <branch-name>`. The detached-HEAD failure this command used to hit belonged to the
+post-merge home that route no longer has. It is **not** correct on the standalone route below, which
+is why that route skips the push rather than relying on this line.
 
 ## Step 6: Skill Update Gate
 

@@ -463,7 +463,7 @@ the same channel.
 
 ## Mode symmetry
 
-**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`, `dev:pr`,
+**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`, `dev:validate`, `dev:pr`,
 `dev:validate`, `dev:reflect`, and `dev:done`. Each is **self-applied by the writing stage.** Never gate
 one on user confirmation, and never put one on a standard-mode-only path.
 

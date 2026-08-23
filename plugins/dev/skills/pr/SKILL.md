@@ -386,8 +386,10 @@ Pass to dev:reflect:
 The final push carries anything Steps 5–5d committed that `dev:reflect`'s own push (Step 5d) did not
 already send. On the healthy path that is usually nothing — reflect pushes last — so
 `Everything up-to-date` here is the expected outcome, not a sign something was skipped. It is kept
-because Steps 5a–5c can commit on a run where Step 5d does not push (an architecture cycle, or a
-`dev:reflect` that stops early), and those commits must still reach PR #N:
+because Steps 5a–5c can commit on a run where Step 5d never reaches its push — a `dev:reflect` that
+stops early, or a stage resumed after reflect already ran — and those commits must still reach PR #N.
+(Not an architecture cycle: `dev:reflect` has no architecture carve-out and still runs there, while
+Steps 5a and 5b are the ones that skip.):
 
 ```bash
 git -C "$WORKDIR" push
@@ -395,7 +397,8 @@ git -C "$WORKDIR" push
 
 In standard mode, display:
 ```
-PR opened: [PR URL]        [on the re-entry path: "PR: [PR URL] (resumed — already open)"]
+PR opened: [PR URL]
+[If this was a re-entry (artifacts.pr_url was already set): render the line above as "PR: [PR URL] (resumed — already open)" instead]
 [Step 5b's docs-prose line, if it emitted one]
 
 Review it, get approvals, then run /dev:done when ready to merge.

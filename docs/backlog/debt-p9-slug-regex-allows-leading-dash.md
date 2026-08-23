@@ -23,10 +23,11 @@ buffered for closure in that cycle.
 `inbox`), `dev:done`'s flush, and `dev:reflect`. Tightening the regex there changes validation
 behavior for all of them, which is a scope decision rather than an edit — and `fast-path`'s Success
 Criterion 6 forbade that cycle touching those skills beyond the rename and the duplication pointers.
-`dev:fix` protects itself by anchoring the first character
-(`^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$`) and saying why, so the new site is not
-exposed while the shared claim stays wrong.
+`dev:fix` protected itself by anchoring the first character
+(`^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$`) and saying why, so the new site was
+never exposed while the shared claim stood wrong.
 
 **Done looks like:** §P9's regex anchors its first character in both segments, or its prose stops
-claiming a property it does not deliver. `dev:reflect` Step 6's stop conditions carry the matching claim, corrected in the
-same pass, and `dev:fix` drops its local divergence note in favour of citing §P9 plainly.
+claiming a property it does not deliver. `dev:reflect` Step 6's stop conditions carry the matching
+claim, corrected in the same pass, and `dev:fix` drops its local divergence note in favour of citing
+§P9 plainly. **All three landed in `retro-inside-pr`.**
