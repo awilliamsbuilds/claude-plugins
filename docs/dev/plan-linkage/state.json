@@ -3,8 +3,10 @@
   "feature": "plan-linkage",
   "branch": "feature/plan-linkage",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
