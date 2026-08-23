@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 3/5*
+*Created: 2026-08-17 · Cycles completed: 4/5*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -52,7 +52,7 @@ value, and **whether autopilot should ignore challenger *concerns* entirely** �
 Reflect and not previously recorded as its own item.
 
 ## Milestone 3: Cycle-boundary correctness
-- [ ] retro-inside-pr (feature)
+- [x] retro-inside-pr (feature)
 
 Source: `backlog-reflect-before-pr-merge-retire-legacy-commands`.
 
