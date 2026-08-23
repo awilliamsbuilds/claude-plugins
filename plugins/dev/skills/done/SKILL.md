@@ -135,9 +135,10 @@ push_integration() {
 **Locate the plan (uniform).** If `state.json.product_plan` is null, **skip this step entirely**.
 Otherwise the governing plan is at `state.json.product_plan` — always
 `docs/dev/product-plans/<slug>.md`. There is **no** `parentFeature`-based path reconstruction:
-`dev:spec` now records the full relocated path for every product-scale cycle, and a nested child
-**inherits** the parent's `product_plan` value (`dev:spec` Step 6 path (B)), so top-level and nested
-collapse into this one read.
+`dev:spec` now records the full relocated path for every product-scale cycle, a nested child
+**inherits** the parent's `product_plan` value (`dev:spec` Step 6 path (B)), and a cycle whose feature
+name matched an item in exactly one plan **adopts** that plan at `dev:spec` Step 6 path (C) — so all
+three collapse into this one read.
 
 The plan file is present at the detached integration tip (Step 2's
 `checkout --detach origin/$INTEGRATION`) because it rides the creating cycle's PR — and, now living at
@@ -150,6 +151,13 @@ cycle merges.
 - Find this feature's line item (match by feature name)
 - Change `- [ ]` to `- [x]`
 - Update the header: increment the cycles-completed count
+
+**Matching by feature name — one strip rule.** The plan item's name equals `state.json.feature` on
+every path **except** a Linear-sourced cycle: there `feature` is §A6's full `<ID>-<short-title>` slug,
+while the plan item is named — and `dev:spec`'s path (C) lookup matched — the ID-stripped
+`<short-title>`. So match on `feature` **with a leading `<ID>-` prefix removed when
+`state.json.linear_issue` is non-null**, and on `feature` unchanged otherwise. Without the strip, a
+Linear-sourced path (C) cycle arrives here linked but unmatchable, and its box never gets ticked.
 
 **2. Completion detection.** After the check-off, test whether **every** checkbox item across all
 milestones is now `[x]`. That boolean is "project complete." Anything less is a mid-project child
