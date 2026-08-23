@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-23
+closed_by: challenger-loop-economics
 first_recorded: 2026-08-17
 cycles: [extract-review-skills]
 recurrence: 1
