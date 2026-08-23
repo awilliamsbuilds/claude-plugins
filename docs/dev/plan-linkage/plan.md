@@ -10,6 +10,7 @@
 | plugins/dev/skills/fix/SKILL.md | Modify | Step 1 reads the new reference; new Step 2b runs the check before anything is created |
 | plugins/dev/skills/autopilot/SKILL.md | Modify | Step 2 records the autopilot suppression of the check's question |
 | plugins/dev/skills/done/SKILL.md | Modify | Step 3's plan-locate paragraph names path (C) as a third writer of `product_plan` |
+| docs/dev/plan-linkage/debt-pending.md | Create | `## To Close` close-intent for the backlog item this cycle adopts |
 
 **Design decision — one contract, two call sites.** The lookup and the check live once, in a new
 shared reference, because `dev:spec` and `dev:fix` both need them and a third consumer (Milestone 4b
@@ -61,7 +62,14 @@ Implementation steps:
 1. Open the file with a one-paragraph purpose: given a feature name, find the product plan that
    governs it, and say whether starting that name now follows the plan's order. State that the
    contract is repo-agnostic and assumes only `docs/dev/product-plans/*.md`.
-2. Write **§L1 — The lookup.** Input: a name already normalized to `^[a-z0-9][a-z0-9-]*$`. Read every
+2. Write **§L1 — The lookup.** Input: a name already normalized to `^[a-z0-9][a-z0-9-]*$` — strict
+   lowercase, always. State that a **Linear-sourced caller passes the ID-stripped `<short-title>`
+   half** of §A6's uppercase-tolerant cycle slug (`<ID>-<short-title>`), never the slug itself: the
+   ID prefix is uppercase and unique per issue, so an ID-prefixed slug could match no plan item under
+   any circumstances, and passing it would make the Linear entry points structurally incapable of
+   linking or warning. Both Linear callers (Task 2's `/dev:spec linear`, Task 3's `/dev:fix linear`)
+   therefore resolve to the same name, so the two entry points behave identically on one issue. State
+   that matching is exact and case-sensitive. Read every
    `$PRIMARY/docs/dev/product-plans/*.md`. In each file, a *plan item* is a line matching
    `- [ ] <name>` or `- [x] <name>`, where `<name>` is the first whitespace-delimited token after the
    checkbox (the parenthesised suffix `(feature)` / `(feature, deep)` is not part of the name). Match
@@ -122,7 +130,9 @@ Implementation steps:
    same reason: a scope change needs a human, and autopilot has none. State that `unlinked` and
    `on-order` are mode-independent, and that the mode is read the way the calling skill already reads
    it (`dev:spec` Step 1's mode determination; `dev:fix` runs unattended and is always in the asking
-   mode, per Task 3).
+   mode, per Task 3). Add one line closing the Linear symmetry: both Linear entry points pass the
+   ID-stripped `<short-title>`, so `/dev:spec linear <id>` and `/dev:fix linear <id>` produce the same
+   §L4 outcome for the same issue — the full-cycle escalation target is covered, not exempt.
 8. Add a closing **Loaded by** line naming `dev:spec` (Step 1 reads, Step 6 calls), `dev:fix` (Step 1
    reads, Step 2b calls), and *cited by* `dev:autopilot` Step 2 and `dev:done` Step 3 — the same
    footer shape `references/entry-adapters.md` and `references/tech-debt.md` carry.
@@ -144,7 +154,8 @@ Interfaces:
   nothing, identical in standard and autopilot, exactly as path (B) already is.
 - Shared procedure: *plan-order check* — **call site**, not an implementation. Task 1 is canonical.
   This site's divergences from the contract, stated in full at the site: (i) the name checked is the
-  normalized `<feature-name>` derived in this same step; (ii) the check runs before
+  normalized `<feature-name>` derived in this same step — on the Linear entry path, the `<short-title>`
+  half of §A6's slug with the `<ID>-` prefix stripped; (ii) the check runs before
   `git worktree add`, so `switch` unwinds nothing; (iii) mode comes from Step 1's existing mode
   determination, so autopilot takes §L5's print-and-proceed arm.
 
@@ -158,12 +169,25 @@ Implementation steps:
    subsection titled **Plan-order check (before anything is created).** Say: run
    `../../references/product-plans.md` §L1 against the normalized `<feature-name>`, then apply §L4's
    outcome and §L5's mode rule. Hold §L1's result for path (C) below — one lookup per stage, not two.
-3. In that same subsection, state the three site-specific facts the contract does not know: the name
-   checked is the normalized `<feature-name>` (not the raw argument, and not the Linear issue title —
-   on the Linear entry path the checked name is the §A6 cycle slug this step derives, which is what
-   the spec's entry-adapter edge case requires); the check runs before `git worktree add`, so a
-   `switch` answer stops with nothing created and nothing to unwind; and a `switch` answer prints
-   §L4's `/dev:spec "<next-item-name>"` line and ends the stage.
+
+   **`$PRIMARY` must be bound before this subsection reads it.** §L1's read root is `$PRIMARY`, and
+   Step 6 currently derives it *inside* the worktree paragraph that now follows
+   (`GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }` then
+   `PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)`, `spec/SKILL.md:169-170`, verified). **Hoist that
+   existing two-line pair above the inserted subsection**, unchanged and with its existing guard
+   intact, and have the `git -C "$PRIMARY" fetch origin` / `git -C "$PRIMARY" worktree add …` commands
+   below reuse the already-bound value. This is a **move, not a second derivation** — the repo's count
+   of guarded `PRIMARY` derivations must not grow. (`dev:fix` needs no equivalent: it binds `PRIMARY`
+   at `fix/SKILL.md:35`, well before Task 3's Step 2b.)
+3. In that same subsection, state the three site-specific facts the contract does not know. **(i) The
+   name checked** is the normalized `<feature-name>` this step just derived — never the raw argument.
+   On the **Linear entry path** it is the **`<short-title>` half of §A6's `<ID>-<short-title>` cycle
+   slug, with the `<ID>-` prefix stripped**, which is still a value derived from the resolved cycle
+   slug (what the spec's entry-adapter edge case requires) rather than the raw argument, and is the
+   strict-lowercase form §L1 declares — the ID prefix is uppercase and could never match a plan item.
+   **(ii)** The check runs before `git worktree add`, so a `switch` answer stops with nothing created
+   and nothing to unwind. **(iii)** A `switch` answer prints §L4's `/dev:spec "<next-item-name>"` line
+   and ends the stage.
 4. Locate the paragraph beginning "**Product-plan inheritance (path (B) …**" and extend its
    **Precedence (never run both)** sentence so it reads as a three-arm chain: a cycle that is itself
    product-scale takes path (A) and authors its own plan; else a nested cycle under a plan-bearing
@@ -197,7 +221,8 @@ Interfaces:
 - Shared procedure: *plan-order check* — **call site**, not an implementation. Task 1 is canonical.
   This site's divergences from the contract, stated in full at the site: (i) the checked name is
   resolved per dispatch — `<item>` on the `backlog` dispatch, the normalized issue title on the
-  `linear` dispatch, and the normalized raw argument on free text; (ii) it runs after Step 2a and
+  `linear` dispatch (the same `<short-title>` value Task 2's Linear path resolves), and the
+  normalized raw argument on free text; (ii) it runs after Step 2a and
   before Step 3, so `switch` unwinds nothing; (iii) the lane has no autopilot mode, so §L5's asking
   arm always applies here.
 
@@ -214,7 +239,9 @@ Implementation steps:
 4. Give the name resolution per dispatch, as a three-row table: `backlog` → the normalized `<item>`
    basename bound in Step 2a; `linear` → the issue title normalized by `dev:spec` Step 6's
    construction (lowercase, collapse runs outside `[a-z0-9]` to a single `-`, strip leading/trailing
-   `-`); free text → the raw argument put through that same normalization. Add the one-line reason
+   `-`) — **the same `<short-title>` value Task 2 checks after stripping the `<ID>-` prefix from
+   §A6's slug, so both Linear entry points resolve one name**; free text → the raw argument put
+   through that same normalization. Add the one-line reason
    free text is safe to check: normalization of a sentence yields a long hyphenated string that
    matches no plan item, so §L4 returns `unlinked` and prints nothing — which is the spec's
    free-text edge case.
@@ -249,7 +276,8 @@ Implementation steps:
 1. In **Step 2: Autopilot Behavioral Rules**, immediately after the existing **Debt surfacing: print,
    never ask.** bullet (`autopilot/SKILL.md:135`, verified as the adjacent rule of the same class),
    add a bullet **Plan-order check: print, never ask.** Say that `dev:spec` Step 6's plan-order check
-   (`../references/product-plans.md` §L4) asks for confirmation in standard mode on its `mismatch` and
+   (`../../references/product-plans.md` §L4 — the same depth Tasks 2 and 3 use; `autopilot/SKILL.md`
+   carries no existing `references/` citation to pattern-match against, so state the path explicitly) asks for confirmation in standard mode on its `mismatch` and
    `already-done` outcomes; in autopilot it prints the outcome into the run log and continues.
 2. State explicitly that this is **not** a stop condition, and do not add it to the `## Purpose`
    "When autopilot stops" list — the check never refuses in any mode, so there is nothing to add
@@ -287,6 +315,38 @@ Implementation steps:
    is the same match §L1 performed at Spec, so a cycle linked by path (C) is guaranteed to find its
    line item. Do not change the matching procedure.
 
+### Task 6: Buffer the close-intent for the adopted backlog item
+What: Write this cycle's `debt-pending.md` buffer with a `## To Close` close-intent for
+`debt-plan-item-cycles-never-set-product-plan`, the item the spec adopts and requires be disposed of
+explicitly.
+Used by: `dev:done` Step 6a, the only in-cycle flusher — it executes each `## To Close` close-intent
+against `docs/backlog/`, and Step 7 then deletes the buffer.
+Depends on: nothing — independent of Tasks 1–5. (The *reason* the item can close is Task 2's path (C);
+the buffer write itself depends on no other task's output.)
+Files: create `docs/dev/plan-linkage/debt-pending.md`
+Interfaces:
+- Consumes: nothing. (`../../references/tech-debt.md` §P4 supplies the buffer template; it is an
+  existing contract, not a Task 1 product.)
+- Produces: nothing — terminal task. Its effect is realized by `dev:done` Step 6a, outside this plan.
+- State keys: introduces no new `state.json` key.
+- Shared procedure: none.
+
+Implementation steps:
+1. Create `docs/dev/plan-linkage/debt-pending.md` from `../../references/tech-debt.md` §P4's template,
+   writing **both** sections — §P4 requires both to be present, and both may be empty.
+2. Leave `## To Record` empty. This cycle defers nothing new at plan time; Build, Validate, PR and
+   Reflect append their own items here if they find any.
+3. Under `## To Close`, write the single §P4-form bullet:
+   `- debt-plan-item-cycles-never-set-product-plan — path (C) sets product_plan automatically, so dev:done Step 3's check-off no longer depends on the operator remembering`
+4. Verify before committing that `docs/backlog/debt-plan-item-cycles-never-set-product-plan.md` exists
+   and its front-matter `status` is `open` — a close-intent naming a missing or already-closed item is
+   what `dev:done` Step 8 reports as `(couldn't find: …)`. (Verified at plan time: the file exists in
+   `docs/backlog/`.)
+5. Do **not** mark the item `promoted` or add a `promoted_to` back-link. The governing plan's
+   `## Notes` records that decision for all five of its source items, and its second source is
+   explicitly "disposed of, not deferred" — closed by this cycle through the ordinary buffer, which is
+   what this task does.
+
 ## Edge Cases
 
 | Edge case | Handled in | Approach |
@@ -302,6 +362,8 @@ Implementation steps:
 | No live plan at all / no `product-plans/` directory | Task 1 (§L1) | Returns no plan; not an error; prints nothing |
 | Autopilot reaches an asking outcome | Task 1 (§L5), Task 4 | Prints the outcome and proceeds; never asks, never stops |
 | Plan merged to `origin/main` but not pulled into the primary checkout | Task 1 (§L1), plan preamble | Lookup reads `$PRIMARY` and finds nothing → `unlinked` → today's behavior exactly; `dev:done` Step 7's fast-forward makes this rare |
+| A Linear-sourced cycle name (`<ID>-<short-title>`) | Task 1 (§L1), Tasks 2/3 | Both entry points pass the ID-stripped `<short-title>`, so they resolve one name and produce the same outcome |
+| The adopted backlog item must be disposed of explicitly | Task 6 | `## To Close` close-intent in the buffer; `dev:done` Step 6a executes it |
 | `switch` answered on `dev:fix linear` after the Pre-lane hook fired | Task 3 step 6 | Stop with nothing created, and say the issue was already moved to `started` so the user can move it back |
 
 ## Out of Scope
