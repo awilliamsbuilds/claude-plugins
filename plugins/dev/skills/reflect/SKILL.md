@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:done automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
+description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:pr automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
 ---
 
 # dev:reflect — Retrospective
@@ -23,7 +23,7 @@ Set `WORKDIR` to whichever matched. For the rest of this stage: run every git co
 `git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
 Never `cd`, never assume the current branch.
 
-When `dev:reflect` is invoked by `dev:done`, `WORKDIR` is already the cycle worktree flipped to the integration branch — this resolution is idempotent and yields the same directory.
+When `dev:reflect` is invoked by `dev:pr` (Step 5d), `WORKDIR` is already the cycle worktree, on this cycle's feature branch — this resolution is idempotent and yields the same directory.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ Look back at the completed cycle, surface what worked and what didn't, and ident
 Read once:
 - `docs/dev/<feature>/state.json` (if still exists) or accept it as passed context from dev:done
 - The decision log at `docs/decisions/YYYY-MM-DD-<feature>.md`
-- `docs/dev/<feature>/spec.md`, `plan.md`, `validation.md` (if accessible — they may be deleted by done)
+- `docs/dev/<feature>/spec.md`, `plan.md`, `validation.md` — all three are present at PR stage, where this skill now runs. The `(if accessible)` tolerance is kept for the standalone-invocation route below, which can still run after `dev:done` Step 7's teardown has removed them.
 
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
@@ -140,8 +140,24 @@ Fold whatever the user raises into the retrospective: add it to the relevant dim
 
 ## Step 5: Append to Decision Log
 
+**The path is `$WORKDIR`-prefixed**, like every other command in this file. A cwd-relative
+redirect silently appends in whatever directory the shell happens to be in, which is not
+necessarily the cycle worktree — this skill never relies on the shell's current directory.
+
+**Appending is idempotent.** If the decision log already carries a `## Retrospective` heading —
+the case when `dev:pr` is re-entered on a cycle whose `artifacts.pr_url` is already set — delete
+from that heading to end-of-file, then append. Otherwise append directly. Both branches end at the
+same commit, so a second `dev:pr` entry produces exactly one `## Retrospective`.
+
 ```bash
-cat >> docs/decisions/YYYY-MM-DD-<feature>.md << 'EOF'
+LOG="$WORKDIR/docs/decisions/YYYY-MM-DD-<feature>.md"
+
+# Replace-if-present: drop any existing ## Retrospective section before appending.
+if grep -q '^## Retrospective' "$LOG"; then
+  sed -i.bak '/^## Retrospective/,$d' "$LOG" && rm -f "$LOG.bak"
+fi
+
+cat >> "$LOG" << 'EOF'
 
 ## Retrospective
 ...content from Step 3...
@@ -151,6 +167,10 @@ git -C "$WORKDIR" add docs/decisions/YYYY-MM-DD-<feature>.md
 git -C "$WORKDIR" commit -m "docs: append retrospective to <feature> decision log"
 git -C "$WORKDIR" push
 ```
+
+**The bare `git push` is correct here.** At PR stage `$WORKDIR` is on the feature branch, whose
+upstream `dev:pr` Step 4 already set with `push -u origin <branch-name>`. The detached-HEAD failure
+this command used to hit belonged to the post-merge home it no longer has.
 
 ## Step 6: Skill Update Gate
 
