@@ -3,12 +3,13 @@
   "feature": "retro-inside-pr",
   "branch": "feature/retro-inside-pr",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/retro-inside-pr/plan.md",
     "validation": "docs/dev/retro-inside-pr/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/92",
+    "pr_number": 92
   },
   "validate": {
     "loops_run": 3,
@@ -88,7 +89,8 @@
       "build_start": "2026-08-23T03:41:49Z",
       "build_end": "2026-08-23T03:47:24Z",
       "validate_start": "2026-08-23T03:47:44Z",
-      "validate_end": "2026-08-23T04:16:22Z"
+      "validate_end": "2026-08-23T04:16:22Z",
+      "pr_created": "2026-08-23T04:17:10Z"
     }
   },
   "handoff_at": "plan"
