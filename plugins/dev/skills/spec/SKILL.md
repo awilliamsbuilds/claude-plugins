@@ -330,9 +330,10 @@ Four cases do **not** write here:
   would send Step 3b down its project-complete path, deleting the plan file and closing the promoted
   source item on a cycle that completed nothing. Both fields are already in §L1's output, so this
   costs no second lookup. Consequence, stated as the collision case states its own: `product_plan`
-  stays `null`, so `dev:done` Step 3 skips the check-off and the operator ticks the box by hand. §L4's
-  `continue` still means *the cycle runs exactly as it would have* — it is the plan file, not the
-  cycle, that is left untouched.
+  stays `null`, so `dev:done` Step 3 skips the check-off entirely and the plan file is left untouched.
+  There is no box to tick here — that is the point, and it is why the operator is asked to do nothing.
+  §L4's `continue` still means *the cycle runs exactly as it would have*; only the plan file is
+  spared.
 - **A §L2 collision** — the name matched items in more than one plan, so §L1 already returned no plan
   and the check printed each match. Stays `null`, deliberately: guessing is worse than not linking.
 - **Path (A) or (B) owns the value.** Test this on **what was prepared, not on the key's current

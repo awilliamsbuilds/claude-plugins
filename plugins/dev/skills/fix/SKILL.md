@@ -291,8 +291,8 @@ moved to `started`; move it back if the switch was intended.
 
 **This lane asks here, and that is deliberate.** `## Purpose`'s "runs unattended to an open PR" is
 about the *work*: once the lane starts changing files it never stops to consult. This check runs
-before any of that, and it is the lane's one deliberate question about *what to work on*, alongside
-Step 1's no-argument case. (Step 5's "if the normalized name is empty, ask for a name" is a degenerate
+before any of that, and it is one of the lane's two deliberate questions about *what to work on* — the
+other is Step 1's no-argument case. (Step 5's "if the normalized name is empty, ask for a name" is a degenerate
 error path, not a question about the work.) §L5 files it under its asking arm; the lane has no `mode` field to put it on the other one.
 
 **This is not an adapter hook.** It alters no adapter behaviour and no lane behaviour — not triage,

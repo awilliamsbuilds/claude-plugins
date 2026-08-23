@@ -123,13 +123,6 @@ mid-cycle stages.
 > Plan dev-process-hardening (4/6) — plan-linkage is in the current milestone.
 > ```
 
-**When `cycles-completed` is `null`** (a plan header carrying no `N/M`), drop the count from the line
-rather than rendering an empty gap: `on-order` prints `Plan <plan-name> — <item-name> is in the
-current milestone.`, and the two asking arms open with `Plan <plan-name>:` in place of
-`Plan <plan-name> is <cycles-completed> cycles complete.` Everything after that first line is
-unchanged. This is the rare case — both live plans carry the count — but an agent rendering a template
-has to be told, not left to improvise.
-
 **already-done** — matched and `item-checked` is `true`.
 
 > Prints and asks, naming the real condition rather than reusing the mismatch wording:
@@ -160,6 +153,13 @@ separates *on-order* from *mismatch*. It comes from the spec's "the plan's next 
 ambiguous" edge case: a milestone can hold several unchecked items and their internal order carries no
 commitment, so naming any of them is on-order. Crossing into a *later* milestone while the current one
 is unfinished is the skip this check exists to catch.
+
+**When `cycles-completed` is `null`** (a plan header carrying no `N/M`), drop the count from the line
+rather than rendering an empty gap: `on-order` prints `Plan <plan-name> — <item-name> is in the
+current milestone.`, and the two asking arms open with `Plan <plan-name>:` in place of
+`Plan <plan-name> is <cycles-completed> cycles complete.` Everything after that first line is
+unchanged. This is the rare case — both live plans carry the count — but an agent rendering a template
+has to be told, not left to improvise.
 
 **The check never refuses.** Neither asking outcome can stop the cycle by itself:
 
