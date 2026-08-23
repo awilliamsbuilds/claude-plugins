@@ -3,9 +3,10 @@
   "feature": "plan-linkage",
   "branch": "feature/plan-linkage",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -39,10 +40,10 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 3,
+    "blockers": 0,
     "concerns": 3,
-    "applied": 11,
-    "applied_concerns": 4,
+    "applied": 14,
+    "applied_concerns": 7,
     "dismissed": 0,
     "loops_run": 2,
     "loops_max": 3

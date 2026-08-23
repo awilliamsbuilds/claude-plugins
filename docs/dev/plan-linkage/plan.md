@@ -8,6 +8,7 @@
 | plugins/dev/references/product-plans.md | Create | Canonical lookup + plan-order-check contract (§L1–§L5) that both entry points cite |
 | plugins/dev/skills/spec/SKILL.md | Modify | Step 1 reads the new reference; Step 6 runs the check and adds product-plan path (C) |
 | plugins/dev/skills/fix/SKILL.md | Modify | Step 1 reads the new reference; new Step 2b runs the check before anything is created |
+| plugins/dev/references/entry-adapters.md | Modify | Footers record that `dev:fix` now loads §A6 (Task 3 step 7) |
 | plugins/dev/skills/autopilot/SKILL.md | Modify | Step 2 records the autopilot suppression of the check's question |
 | plugins/dev/skills/done/SKILL.md | Modify | Step 3's plan-locate paragraph names path (C) as a third writer of `product_plan` |
 | docs/dev/plan-linkage/debt-pending.md | Create | `## To Close` close-intent for the backlog item this cycle adopts |
@@ -40,8 +41,9 @@ degrading to today's behavior is the correct failure direction for a check that 
 ### Task 1: Write the product-plan lookup contract
 What: Create `plugins/dev/references/product-plans.md`, the single canonical definition of how a
 feature name resolves to a governing product plan and what each resolution outcome prints.
-Used by: `dev:spec` Step 6 (Task 2) and `dev:fix` Step 2b (Task 3) cite it by section; `dev:done`
-Step 3 (Task 5) cites §L1 for the value it reads; Milestone 4b will consume §L1 unchanged.
+Used by: `dev:spec` Step 6 (Task 2) and `dev:fix` Step 2b (Task 3) cite it by section; Milestone 4b
+will consume §L1 unchanged. **Not** `dev:done` — Task 5 reads `state.json.product_plan`, a value Task 2
+writes, and adds no citation to this reference.
 Depends on: nothing — first task.
 Files: create `plugins/dev/references/product-plans.md`
 Interfaces:
@@ -75,8 +77,12 @@ Implementation steps:
    checkbox (the parenthesised suffix `(feature)` / `(feature, deep)` is not part of the name). Match
    the input against item names, exactly, case-sensitively. Output: `plan-path`, `item-name`,
    `item-checked` (bool), `item-milestone` (the nearest preceding `##` heading, or `"(top of file)"`
-   where none precedes it), plus the plan's header cycles-completed string as written — or **no
-   plan**. State the read root explicitly: `$PRIMARY`, not `$WORKDIR`, because both call sites run
+   where none precedes it), `next-item-name` and `current-milestone` (both per §L3 — the plan's first
+   `- [ ]` item and the milestone holding it; both `null` on a plan with every box ticked), plus the
+   plan's header cycles-completed string as written — or **no plan**. Those last two are not optional
+   extras: §L4's on-order/mismatch discriminator *is* `item-milestone == current-milestone`, and both
+   asking outcomes print `next-item-name`, so a caller holding only the first four fields cannot
+   render §L4 at all. State the read root explicitly: `$PRIMARY`, not `$WORKDIR`, because both call sites run
    before their working tree exists. State the **returned type** just as explicitly: `plan-path` is
    **repo-relative** — `docs/dev/product-plans/<slug>.md` — and `$PRIMARY` is the read root only,
    never part of the returned value. This is what `dev:spec` path (C) writes into
@@ -138,7 +144,7 @@ Implementation steps:
    ID-stripped `<short-title>`, so `/dev:spec linear <id>` and `/dev:fix linear <id>` produce the same
    §L4 outcome for the same issue — the full-cycle escalation target is covered, not exempt.
 8. Add a closing **Loaded by** line naming `dev:spec` (Step 1 reads, Step 6 calls), `dev:fix` (Step 1
-   reads, Step 2b calls), and *cited by* `dev:autopilot` Step 2 and `dev:done` Step 3 — the same
+   reads, Step 2b calls), and *cited by* `dev:autopilot` Step 2 — the same
    footer shape `references/entry-adapters.md` and `references/tech-debt.md` carry.
 
 ### Task 2: Add the check and product-plan path (C) to `dev:spec` Step 6
@@ -150,7 +156,8 @@ Depends on: Task 1 (cites §L1–§L5 by anchor).
 Files: modify `plugins/dev/skills/spec/SKILL.md`
 Interfaces:
 - Consumes: Task 1's `§L1`–`§L5` anchors in `plugins/dev/references/product-plans.md`, and §L1's
-  output fields `plan-path`, `item-name`, `item-checked`, `item-milestone`.
+  output fields `plan-path`, `item-name`, `item-checked`, `item-milestone`, `next-item-name`,
+  `current-milestone`.
 - Produces: `state.json.product_plan` set to §L1's `plan-path` on the exactly-one-match case — the
   same repo-relative `docs/dev/product-plans/<slug>.md` shape paths (A) and (B) already write.
 - State keys: introduces **no new** `state.json` key. Path (C) is a third writer of the existing
@@ -222,11 +229,14 @@ branch exists.
 Used by: every `/dev:fix` invocation in lane mode.
 Depends on: Task 1 (cites §L1–§L5 by anchor). Independent of Task 2 — the two call sites share no
 file and may be built in either order.
-Files: modify `plugins/dev/skills/fix/SKILL.md`
+Files: modify `plugins/dev/skills/fix/SKILL.md`, `plugins/dev/references/entry-adapters.md`
 Interfaces:
-- Consumes: Task 1's `§L1`–`§L5` anchors in `plugins/dev/references/product-plans.md`, and §L1's
-  output fields `plan-path`, `item-name`, `item-checked`, `item-milestone`.
-- Produces: nothing — terminal task. The lane writes no `state.json`, so this site records no plan
+- Consumes: Task 1's `§L1`–`§L5` anchors in `plugins/dev/references/product-plans.md`; §L1's output
+  fields `plan-path`, `item-name`, `item-checked`, `item-milestone`, `next-item-name`,
+  `current-milestone`; and `../../references/entry-adapters.md` §A6 (the cycle-slug construction the
+  `linear` row of step 4 derives its name from).
+- Produces: an amended **Loaded by** line in `entry-adapters.md` (step 7) — `dev:fix` gains §A6.
+  Nothing else; the lane writes no `state.json`, so this site records no plan
   linkage; its whole effect is the printed outcome and the optional `switch` stop.
 - State keys: introduces no new `state.json` key. `dev:fix` writes no `state.json` at all.
 - Shared procedure: *plan-order check* — **call site**, not an implementation. Task 1 is canonical.
@@ -240,7 +250,9 @@ Interfaces:
 Implementation steps:
 1. In **Step 1: Parse the argument**, add `../../references/product-plans.md` to the **Reads** list,
    noting it is read on every dispatch (unlike `docs/dev/config.json` directly below it, which is
-   `linear`-only).
+   `linear`-only). In the same list, widen the existing `entry-adapters.md` bullet from
+   `§A1 hooks, §A2 argument tokens, §A3 Linear, §A4 backlog` to also name **§A6** — step 4's `linear`
+   row derives the cycle slug from it, so the lane genuinely loads it now.
 2. Insert a new **Step 2b: Plan-order check** between Step 2a and Step 3. Open it by stating the
    placement rule the lane already relies on: it runs after Step 2a's resolve and before Step 3's
    grounding, so everything it can do happens **before Step 5 creates any branch** — the same ordering
@@ -266,7 +278,14 @@ Implementation steps:
    `started` status was set by §A3's Pre-lane hook, and the `config.json` status cache write is still
    deferred (Step 5 performs it, so it never happened). Tell the user the issue was moved to
    `started` so they can move it back if they meant to switch.
-7. Close the step with the seam's invariant, in the shape §A1 requires: this check is not an adapter
+7. Make the two footers that record §A6's readership true, in the same commit — after this task the
+   lane loads §A6, and a footer saying otherwise is a stale cross-reference:
+   `entry-adapters.md`'s **Loaded by** line (`entry-adapters.md:9`, verified) becomes
+   `` `dev:fix` (§A1–A4, §A6) and `dev:spec` (§A3's fetch, §A5, §A6) ``, and §A6's own
+   "Consumed by `dev:spec` on the Linear entry path" line names both entry points. Change nothing else
+   in that file — §A6's slug construction, its allowlist, and the `dev:done` and `dev:pr` citations
+   are untouched.
+8. Close the step with the seam's invariant, in the shape §A1 requires: this check is not an adapter
    hook and alters no adapter behaviour — it changes neither triage, nor the escalation threshold, nor
    PR flow.
 
