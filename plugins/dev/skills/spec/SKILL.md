@@ -45,6 +45,9 @@ Read these files once at stage start. Work from this reading throughout — do n
 - `CLAUDE.md` — audience and technical constraints (pre-fills confidence dimensions)
 - `../../references/entry-adapters.md` — **Linear entry path only.** §A3's availability check and
   fetch, §A5's issue→dimension mapping, §A6's uppercase-tolerant cycle slug.
+- `../../references/product-plans.md` — the governing-plan lookup (§L1) and plan-order check
+  (§L4/§L5), consumed by Step 6. Read on **every** path, unlike the adapter reference above it: any
+  feature name can be an item in a product plan.
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
@@ -163,12 +166,34 @@ proceeds identically. The non-Linear construction below is **untouched** and sta
 
 **Feature name (derive and normalize first).** Derive `<feature-name>` from the stated intent, kebab-case, 2-4 words. **Then normalize it to a character allowlist by construction:** lowercase the derived name, replace every run of characters outside `[a-z0-9]` with a single `-`, and strip any leading or trailing `-`, so the result matches `^[a-z0-9][a-z0-9-]*$`. If normalization yields an empty string, STOP and ask the user for a feature name rather than proceeding with an empty slug. Do this **before** the worktree-creation command below, so the normalized `<feature-name>` is the value that flows into the branch name, the worktree path, the artifact directory, and every `git commit -m "… <feature>"` site (including the ones in `dev:done`) — making `<feature>` safe by construction at every interpolation, with no later stage needing to re-guard it.
 
-**Create the cycle worktree (always).** Every cycle runs in its own git worktree so
-concurrent sessions in this repo never contend for the shared working tree. Compute the
-primary checkout and create the worktree there:
+**Compute the primary checkout (needed by the check below and by the worktree command after it):**
 
     GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
     PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+
+This is the stage's **single** `PRIMARY` derivation, with its existing guard — it is bound here rather
+than inside the worktree block below only so the plan-order check can read it. Everything after this
+reuses `$PRIMARY`; never derive it a second time.
+
+**Plan-order check (before anything is created).** Run `../../references/product-plans.md` §L1
+against the normalized `<feature-name>`, then apply §L4's outcome and §L5's mode rule. **Hold §L1's
+result** — path (C) below reuses it, so the stage performs one lookup, not two.
+
+Three things this site knows that the contract does not:
+
+- **(i) The name checked** is the normalized `<feature-name>` just derived — never the raw argument.
+  On the **Linear entry path** it is the **`<short-title>` half of §A6's `<ID>-<short-title>` cycle
+  slug, with the `<ID>-` prefix stripped**: still a value derived from the resolved cycle slug rather
+  than from the raw argument, and the strict-lowercase form §L1 requires. The uppercase ID prefix
+  could never match a plan item, so passing the whole slug would make this path incapable of linking.
+- **(ii)** The check runs **before** `git worktree add`, so a `switch` answer stops with nothing
+  created and nothing to unwind — no branch, no worktree, no `state.json`.
+- **(iii)** A `switch` answer prints §L4's `/dev:spec "<next-item-name>"` line and **ends the stage.**
+
+**Create the cycle worktree (always).** Every cycle runs in its own git worktree so
+concurrent sessions in this repo never contend for the shared working tree. Create it under the
+`$PRIMARY` bound above:
+
     git -C "$PRIMARY" fetch origin
     git -C "$PRIMARY" worktree add "$PRIMARY/.dev-worktrees/<feature-name>" -b <branch> origin/main
 
@@ -283,7 +308,30 @@ path `linear_issue` stays `null`, exactly as today.
 
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
-**Product-plan inheritance (path (B) — nested child of a plan-bearing parent).** `(writes: both)` Independent of whether *this* cycle authored a plan: if Step 1's Nesting Detection found an active parent whose **committed** `state.json.product_plan` is non-null, set this child's `state.json.product_plan` to that same path (inherit the parent's value — do **not** compute a new slug). This runs even for a plain nested feature cycle that never triggers Step 2/4, so `dev:done` can still locate and check off the governing plan. **Precedence (never run both):** a cycle that is *itself* product-scale takes path (A) below and authors its own plan/slug; else a nested cycle under a plan-bearing parent inherits here (path (B)); else `product_plan` stays `null`. Read the parent's *committed* `state.json` — a child cut before the parent set `product_plan` inherits `null` and simply skips plan updates (safe degradation, matching today's nested-without-plan behavior). This is a mode-agnostic write (no gate), part of the initial state.json commit below.
+**Product-plan inheritance (path (B) — nested child of a plan-bearing parent).** `(writes: both)` Independent of whether *this* cycle authored a plan: if Step 1's Nesting Detection found an active parent whose **committed** `state.json.product_plan` is non-null, set this child's `state.json.product_plan` to that same path (inherit the parent's value — do **not** compute a new slug). This runs even for a plain nested feature cycle that never triggers Step 2/4, so `dev:done` can still locate and check off the governing plan. **Precedence (never run two):** a cycle that is *itself* product-scale takes path (A) below and authors its own plan/slug; else a nested cycle under a plan-bearing parent inherits here (path (B)); else a cycle whose name matches an item in **exactly one** existing plan adopts it at path (C) below; else `product_plan` stays `null`. Path (C) runs only when (A) and (B) did not. Read the parent's *committed* `state.json` — a child cut before the parent set `product_plan` inherits `null` and simply skips plan updates (safe degradation, matching today's nested-without-plan behavior). This is a mode-agnostic write (no gate), part of the initial state.json commit below.
+
+**Product-plan adoption (path (C) — this cycle's name is an item in exactly one plan).**
+`(writes: both)` If the plan-order check above held a §L1 result naming a plan, set
+`state.json.product_plan` to that result's `plan-path` — the repo-relative
+`docs/dev/product-plans/<slug>.md`, the same shape paths (A) and (B) write.
+
+Three cases do **not** write here:
+
+- **No match** — §L1 returned no plan; `product_plan` stays `null`.
+- **A §L2 collision** — the name matched items in two plans, so §L1 already returned no plan and the
+  check printed both. Stays `null`, deliberately: guessing is worse than not linking.
+- **Path (A) or (B) owns the value.** Test this on **what was prepared, not on the key's current
+  value.** Path (B) has already written by this point, but path (A) writes in its *own* commit at the
+  end of this step, so on a product-scale cycle `product_plan` is still `null` at (C)'s decision
+  point. The test is therefore: *did Step 2 or Step 4 prepare a product plan (path (A) will run and
+  owns the value), or did Step 1's Nesting Detection supply an inherited value (path (B) ran)?*
+  Either way (C) does not write. A check of "is `product_plan` non-null" would let (C) write on a
+  product-scale cycle — harmless only by accident, because (A) overwrites it moments later.
+
+Like path (B)'s, this write rides the initial state.json commit below and creates no commit of its
+own. Its consumer is `dev:done` Step 3: it reads this value to check the item's box and bump the
+plan's cycles-completed count, and skips the whole step when the value is `null`
+(`done/SKILL.md:135`).
 
 Set `challenge.loops_max` from the tier detected in Step 5 — micro 1 / standard 3 / deep 5. The challenger (Step 12a) runs inside this skill, so the cap must be correct at initialization.
 
