@@ -2,7 +2,7 @@
   "version": "1.0",
   "feature": "plan-linkage",
   "branch": "feature/plan-linkage",
-  "mode": "standard",
+  "mode": "autopilot",
   "stage": "plan",
   "completed": [
     "spec"
@@ -14,7 +14,7 @@
   "artifacts": {
     "spec": "docs/dev/plan-linkage/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/plan-linkage/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -77,7 +77,10 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-08-23T20:37:05Z",
-      "spec_end": "2026-08-23T21:11:19Z"
+      "spec_end": "2026-08-23T21:11:19Z",
+      "plan_start": "2026-08-23T21:13:44Z",
+      "plan_end": "2026-08-23T21:18:10Z"
     }
-  }
+  },
+  "handoff_at": "plan"
 }
