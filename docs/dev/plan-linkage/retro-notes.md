@@ -1,4 +1,4 @@
-# Retro notes — project-scoped-worktree
+# Retro notes — plan-linkage
 
 Observations raised by the user *during* the cycle, recorded here because `dev:reflect` Step 4 asks
 for them live at `dev:pr` time — usually a different session. Reflect should fold these into the
