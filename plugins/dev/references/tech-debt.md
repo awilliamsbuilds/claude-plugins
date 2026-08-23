@@ -23,7 +23,7 @@ redesigned format is P4.
 
 **Who writes what:**
 
-- **Producing stages** — `dev:build`, `dev:validate`, `dev:reflect` (in-cycle), and `dev:spec` — only
+- **Producing stages** — `dev:build`, `dev:validate`, `dev:pr`, `dev:reflect` (in-cycle), and `dev:spec` — only
   ever **append** to the buffer (`## To Record` items, or, for `dev:spec`, a `## To Close`
   close-intent bullet).
 - **`dev:done` is the only in-cycle flusher:** Step 6a writes buffered items into `docs/backlog/` and
@@ -463,7 +463,7 @@ the same channel.
 
 ## Mode symmetry
 
-**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`,
+**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`, `dev:pr`,
 `dev:validate`, `dev:reflect`, and `dev:done`. Each is **self-applied by the writing stage.** Never gate
 one on user confirmation, and never put one on a standard-mode-only path.
 

@@ -51,7 +51,6 @@ Read once at stage start:
 - `docs/dev/<feature>/plan.md` (if exists)
 - `docs/dev/<feature>/validation.md`
 
-
 ## Step 2: Merge PR
 
 **Duplicated at `dev:fix`.** This step is canonical; `dev:fix`'s merge tail mirrors it for the

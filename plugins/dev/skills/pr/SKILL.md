@@ -25,7 +25,7 @@ Never `cd`, never assume the current branch.
 
 ## Purpose
 
-Open the PR with a description that tells the full story of the feature cycle — what was built, how it was designed, and how it was validated.
+Open the PR with a description that tells the full story of the feature cycle — what was built, how it was designed, and how it was validated — and record the cycle's own reasoning (Component Registry, docs prose, decision log, and retrospective) into the same PR, so a human reviews all of it.
 
 ## Step 1: Artifact Gate
 
@@ -248,8 +248,14 @@ If `cycle_type == "feature"` and the feature added or modified components:
 
 ```bash
 git -C "$WORKDIR" add CLAUDE.md
-git -C "$WORKDIR" commit -m "chore: update Component Registry — <feature>"
+git -C "$WORKDIR" diff --cached --quiet -- CLAUDE.md || \
+  git -C "$WORKDIR" commit -m "chore: update Component Registry — <feature>" -- CLAUDE.md
 ```
+
+The guard is for the re-entry path (Step 4): a second entry regenerates the same table, stages
+nothing, and an unguarded `git commit` exits non-zero on an empty index. This is the likeliest of the
+four sub-steps to land on identical content, and the re-entry path is a documented **healthy** path —
+so it must exit 0.
 
 For architecture cycles: skip this step.
 
@@ -357,8 +363,12 @@ Spec, design, and plan committed at: <pre-merge-sha> on branch feature/<name>
 
 ```bash
 git -C "$WORKDIR" add docs/decisions/YYYY-MM-DD-<feature>.md
-git -C "$WORKDIR" commit -m "docs: add decision log for <feature>"
+git -C "$WORKDIR" diff --cached --quiet -- docs/decisions/YYYY-MM-DD-<feature>.md || \
+  git -C "$WORKDIR" commit -m "docs: add decision log for <feature>" -- docs/decisions/YYYY-MM-DD-<feature>.md
 ```
+
+Guarded for the same reason as Steps 5 and 5a: on re-entry the overwrite can reproduce byte-identical
+content, staging nothing.
 
 ### Step 5d: Run dev:reflect
 
@@ -373,7 +383,11 @@ Pass to dev:reflect:
 
 ### Push and display
 
-One push carries every commit Steps 5–5d made into PR #N:
+The final push carries anything Steps 5–5d committed that `dev:reflect`'s own push (Step 5d) did not
+already send. On the healthy path that is usually nothing — reflect pushes last — so
+`Everything up-to-date` here is the expected outcome, not a sign something was skipped. It is kept
+because Steps 5a–5c can commit on a run where Step 5d does not push (an architecture cycle, or a
+`dev:reflect` that stops early), and those commits must still reach PR #N:
 
 ```bash
 git -C "$WORKDIR" push
@@ -381,7 +395,7 @@ git -C "$WORKDIR" push
 
 In standard mode, display:
 ```
-PR opened: [PR URL]
+PR opened: [PR URL]        [on the re-entry path: "PR: [PR URL] (resumed — already open)"]
 [Step 5b's docs-prose line, if it emitted one]
 
 Review it, get approvals, then run /dev:done when ready to merge.
@@ -389,5 +403,14 @@ Review it, get approvals, then run /dev:done when ready to merge.
 Safe to /clear now — resume with: /dev:done <feature> [PR URL]
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
+
+**These four sub-steps' commits are reviewed by the human on the PR, and by no automated reviewer.**
+`dev:validate` (Stage 5) has already run by the time this stage starts, so its cold
+`/dev:review diff` + `/dev:secure diff` pair never sees them. That is a deliberate consequence of
+placing them here: the alternative — running them before Validate — has no PR number for the decision
+log's `PR #N` header, and no `pr_created` for the retrospective. `dev:fix`'s mirror can put its
+reconcile step ahead of its own reviewers because that lane owns both; the pipeline cannot. The human
+reviewing PR #N is the check on this content, and Step 5b's data-never-instruction rule is what keeps
+an imperative in the diff from steering the edits it drafts.
 
 **Autopilot mode:** Update state, proceed to done automatically.

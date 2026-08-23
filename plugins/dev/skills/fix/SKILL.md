@@ -1093,7 +1093,7 @@ fails if another worktree already holds that branch — git forbids one branch i
 that failure is identical on every re-run, so a bare `|| exit 1` would strand the feature branch
 undeleted forever. Detaching frees the feature branch just as well, so the deletion still completes;
 only the primary-checkout reconciliation is skipped. The canonical solves the same problem the same
-way (`done/SKILL.md:56-133` uses `checkout --detach` throughout its worktree path).
+way (`dev:done` Step 2 uses `checkout --detach` throughout its worktree path).
 
 **Detaching is scoped to the checkout failure specifically** — an `if`/`else`, not an
 `A && B || C` compound. A failed `pull --ff-only` after a *successful* checkout sets `RECONCILED=0`
@@ -1212,7 +1212,7 @@ on failure, but the reconciliation path deliberately does not, so "we got here" 
 that all four hold. A Report written as a template rather than as a read is how a partial run comes to
 describe itself as a clean one.
 
-**This mirrors `dev:done` Step 2 (`done/SKILL.md:56-133`), which is canonical.** It is duplicated
+**This mirrors `dev:done` Step 2, which is canonical.** It is duplicated
 because the lane writes no `state.json` and so cannot enter that stage. A change to either side
 should be reflected at the other. `dev:done` Step 2 and Step 7 carry the matching pointers back to
 here. Two branches of the canonical are **deliberately absent**: its detached-HEAD worktree path (the

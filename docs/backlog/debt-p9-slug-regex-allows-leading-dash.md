@@ -11,11 +11,13 @@ files:
   - plugins/dev/skills/reflect/SKILL.md
 ---
 
-**What's wrong:** §P9.target-resolution's slug allowlist is `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, and
-both §P9 itself (§P9.target-resolution) and `dev:reflect` Step 6's stop conditions describe it as rejecting
-any value beginning with `-` — "an argument-injection vector into the `gh --repo` invocation." It does
-not reject one: `-` is inside the character class, so `-foo/bar` and `--repo/x` both pass. Verified
-empirically. The stated security property is not the delivered one.
+**What's wrong:** §P9.target-resolution's slug allowlist was
+`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, while both §P9 and `dev:reflect` Step 6's stop conditions
+described it as rejecting any value beginning with `-` — "an argument-injection vector into the
+`gh --repo` invocation." It did not: `-` sat inside the character class, so `-foo/bar` and
+`--repo/x` both passed. Verified empirically. The stated security property was not the delivered
+one. **Fixed by `retro-inside-pr`**, which made the anchored form canonical in §P9; this item is
+buffered for closure in that cycle.
 
 **Why deferred:** §P9 is the shared cross-repo routing contract, read by `dev:debt` (`add`/`list`/
 `inbox`), `dev:done`'s flush, and `dev:reflect`. Tightening the regex there changes validation
