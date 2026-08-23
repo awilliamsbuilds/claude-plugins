@@ -3,12 +3,13 @@
   "feature": "plan-linkage",
   "branch": "feature/plan-linkage",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/plan-linkage/plan.md",
     "validation": "docs/dev/plan-linkage/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/93",
+    "pr_number": 93
   },
   "validate": {
     "loops_run": 3,
@@ -85,7 +86,8 @@
       "plan_end": "2026-08-23T21:18:10Z",
       "build_start": "2026-08-23T21:35:57Z",
       "build_end": "2026-08-23T21:38:32Z",
-      "validate_end": "2026-08-23T22:03:55Z"
+      "validate_end": "2026-08-23T22:03:55Z",
+      "pr_created": "2026-08-23T22:04:44Z"
     }
   },
   "handoff_at": "plan"
