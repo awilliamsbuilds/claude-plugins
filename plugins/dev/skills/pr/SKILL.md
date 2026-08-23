@@ -91,6 +91,11 @@ If validation has open P1/P2 issues (user chose to proceed anyway), add a promin
 
 Read `docs/dev/config.json`. If the `changelog` key is absent or null, skip this step entirely.
 
+**On re-entry** (Step 4's re-entry path, `artifacts.pr_url` already set): skip this step when this
+cycle's entry is already present in the configured changelog. Without the check a second entry runs
+the prepend and the version bump again, producing a duplicate entry and a second bump. Inert where
+no changelog is configured; live in any repo that configures one.
+
 If a changelog path is configured:
 
 **Collect qualifying changes** by reviewing `spec.md`, `design.md` (if exists), and `plan.md`. A change qualifies if it is:
@@ -136,6 +141,22 @@ at all. Keep the format in step; do not try to unify the plumbing.
 single-quoted heredoc because the body carries untrusted input; this cycle makes issue-derived text a
 first-class input to *this* stage as well, so the same discipline applies here and is implemented
 below rather than deferred.
+
+**Re-entry: idempotent resume, never a stop.** If `state.json.artifacts.pr_url` is already set, this
+is a second entry — `dev:autopilot` Step 3 executes every row stage from the resolved entry point
+onward, PR included. **Skip `gh pr create`** and reuse the stored `artifacts.pr_url` /
+`artifacts.pr_number` for the rest of the stage. Everything else in Steps 4 and 5 runs normally,
+including the push below and Step 5's push at the end.
+
+**The push runs on every path — never skip the stage to avoid the duplicate create.** The feature
+branch is published in exactly one place: the `push -u` below and Step 5's bare push to the upstream
+it sets. Skipping the stage skips the push, so `dev:done` would merge a stale remote head and then
+force-delete the branch, silently discarding the run's work. Re-entering and reusing the PR is what
+keeps that from being the failure mode.
+
+This is why the stage introduces **no** new stop condition, which is what keeps it consistent with
+`dev:autopilot`'s rule that no row stage is exempted from re-execution. Steps 5c and 5d carry the
+two re-entry consequences that need stating; both are noted there.
 
 Push the branch if not already pushed:
 ```bash
@@ -205,7 +226,7 @@ Update state.json:
 - Set `artifacts.pr_number` to the PR number (parse from URL or gh output)
 - Add `"pr"` to `completed[]`
 - Set `stage` to `"done"`
-- Record `metrics.stage_timestamps.pr_created` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in
+- Record `metrics.stage_timestamps.pr_created` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in. **On re-entry, leave the existing value alone** — it marks when the PR was opened, which `dev:reflect` Step 1 reads as a stage timestamp; re-stamping it would report the resume time instead.
 
 ```bash
 git -C "$WORKDIR" add docs/dev/<feature>/state.json
