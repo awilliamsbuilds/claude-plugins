@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-23
+closed_by: retro-inside-pr
 severity: P2
 first_recorded: 2026-08-15
 cycles: [fast-path]

@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: plugin
-status: open
+status: closed
+closed: 2026-08-23
+closed_by: retro-inside-pr
 first_recorded: 2026-08-20
 cycles: [autopilot-resume-stage]
 recurrence: 1

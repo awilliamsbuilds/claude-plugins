@@ -1,7 +1,9 @@
 ---
 type: backlog
 scope: repo
-status: open
+status: closed
+closed: 2026-08-23
+closed_by: retro-inside-pr
 first_recorded: 2026-08-15
 cycles: [retire-legacy-commands]
 recurrence: 1
