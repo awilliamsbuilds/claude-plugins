@@ -329,9 +329,12 @@ Four cases do **not** write here:
   cycles-completed count with no box to tick, and — on a plan whose every box is already `[x]` —
   would send Step 3b down its project-complete path, deleting the plan file and closing the promoted
   source item on a cycle that completed nothing. Both fields are already in §L1's output, so this
-  costs no second lookup.
-- **A §L2 collision** — the name matched items in two plans, so §L1 already returned no plan and the
-  check printed both. Stays `null`, deliberately: guessing is worse than not linking.
+  costs no second lookup. Consequence, stated as the collision case states its own: `product_plan`
+  stays `null`, so `dev:done` Step 3 skips the check-off and the operator ticks the box by hand. §L4's
+  `continue` still means *the cycle runs exactly as it would have* — it is the plan file, not the
+  cycle, that is left untouched.
+- **A §L2 collision** — the name matched items in more than one plan, so §L1 already returned no plan
+  and the check printed each match. Stays `null`, deliberately: guessing is worse than not linking.
 - **Path (A) or (B) owns the value.** Test this on **what was prepared, not on the key's current
   value.** Path (B) has already written by this point, but path (A) writes in its *own* commit at the
   end of this step, so on a product-scale cycle `product_plan` is still `null` at (C)'s decision

@@ -37,9 +37,10 @@ if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 
 ```
 
 The first two lines are the derivation every `dev` stage header uses (`build/SKILL.md:26-27`). The
-third is the non-empty guard **none of those 12 shell sites carries** — the gap
-`docs/backlog/debt-primary-cd-failure-unchecked.md` records. This site carries it, so adding the
-lane does not grow that item's count to 13. Do not "simplify" the guard away to match the others.
+third is the non-empty guard **the 11 remaining unguarded shell sites do not carry** — the gap
+`docs/backlog/debt-primary-cd-failure-unchecked.md` records. (`dev:spec` Step 6 was the twelfth; the
+`plan-linkage` cycle gave it the guard when the plan-order check became a reader of `$PRIMARY`.) This
+site carries it, so adding the lane does not grow that item's count. Do not "simplify" the guard away to match the others.
 
 For the rest of this lane: run every git command as `git -C "$PRIMARY" …`, **and resolve every file
 path you read or edit against `$PRIMARY/`**. Never `cd`.
@@ -290,8 +291,9 @@ moved to `started`; move it back if the switch was intended.
 
 **This lane asks here, and that is deliberate.** `## Purpose`'s "runs unattended to an open PR" is
 about the *work*: once the lane starts changing files it never stops to consult. This check runs
-before any of that, and it is the lane's second deliberate question alongside Step 1's no-argument
-case. §L5 files it under its asking arm; the lane has no `mode` field to put it on the other one.
+before any of that, and it is the lane's one deliberate question about *what to work on*, alongside
+Step 1's no-argument case. (Step 5's "if the normalized name is empty, ask for a name" is a degenerate
+error path, not a question about the work.) §L5 files it under its asking arm; the lane has no `mode` field to put it on the other one.
 
 **This is not an adapter hook.** It alters no adapter behaviour and no lane behaviour — not triage,
 not the escalation threshold, not PR flow (§A1's first invariant).
@@ -402,7 +404,7 @@ only one of them starts with `fix/`.
 **Free text.** Name the branch `fix/<kebab-summary>`, where `<kebab-summary>` describes the change in
 2–4 words. The allowlist applies to `<kebab-summary>` **alone**, not to the full branch name — a
 prefixed `fix/…` can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be
-collapsed. Normalize by `dev:spec` Step 6's construction (`dev:spec` Step 6's **Feature name (derive and normalize first)** paragraph): lowercase, collapse
+collapsed. Normalize by `dev:spec` Step 6's **Feature name (derive and normalize first)** construction: lowercase, collapse
 every run of characters outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`. If the
 result is empty, ask for a name rather than proceeding.
 

@@ -74,7 +74,7 @@ A missing or empty `docs/dev/product-plans/` directory returns **no plan**, and 
 
 ## §L2 — Collision
 
-If the name matches items in **more than one** plan file, return **no plan** and print both matches:
+If the name matches items in **more than one** plan file, return **no plan** and print every match:
 
 ```
 plan-scoped-worktree appears in 2 product plans:
@@ -122,6 +122,13 @@ mid-cycle stages.
 > ```
 > Plan dev-process-hardening (4/6) — plan-linkage is in the current milestone.
 > ```
+
+**When `cycles-completed` is `null`** (a plan header carrying no `N/M`), drop the count from the line
+rather than rendering an empty gap: `on-order` prints `Plan <plan-name> — <item-name> is in the
+current milestone.`, and the two asking arms open with `Plan <plan-name>:` in place of
+`Plan <plan-name> is <cycles-completed> cycles complete.` Everything after that first line is
+unchanged. This is the rare case — both live plans carry the count — but an agent rendering a template
+has to be told, not left to improvise.
 
 **already-done** — matched and `item-checked` is `true`.
 

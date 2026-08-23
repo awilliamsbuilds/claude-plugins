@@ -18,7 +18,6 @@ files:
   - plugins/dev/skills/pr/SKILL.md
   - plugins/dev/skills/reflect/SKILL.md
   - plugins/dev/skills/shape/SKILL.md
-  - plugins/dev/skills/spec/SKILL.md
   - plugins/dev/skills/validate/SKILL.md
 ---
 
@@ -33,9 +32,14 @@ filesystem root.
 
 **Why deferred:** Not a regression — the pre-cycle one-liner was equally unchecked, and the
 autopilot-handoff cycle strictly improved it by adding the `||` branch to line 1. Closing it
-means a coordinated edit across 12 files, which is its own cycle rather than a Validate fix.
+means a coordinated edit across the remaining files, which is its own cycle rather than a Validate
+fix.
 
-**Done looks like:** All 12 sites carry a non-empty check after the derivation — e.g.
+**Progress (2026-08-23, `plan-linkage`):** `dev:spec` Step 6 now carries the guard — its plan-order
+check reads `$PRIMARY` before any `git -C "$PRIMARY"` command, so an empty value would degrade that
+check to silence rather than failing loudly at `worktree add`. 11 of the original 12 sites remain.
+
+**Done looks like:** All remaining sites carry a non-empty check after the derivation — e.g.
 `if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 1; fi` —
 and `grep -rn 'PRIMARY=' plugins/dev/skills/*/SKILL.md` shows every hit followed by that guard.
 Keep the healthy path exiting 0 (`if`, not `[ … ] && …`).
