@@ -3,8 +3,10 @@
   "feature": "retro-inside-pr",
   "branch": "feature/retro-inside-pr",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
