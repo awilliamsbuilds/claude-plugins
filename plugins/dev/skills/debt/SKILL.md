@@ -16,7 +16,7 @@ hand.
 It does not own the rest of the lifecycle. `dev:done` Step 6a owns **automatic** closing, as does
 the backlog adapter's Closeout hook in `dev:fix`'s merge tail (a marked mirror of Step 6 below — see
 `../../references/entry-adapters.md` §A4), and
-the producing stages (`dev:build`, `dev:validate`, `dev:reflect`, `dev:spec`) only ever append
+the producing stages (`dev:build`, `dev:validate`, `dev:pr`, `dev:reflect`, `dev:spec`) only ever append
 to their cycle's buffer — the one exception being `dev:reflect` invoked standalone after the
 cycle directory is gone, which has no buffer and writes item files into `docs/backlog/` directly.
 Nothing here writes a buffer.

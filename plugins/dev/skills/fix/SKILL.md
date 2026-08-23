@@ -57,7 +57,7 @@ the slug positionally instead — `--repo` is an unknown flag there — and `gh 
 neither.) Without it, `gh` resolves the base repo from
 the git remotes, and **its rule for a fork is to send the PR to the fork's *parent*** — so a lane run
 in someone's fork would open a PR against an upstream they don't own, unattended, with the branch
-already pushed. `dev:reflect` guards exactly this (`reflect/SKILL.md:212`); the lane needs it more,
+already pushed. `dev:reflect` guards exactly this (Step 6's `### Skill edits go through the plugins repo — always`, step 2); the lane needs it more,
 because its own premise is that it runs across several repos.
 
 The lane's target is always the repo it is operating in, so resolve the slug from `origin`:
@@ -70,14 +70,10 @@ if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._]
 fi
 ```
 
-This is `../../references/tech-debt.md` §P9.target-resolution's allowlist **with the first character
-anchored**, and it is validation rather than decoration. §P9's own form is
-`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, and that form is described there as rejecting a value beginning
-with `-` — an argument-injection vector into `gh --repo`. It does not: `-` is inside the character
-class, so `-foo/bar` passes it. The anchored first character above is what actually delivers the
-property §P9 claims. §P9 is the shared contract and this cycle does not rewrite it; the discrepancy is
-recorded as `docs/backlog/debt-p9-slug-regex-allows-leading-dash.md`. A slug that fails this check is
-a stop, never something to pass to `gh`.
+This is `../../references/tech-debt.md` §P9.target-resolution's allowlist, and it is validation rather
+than decoration. §P9 anchors the first character of each segment so a value beginning with `-` is
+rejected — an argument-injection vector into `gh --repo`. A slug that fails this check is a stop,
+never something to pass to `gh`.
 
 The `sed` handles all four remote forms in use — `git@host:owner/name[.git]`,
 `https://host/owner/name[.git]`, `ssh://git@host/owner/name.git`, and a credential-bearing
@@ -515,7 +511,7 @@ Two divergences, named identically at both ends:
 
 A lane change that adds, renames, or removes a skill, command, flag, or config key leaves `README.md`
 and `CLAUDE.md` stale, and — unlike a full cycle — nothing downstream will ever catch it: the lane
-never enters `dev:done`, so `dev:done` Step 4/4a never runs for it. This step is that catcher, and its
+never enters the cycle pipeline, so `dev:pr` Step 5a/5b never runs for it. This step is that catcher, and its
 edits land in the same PR as the change they describe.
 
 **It sits here — after Verify, before Review — deliberately.** The reconciliation edits are part of
@@ -571,8 +567,8 @@ off: item 2's rule, and the fact that the lane never merges — the edits sit in
 human approves them.
 
 This is the one place the lane diverges from the canonical's hard invariant, and the reason is
-structural: `dev:done` Step 4a must never touch the table because `dev:done` **Step 4** owns it two
-steps earlier. The lane has no Step 4, and no later stage runs for a lane change, so a lane that
+structural: `dev:pr` Step 5b must never touch the table because `dev:pr` **Step 5a** owns it one
+sub-step earlier. The lane has no Step 5a, and no later stage runs for a lane change, so a lane that
 retires a skill would leave its registry row pointing at a deleted file until some unrelated future
 cycle happened to notice. That is the exact staleness this step exists to prevent.
 
@@ -583,7 +579,7 @@ Include any `no <file> found — skipped` note there. Emit nothing on the silent
 **7. Anything not applied goes to `docs/backlog/`.** A mismatch the lane detects but declines to fix
 is deferred work, and is captured under **Deferred-work capture** below like any other.
 
-**This is a marked mirror of `dev:done` Step 4a, which stays canonical** — cited by section name
+**This is a marked mirror of `dev:pr` Step 5b, which stays canonical** — cited by section name
 rather than line number, since line numbers across files go stale silently. Three divergences, named
 identically at both ends:
 
@@ -792,7 +788,8 @@ ordinary, not exotic — compiler diagnostics quote source. Skill prose in this 
 `$PRIMARY`, and `$(git rev-parse …)` — so a grounding quote silently losing a variable is close to
 certain, and a backticked payload executing is reachable. The lane is unattended, so nobody sees the
 command before it runs. `dev:reflect` states this same rule for the same reason
-(`reflect/SKILL.md:223`), as does `dev:migrate-tracker` (`migrate-tracker/SKILL.md:747`); it travels
+(Step 6's `### Skill edits go through the plugins repo — always`, step 2), as does
+`dev:migrate-tracker` (`migrate-tracker/SKILL.md:747`); it travels
 with this mirrored step rather than living only there.
 
 The same applies to the commit message in **Change** above: always use `git commit -F -` with a
@@ -854,14 +851,16 @@ both, and it is the whole reason `BUILD_RESULT` has three values rather than a b
 render it into — **Stop** below reports it instead. A `not run` arm here would be a template for a
 document that cannot exist.
 
-**This mirrors `dev:pr` Step 4 (`pr/SKILL.md:126-183`), which is canonical.** It is duplicated
+**This mirrors `dev:pr` Step 4, which is canonical.** It is duplicated
 because the lane produces no `validation.md` and so cannot enter that stage — every `/dev` stage
 gates on the prior stage's artifact, and a lane that writes no artifacts cannot enter the chain
 anywhere. A change to either side should be reflected at the other. `dev:pr` Step 4 carries the
-matching pointer back to here. Two branches of the canonical are **deliberately absent**: its
+matching pointer back to here. **Three** branches of the canonical are **deliberately absent**: its
 base-branch resolution via `state.json.parentFeature` (the lane has no state file and always targets
-`$DEFAULT_BRANCH`) and its nested-cycle push of the parent branch (`pr/SKILL.md:145-153`) — the lane
-never nests. The `Closes` lead line is **shared** rather than absent: both sides emit the identical
+`$DEFAULT_BRANCH`); its nested-cycle push of the parent branch (`dev:pr` Step 4's nested-target
+block) — the lane never nests; and its re-entry skip of `gh pr create` when
+`state.json.artifacts.pr_url` is set — the lane writes no state file, so it has nothing to re-enter
+from. The `Closes` lead line is **shared** rather than absent: both sides emit the identical
 `Closes [<ID>](<url>)` format, on different transports (§A3).
 
 ### Post-PR hook
@@ -1094,7 +1093,7 @@ fails if another worktree already holds that branch — git forbids one branch i
 that failure is identical on every re-run, so a bare `|| exit 1` would strand the feature branch
 undeleted forever. Detaching frees the feature branch just as well, so the deletion still completes;
 only the primary-checkout reconciliation is skipped. The canonical solves the same problem the same
-way (`done/SKILL.md:56-133` uses `checkout --detach` throughout its worktree path).
+way (`dev:done` Step 2 uses `checkout --detach` throughout its worktree path).
 
 **Detaching is scoped to the checkout failure specifically** — an `if`/`else`, not an
 `A && B || C` compound. A failed `pull --ff-only` after a *successful* checkout sets `RECONCILED=0`
@@ -1213,7 +1212,7 @@ on failure, but the reconciliation path deliberately does not, so "we got here" 
 that all four hold. A Report written as a template rather than as a read is how a partial run comes to
 describe itself as a clean one.
 
-**This mirrors `dev:done` Step 2 (`done/SKILL.md:56-133`), which is canonical.** It is duplicated
+**This mirrors `dev:done` Step 2, which is canonical.** It is duplicated
 because the lane writes no `state.json` and so cannot enter that stage. A change to either side
 should be reflected at the other. `dev:done` Step 2 and Step 7 carry the matching pointers back to
 here. Two branches of the canonical are **deliberately absent**: its detached-HEAD worktree path (the

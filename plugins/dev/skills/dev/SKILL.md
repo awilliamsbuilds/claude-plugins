@@ -32,7 +32,7 @@ Print a quick, accurate reference for how `/dev` works: the stage pathway, which
 
 **Read-only, and it returns here — never continue to Step 2.** Step 2 runs `/dev:init` when `docs/dev/config.json` is missing, so falling through would turn "what are the commands?" into a repo that has just had files created in it. A reference must be safe to ask for in a repo that has never run `/dev`. For the same reason this step does no session-state check (that is Step 3's job) and writes nothing.
 
-**1. Read the Component Registry.** Read `CLAUDE.md`'s `## Component Registry` table and pull the one-line "Purpose" description for each `dev:*` row. That table is the single source of truth for these descriptions — `dev:done` Step 4 maintains it on every feature cycle, so a second hardcoded copy here would go stale against it. If the table, or a specific row, is missing, fall back to the minimal descriptions in item 4 below rather than failing.
+**1. Read the Component Registry.** Read `CLAUDE.md`'s `## Component Registry` table and pull the one-line "Purpose" description for each `dev:*` row. That table is the single source of truth for these descriptions — `dev:pr` Step 5a maintains it on every feature cycle, so a second hardcoded copy here would go stale against it. If the table, or a specific row, is missing, fall back to the minimal descriptions in item 4 below rather than failing.
 
 The stage rows' Purpose strings already start with their own "Stage N — " prefix (e.g. "Stage 1 — builds the feature specification") — strip that prefix when substituting, since the pathway below supplies its own numbering; use only the text after it.
 
@@ -68,7 +68,7 @@ FYI — other skills (not part of the linear pathway):
 - dev:init      — [registry description] — run once per repo, before the first /dev session (auto-triggered if missing)
 - dev:fix       — [registry description] — the fast path: skips the pathway entirely, going straight to an open PR with no cycle artifacts; escalates to /dev when the request carries 2+ unresolved decisions. Also starts from an identifier: /dev:fix linear <id> and /dev:fix backlog <item>
 - dev:autopilot — [registry description] — alternative to the gated flow above, and also its continuation: printed as an option at the Spec and Shape gates once definition is settled; runs all stages without stopping for approval
-- dev:reflect   — [registry description] — runs automatically at the end of dev:done; also callable standalone
+- dev:reflect   — [registry description] — runs automatically at the end of dev:pr; also callable standalone
 - dev:debt      — [registry description] — view deferred work outside a cycle; also closes an entry by hand
 - dev:review    — [registry description] — report-only code and document review: /dev:review diff reviews a diff, /dev:review docs reviews decision documents at absolute paths. Reports only; writes nothing. dev:validate Step 2 and /dev:fix both call it before every PR
 - dev:secure    — [registry description] — on-demand security review outside the pipeline: /dev:secure audits the whole project, /dev:secure diff audits the current diff. Reports only; writes nothing. dev:validate Step 2 and /dev:fix both call the diff verb before every PR

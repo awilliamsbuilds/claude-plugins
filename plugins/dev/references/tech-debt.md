@@ -23,7 +23,7 @@ redesigned format is P4.
 
 **Who writes what:**
 
-- **Producing stages** — `dev:build`, `dev:validate`, `dev:reflect` (in-cycle), and `dev:spec` — only
+- **Producing stages** — `dev:build`, `dev:validate`, `dev:pr`, `dev:reflect` (in-cycle), and `dev:spec` — only
   ever **append** to the buffer (`## To Record` items, or, for `dev:spec`, a `## To Close`
   close-intent bullet).
 - **`dev:done` is the only in-cycle flusher:** Step 6a writes buffered items into `docs/backlog/` and
@@ -375,9 +375,12 @@ item. It is pinned here so `create`, `list`, `comment`, and `convert` all cite o
   `dev@<mp>` key in `enabledPlugins`, then read `extraKnownMarketplaces[<mp>].source.repo`. **Never
   guessed from `origin`.** An explicit `--repo <owner/name|URL>` overrides this, normalized to
   `owner/name`. **Validate the normalized target before it reaches `gh`:** it must match
-  `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$` (a github.com URL is normalized to the same `owner/name` shape
-  first) — reject anything else, and in particular any value beginning with `-` (an argument-injection
-  vector into the `gh --repo` invocation). A `--repo` that fails this is a user error: say so and stop,
+  `^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$` (a github.com URL is normalized to the
+  same `owner/name` shape first) — reject anything else, and in particular any value beginning with `-`
+  (an argument-injection vector into the `gh --repo` invocation). **The first character of each segment
+  is anchored separately**, which is what delivers that rejection: a `-` inside the character class
+  would let `-foo/bar` through, and the leading `-` would then reach `gh --repo` as a flag rather than
+  as a repository name. A `--repo` that fails this is a user error: say so and stop,
   never pass it to `gh`. If neither the config nor a valid `--repo` yields a slug → **degrade**
   (P9.degrade).
 - **P9.dogfood** — compare `git remote get-url origin`'s slug against the resolved marketplace slug; on
@@ -460,8 +463,8 @@ the same channel.
 
 ## Mode symmetry
 
-**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`,
-`dev:validate`, `dev:reflect`, and `dev:done`. Each is **self-applied by the writing stage.** Never gate
+**This rule governs the automatic, in-cycle writes made by the producing stages** — `dev:build`, `dev:validate`, `dev:pr`,
+`dev:reflect`, and `dev:done`. Each is **self-applied by the writing stage.** Never gate
 one on user confirmation, and never put one on a standard-mode-only path.
 
 **One exception among the producing stages:** `dev:spec`'s **close-intent bullet** (the `## To Close`

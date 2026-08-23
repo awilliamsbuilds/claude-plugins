@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "feature": "retro-inside-pr",
+  "branch": "feature/retro-inside-pr",
+  "mode": "autopilot",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-08-23T01:28:24Z",
+  "artifacts": {
+    "spec": "docs/dev/retro-inside-pr/spec.md",
+    "design": null,
+    "plan": "docs/dev/retro-inside-pr/plan.md",
+    "validation": "docs/dev/retro-inside-pr/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/92",
+    "pr_number": 92
+  },
+  "validate": {
+    "loops_run": 3,
+    "loops_max": 5,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [
+      "retro-inside-pr-deferred-prose-p3s (4 prose defects, buffered)"
+    ],
+    "nits_open": []
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 3,
+    "concerns": 4,
+    "applied": 7,
+    "applied_concerns": 4,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 5
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 14,
+    "applied_concerns": 8,
+    "dismissed": 0,
+    "loops_run": 4,
+    "loops_max": 5
+  },
+  "confidence": {
+    "final_score": 100,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "deep",
+  "product_plan": "docs/dev/product-plans/dev-process-hardening.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/retro-inside-pr",
+  "metrics": {
+    "spec_questions_asked": 7,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 8,
+    "stage_timestamps": {
+      "spec_start": "2026-08-23T01:28:24Z",
+      "spec_end": "2026-08-23T03:01:36Z",
+      "plan_start": "2026-08-23T03:06:18Z",
+      "plan_end": "2026-08-23T03:12:50Z",
+      "build_start": "2026-08-23T03:41:49Z",
+      "build_end": "2026-08-23T03:47:24Z",
+      "validate_start": "2026-08-23T03:47:44Z",
+      "validate_end": "2026-08-23T04:16:22Z",
+      "pr_created": "2026-08-23T04:17:10Z"
+    }
+  },
+  "handoff_at": "plan"
+}

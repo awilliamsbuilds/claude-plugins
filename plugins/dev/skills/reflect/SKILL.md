@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:done automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
+description: "Retrospective sub-skill. Reviews the completed /dev cycle, surfaces process improvements, always invites the user's own observations (even when the automated review is clean), and appends a Retrospective section to the decision log. Called by dev:pr automatically. Also available standalone. Requires explicit user confirmation before updating any skill file."
 ---
 
 # dev:reflect — Retrospective
@@ -23,7 +23,7 @@ Set `WORKDIR` to whichever matched. For the rest of this stage: run every git co
 `git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
 Never `cd`, never assume the current branch.
 
-When `dev:reflect` is invoked by `dev:done`, `WORKDIR` is already the cycle worktree flipped to the integration branch — this resolution is idempotent and yields the same directory.
+When `dev:reflect` is invoked by `dev:pr` (Step 5d), `WORKDIR` is already the cycle worktree, on this cycle's feature branch — this resolution is idempotent and yields the same directory.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ Look back at the completed cycle, surface what worked and what didn't, and ident
 Read once:
 - `docs/dev/<feature>/state.json` (if still exists) or accept it as passed context from dev:done
 - The decision log at `docs/decisions/YYYY-MM-DD-<feature>.md`
-- `docs/dev/<feature>/spec.md`, `plan.md`, `validation.md` (if accessible — they may be deleted by done)
+- `docs/dev/<feature>/spec.md`, `plan.md`, `validation.md` — all three are present at PR stage, where this skill now runs. The `(if accessible)` tolerance is kept for the standalone-invocation route below, which can still run after `dev:done` Step 7's teardown has removed them.
 
 Extract key metrics from state.json:
 - `metrics.spec_questions_asked`
@@ -140,17 +140,69 @@ Fold whatever the user raises into the retrospective: add it to the relevant dim
 
 ## Step 5: Append to Decision Log
 
+**The path is `$WORKDIR`-prefixed**, like every other command in this file. A cwd-relative
+redirect silently appends in whatever directory the shell happens to be in, which is not
+necessarily the cycle worktree — this skill never relies on the shell's current directory.
+
+**Appending is idempotent.** If the decision log already carries a `## Retrospective` heading —
+the case when `dev:pr` is re-entered on a cycle whose `artifacts.pr_url` is already set — delete
+from the **last** such heading to end-of-file, trim the trailing blank lines that leaves, then
+append. Otherwise append directly. Both branches end at the same commit, so a second `dev:pr` entry
+produces exactly one `## Retrospective` and no accumulated blank lines.
+
 ```bash
-cat >> docs/decisions/YYYY-MM-DD-<feature>.md << 'EOF'
+REL="docs/decisions/YYYY-MM-DD-<feature>.md"
+LOG="$WORKDIR/$REL"
+
+# Replace-if-present: drop any existing ## Retrospective section before appending.
+# Anchor on the LAST such heading, not the first. The log's earlier sections are drafted from
+# spec.md / plan.md / validation.md, which in this repo routinely quote skill prose verbatim — so a
+# meta-cycle's decision log can carry a literal "## Retrospective" line above the real section, and
+# deleting from the first match would silently discard every committed section below it.
+LAST=$(grep -n '^## Retrospective' "$LOG" | tail -1 | cut -d: -f1)
+if [ -n "$LAST" ]; then
+  # Keep everything above that heading, dropping the trailing blank lines it leaves behind so a
+  # re-entry cannot accumulate one per resume. One awk pass rather than `head -n $((LAST-1))`:
+  # BSD head rejects `-n 0` (exit 1), which is what a log whose heading is line 1 would produce.
+  awk -v cut="$LAST" 'NR>=cut{exit} {l[NR]=$0; if(NF)p=NR} END{for(i=1;i<=p;i++) print l[i]}' \
+    "$LOG" > "$LOG.tmp"
+  mv "$LOG.tmp" "$LOG"
+fi
+
+cat >> "$LOG" << 'EOF'
 
 ## Retrospective
 ...content from Step 3...
 EOF
 
-git -C "$WORKDIR" add docs/decisions/YYYY-MM-DD-<feature>.md
-git -C "$WORKDIR" commit -m "docs: append retrospective to <feature> decision log"
+git -C "$WORKDIR" add "$REL"
+git -C "$WORKDIR" diff --cached --quiet -- "$REL" || \
+  git -C "$WORKDIR" commit -m "docs: append retrospective to <feature> decision log" -- "$REL"
 git -C "$WORKDIR" push
 ```
+
+**The commit is pathspec-scoped and guarded**, like every other write site in the PR flow: the
+pathspec keeps anything else already staged in `$WORKDIR` out of a commit labelled "append
+retrospective," and the `--quiet` guard keeps a re-entry that reproduces byte-identical content from
+exiting non-zero on an empty index.
+
+**Standalone route — `$WORKDIR` absent, or not on this cycle's feature branch.** Two shapes reach
+it, and the second is why the trigger is stated as a branch test rather than as `WORKDIR` being
+undefined. (a) The cycle directory is already gone, so no location matches the resolution block and
+`WORKDIR` is undefined — Step 6's *Standalone invocation* paragraph's case. (b) `dev:reflect` is
+invoked standalone **during `dev:done`**, after Step 2's `checkout --detach` and before Step 7's
+teardown: `$WORKDIR` exists but is detached on `$INTEGRATION`, where the bare `git push` above has no
+upstream and fails. On either shape resolve `LOG` against `$PRIMARY` and **skip the commit and push
+entirely** — the primary checkout is usually on the default branch, and the standing convention is
+never to commit there. Say where the file was written, as Step 6's standalone path does. Step 6's
+`<source-repo-path> == $WORKDIR` stop names shape (b) as a live hazard; this is the same route, and
+the two must agree.
+
+**The bare `git push` is correct on the `dev:pr` Step 5d route** — the one this skill is invoked
+from. There `$WORKDIR` is on the feature branch, whose upstream `dev:pr` Step 4 already set with
+`push -u origin <branch-name>`. The detached-HEAD failure this command used to hit belonged to the
+post-merge home that route no longer has. It is **not** correct on the standalone route below, which
+is why that route skips the push rather than relying on this line.
 
 ## Step 6: Skill Update Gate
 
@@ -160,16 +212,37 @@ Display one at a time:
 ```
 dev:reflect found a suggestion: [suggestion in one sentence].
 
-Would you like to update [dev:skill-name] based on this? (yes/no)
+  backlog  — record as work to do. Nothing happens now.
+  debt     — record as an accepted cost. Nothing happens now.
+  fix now  — edit the skill and open a separate PR immediately.
+             This goes through no /dev stages: no spec, no plan,
+             no validate. It is a direct edit under two confirmations.
 ```
 
-Wait for explicit "yes" before touching any skill file.
+Three named choices, and the prompt must state that the first two act on nothing at the time —
+that is what makes the acting path opt-in by name rather than the default.
 
-If "yes": read the current SKILL.md, make the minimal targeted change, show the diff, ask for final confirmation before writing.
+- **`backlog`** → a buffer entry with `type: backlog`. Nothing is edited, nothing is pushed.
+- **`debt`** → a buffer entry with `type: debt`. Nothing is edited, nothing is pushed.
+- **`fix now`** → the acting path below, unchanged: read the current SKILL.md, make the minimal
+  targeted change, show the diff, ask for final confirmation before writing, then port it through
+  `### Skill edits go through the plugins repo — always` with every stop condition it carries.
 
-**If "no" — or if the suggestion is never implemented for any other reason:** apply **the carrying-cost test** from `../../references/tech-debt.md`. If it qualifies, append a `### <slug>` entry to the `## To Record` section of `$WORKDIR/docs/dev/<feature>/debt-pending.md` in the **P4 buffer format** from the contract — a fenced ```` ```markdown ```` block (4-backtick outer fence) holding the item's front-matter (`type: debt`, `scope: repo`, `status: open`, `first_recorded:` from `date -u +%Y-%m-%d`, `cycles: [<feature>]`, `recurrence: 1`, `files: [<the skill file the suggestion would change>]`) followed by the `**What's wrong:** / **Why deferred:** / **Done looks like:**` body. Create the buffer from the contract's template if it doesn't exist. `dev:reflect` runs last, so the buffer usually already exists with both sections. Escape any Markdown heading in the body text you quote from a skill file — indent by two spaces or rely on the 4-backtick outer fence, per the contract's P4 fence rule. Record the item's `### <slug>` title in Step 3's `**Deferred to tech debt:**` line. If it doesn't qualify, drop it.
+**Why the acting path is opt-in by name.** `fix now` opens a **second PR in-session**, and at PR
+stage this cycle's own edits are unmerged — so that PR branches from a `$PRIMARY` default branch
+lacking them. When the suggestion targets a skill this cycle just edited, which is the likeliest
+case, the result is a stale-branch conflict. Named explicitly, that is a choice the user makes with
+the cost in front of them; as a yes/no default it was a trap.
 
-**Where the buffer goes, and when.** `dev:reflect` runs from `dev:done` Step 6, and the flush is Step 6a — immediately after — so a buffer written here is still flushed into the store before Step 7's `rm -rf`. Do **not** add a commit for the buffer here: Step 5's commit has already run by this point, and the flush reads the buffer from disk rather than from git, so an uncommitted buffer flushes correctly. Step 7's `git add -A docs/dev/<feature>/` then stages its deletion.
+**On `backlog` or `debt` — or if the suggestion is never implemented for any other reason:** apply **the carrying-cost test** from `../../references/tech-debt.md`. **The test gates both recording choices, not `debt` alone** — the contract binds it at *every* capture site, and a `backlog` entry that cannot name what the next cycle pays fails it exactly as a debt entry would. If it qualifies, append a `### <slug>` entry to the `## To Record` section of `$WORKDIR/docs/dev/<feature>/debt-pending.md` in the **P4 buffer format** from the contract — a fenced ```` ```markdown ```` block (4-backtick outer fence) holding the item's front-matter (`type:` set to the chosen value, `scope: repo`, `status: open`, `first_recorded:` from `date -u +%Y-%m-%d`, `cycles: [<feature>]`, `recurrence: 1`, `files: [<the skill file the suggestion would change>]`) followed by the body.
+
+**The body shape branches on the chosen type**, per the contract's § **Body.** — both labels change, not just the middle one:
+- `type: debt` → `**What's wrong:** / **Why deferred:** / **Done looks like:**`
+- `type: backlog` → `**What:** / **Why:** / **Done looks like:**`
+
+Emitting `**What's wrong:**` beside `**Why:**` matches neither type, and `dev:done` Step 6a's flush would carry that malformed body straight into the durable store. The front-matter is identical across both types. Create the buffer from the contract's template if it doesn't exist. `dev:reflect` runs last, so the buffer usually already exists with both sections. Escape any Markdown heading in the body text you quote from a skill file — indent by two spaces or rely on the 4-backtick outer fence, per the contract's P4 fence rule. Record the item's `### <slug>` title in Step 3's `**Deferred to tech debt:**` line. If it doesn't qualify, drop it.
+
+**Where the buffer goes, and when.** `dev:reflect` runs from `dev:pr` Step 5d, and the flush is `dev:done` Step 6a — one stage later, not immediately after. The buffer still reaches it: it is written to `$WORKDIR/docs/dev/<feature>/debt-pending.md`, the flush reads it **from disk** rather than from git, and `dev:done` Step 2's `checkout --detach` preserves it in all three states it can be in: **untracked** (survives a checkout untouched); **tracked and committed** (arrives at the merged tip through this cycle's own PR); and — the normal case, which is neither — **tracked with local modifications**, because `dev:validate` Step 6 commits the buffer to the feature branch and this step then appends without committing. Git carries that modification through the checkout because HEAD and the target hold identical content for the path, the PR having merged it. If that ever did not hold, the checkout **refuses** and the stage stops loudly rather than losing the buffer. It is therefore still flushed into the store before `dev:done` Step 7's `rm -rf`. Do **not** add a commit for the buffer here: Step 5's commit has already run by this point, and the flush reads from disk, so an uncommitted buffer flushes correctly. `dev:done` Step 7's `git add -A docs/dev/<feature>/` then stages its deletion.
 
 **Standalone invocation.** When `dev:reflect` is run on its own after the cycle directory is already gone, no location matches the resolution block above and `WORKDIR` is undefined — there is no buffer to write to. `PRIMARY` is still computable, because it derives from the git common dir rather than from any cycle. So in that case write a new item **file** at **`$PRIMARY/docs/backlog/<type>-<slug>.md`** (front-matter + body, per P1/P2) — never a bare `docs/backlog/…`, which would resolve against whatever directory the shell happens to be in. Apply the **P6 recurrence-merge** against the `$PRIMARY` P5 corpus (`docs/backlog/debt-*.md` + `docs/backlog/backlog-*.md`): on a clear match bump the existing file's `cycles:`/`recurrence:` and append body detail; on uncertainty create the new file with `possibly_related_to: <slug>`. **Create `docs/backlog/` (and `closed/`) if absent** (P7 writer-side create-if-absent) — the store may not exist yet in a repo that predates it. Run `date -u +%Y-%m-%d` for `first_recorded:`, and disambiguate the slug per P2 if the filename already exists in the active corpus **or in `docs/backlog/closed/`** (P2 uniqueness spans the whole tree). This is the one case where a *producing stage* writes the store directly; the contract names it as that exception.
 
@@ -177,7 +250,7 @@ If "yes": read the current SKILL.md, make the minimal targeted change, show the 
 
 Do **not** commit on this path. The primary checkout is usually sitting on `main`, and the standing convention is never to commit directly to `main`. Tell the user instead: "Recorded '<title>' in docs/backlog/ (modified, not committed)." This mirrors `dev:debt`'s Step 6 for the same reason.
 
-**Mode rule:** Step 6's gate is standard-mode-only — **including on a handed-off cycle**, whose `mode` reads `"autopilot"`. `handoff_at` changes behavior in exactly two places — Step 4 above and `dev:done` Step 5 (Step 1 merely reads it into the metrics list to feed Step 4) — and this gate is deliberately not a third: a handed-off cycle pauses once, for the user's observations, and does not acquire a second prompt here. What the user raises at Step 4 is still captured — by the carrying-cost write below, which is **not** conditional on the gate or on the user's answer. A "yes" that gets implemented records nothing; a "no" records. Autopilot reaches Step 6's suggestions and records them the same way whether or not it ran Step 4's user turn — this write must never sit behind the gate.
+**Mode rule:** Step 6's gate is standard-mode-only — **including on a handed-off cycle**, whose `mode` reads `"autopilot"`. `handoff_at` changes behavior in exactly two places — Step 4 above and `dev:pr` Step 5c (Step 1 merely reads it into the metrics list to feed Step 4) — and this gate is deliberately not a third: a handed-off cycle pauses once, for the user's observations, and does not acquire a second prompt here. What the user raises at Step 4 is still captured — by the carrying-cost write below, which is **not** conditional on the gate or on the user's answer. A `fix now` that gets implemented records nothing; `backlog` and `debt` record, as does a suggestion never implemented for any other reason. **On any cycle that does not reach the gate the write records `type: debt`**, exactly as today — there is no chooser to name a type, and `debt` is the pre-existing default. Autopilot reaches Step 6's suggestions and records them the same way whether or not it ran Step 4's user turn — this write must never sit behind the gate.
 
 **Never update a skill file without two explicit confirmations: one to proceed with the update, one after seeing the diff.**
 
@@ -206,7 +279,7 @@ Skill files under `~/.claude/plugins/cache/` are a deployed copy, not the source
    **Stop conditions.** Each ends step 2 with nothing pushed and no PR:
    - **The named checkout has no `origin`, or has several remotes and no unambiguous one.** There is no slug to derive. Say so, tell the user they can open the PR by hand, and stop — never guess, and never fall back to a bare `gh pr create`. Step 1 refuses to guess a path for the same reason.
    - **The resolved slug fails §P9's allowlist** — notably any value beginning with `-`, an argument-injection vector into `gh --repo`. Per §P9 this is a user error: say so and stop, never pass it to `gh`.
-   - **The resolved `<source-repo-path>` is `$WORKDIR`** — whichever route produced it; this is a property of the directory, not of the route. **Compare the two as absolute paths** — both already are, since each derives from the header's absolutized `$PRIMARY`. A bare `.` on either side would mean the header was bypassed, and the comparison would then miss precisely the case this catches. `dev:done`'s flush pushes `HEAD:$INTEGRATION` from `$WORKDIR`, and that refspec is HEAD-agnostic, so *any* commit reachable from that checkout's HEAD rides onto the integration branch: a skill edit committed there would land on `$INTEGRATION` — `main` for a top-level cycle, the parent's branch for a nested one — unreviewed, bypassing the very PR this step exists to open. Under a worktree cycle `$PRIMARY` and `$WORKDIR` are different directories and `$PRIMARY` is safe. On a **legacy in-place cycle they are the same directory** (the header's second resolution case), and the ask route can land on it too — a user asked where the source repo lives may well name the checkout they are standing in. Say so and stop: tell the user to port the edit and open the PR by hand, and that until they do the improvement exists only as the deployed cache copy, which the next `/plugin update` overwrites.
+   - **The resolved `<source-repo-path>` is `$WORKDIR`** — whichever route produced it; this is a property of the directory, not of the route. **Compare the two as absolute paths** — both already are, since each derives from the header's absolutized `$PRIMARY`. A bare `.` on either side would mean the header was bypassed, and the comparison would then miss precisely the case this catches. The guard compares directories, not branches, so it fires on every route — and there are two hazards behind it, one per route. **On the `dev:pr` Step 5d route** (the normal one), `$WORKDIR` is on this cycle's feature branch and pushes there: a skill edit committed in it lands in **this cycle's own PR**, mixing an unrelated change into a diff opened for something else, and `dev:pr` Step 5's push carries it there without anyone choosing that. **On a standalone invocation during `dev:done`** — after Step 2's `checkout --detach` and before Step 7's teardown — `$WORKDIR` is detached on `$INTEGRATION`, and `dev:done`'s `push_integration` pushes `HEAD:$INTEGRATION`, a HEAD-agnostic refspec: the edit would ride onto `main` (or the parent's branch) unreviewed. Both defeat the same thing — this step exists to open a *separate* PR. Under a worktree cycle `$PRIMARY` and `$WORKDIR` are different directories and `$PRIMARY` is safe. On a **legacy in-place cycle they are the same directory** (the header's second resolution case), and the ask route can land on it too — a user asked where the source repo lives may well name the checkout they are standing in. Say so and stop: tell the user to port the edit and open the PR by hand, and that until they do the improvement exists only as the deployed cache copy, which the next `/plugin update` overwrites.
 
    With the target confirmed, do the work — all of it inside `<source-repo-path>`, which is not necessarily the cwd. **Record where the checkout was pointing first**, before anything moves it — `git -C "<source-repo-path>" symbolic-ref --quiet --short HEAD || git -C "<source-repo-path>" rev-parse HEAD` yields the branch name, or the commit SHA if it was on a detached HEAD, and exits 0 either way. That recorded ref is what the restore below returns to; after `checkout -b` it is recoverable only from the reflog. Then create a feature branch (never commit to `main`), apply the same edit there (copy the finished cache file over, or re-apply the diff), commit, and push, running each git command as `git -C "<source-repo-path>" …` per this skill's standing rule against relying on the shell's directory.
 
