@@ -3,11 +3,12 @@
   "feature": "retro-inside-pr",
   "branch": "feature/retro-inside-pr",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,16 +18,18 @@
     "spec": "docs/dev/retro-inside-pr/spec.md",
     "design": null,
     "plan": "docs/dev/retro-inside-pr/plan.md",
-    "validation": null,
+    "validation": "docs/dev/retro-inside-pr/validation.md",
     "pr_url": null,
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 3,
     "loops_max": 5,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
+    "p3_open": [
+      "retro-inside-pr-deferred-prose-p3s (4 prose defects, buffered)"
+    ],
     "nits_open": []
   },
   "challenge": {
@@ -83,7 +86,9 @@
       "plan_start": "2026-08-23T03:06:18Z",
       "plan_end": "2026-08-23T03:12:50Z",
       "build_start": "2026-08-23T03:41:49Z",
-      "build_end": "2026-08-23T03:47:24Z"
+      "build_end": "2026-08-23T03:47:24Z",
+      "validate_start": "2026-08-23T03:47:44Z",
+      "validate_end": "2026-08-23T04:16:22Z"
     }
   },
   "handoff_at": "plan"
