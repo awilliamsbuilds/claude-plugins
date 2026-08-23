@@ -39,12 +39,12 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 1,
-    "concerns": 4,
-    "applied": 5,
-    "applied_concerns": 4,
+    "blockers": 2,
+    "concerns": 3,
+    "applied": 10,
+    "applied_concerns": 7,
     "dismissed": 0,
-    "loops_run": 1,
+    "loops_run": 2,
     "loops_max": 5
   },
   "confidence": {
