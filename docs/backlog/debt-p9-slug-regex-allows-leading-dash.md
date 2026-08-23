@@ -12,7 +12,7 @@ files:
 ---
 
 **What's wrong:** §P9.target-resolution's slug allowlist is `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, and
-both §P9 itself (`references/tech-debt.md:354`) and `reflect/SKILL.md:205` describe it as rejecting
+both §P9 itself (§P9.target-resolution) and `dev:reflect` Step 6's stop conditions describe it as rejecting
 any value beginning with `-` — "an argument-injection vector into the `gh --repo` invocation." It does
 not reject one: `-` is inside the character class, so `-foo/bar` and `--repo/x` both pass. Verified
 empirically. The stated security property is not the delivered one.
@@ -26,5 +26,5 @@ Criterion 6 forbade that cycle touching those skills beyond the rename and the d
 exposed while the shared claim stays wrong.
 
 **Done looks like:** §P9's regex anchors its first character in both segments, or its prose stops
-claiming a property it does not deliver. `reflect/SKILL.md:205`'s matching claim is corrected in the
+claiming a property it does not deliver. `dev:reflect` Step 6's stop conditions carry the matching claim, corrected in the
 same pass, and `dev:fix` drops its local divergence note in favour of citing §P9 plainly.

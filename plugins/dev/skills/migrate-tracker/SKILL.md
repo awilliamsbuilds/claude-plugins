@@ -486,7 +486,7 @@ Produce `ROUTING_CTX = { dogfood: bool, target_slug: <owner/name>|null }`:
    the first place.
 
    **Validate before use.** P9.target-resolution requires the normalized target to match
-   `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$` before it reaches `gh`, calling out a leading `-` as an
+   `^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._][A-Za-z0-9._-]*$` before it reaches `gh`, calling out a leading `-` as an
    argument-injection vector. P9 states that rule around an explicit `--repo`; this skill has no
    `--repo`, so apply it to the config value: **a `source.repo` that is present but fails the regex is
    treated as unresolved** — `target_slug: null`, degrade path, and name the offending value in the

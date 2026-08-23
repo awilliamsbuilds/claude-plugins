@@ -70,14 +70,10 @@ if ! printf '%s' "$SLUG" | grep -Eq '^[A-Za-z0-9._][A-Za-z0-9._-]*/[A-Za-z0-9._]
 fi
 ```
 
-This is `../../references/tech-debt.md` §P9.target-resolution's allowlist **with the first character
-anchored**, and it is validation rather than decoration. §P9's own form is
-`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, and that form is described there as rejecting a value beginning
-with `-` — an argument-injection vector into `gh --repo`. It does not: `-` is inside the character
-class, so `-foo/bar` passes it. The anchored first character above is what actually delivers the
-property §P9 claims. §P9 is the shared contract and this cycle does not rewrite it; the discrepancy is
-recorded as `docs/backlog/debt-p9-slug-regex-allows-leading-dash.md`. A slug that fails this check is
-a stop, never something to pass to `gh`.
+This is `../../references/tech-debt.md` §P9.target-resolution's allowlist, and it is validation rather
+than decoration. §P9 anchors the first character of each segment so a value beginning with `-` is
+rejected — an argument-injection vector into `gh --repo`. A slug that fails this check is a stop,
+never something to pass to `gh`.
 
 The `sed` handles all four remote forms in use — `git@host:owner/name[.git]`,
 `https://host/owner/name[.git]`, `ssh://git@host/owner/name.git`, and a credential-bearing
