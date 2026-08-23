@@ -3,9 +3,10 @@
   "feature": "retro-inside-pr",
   "branch": "feature/retro-inside-pr",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -39,7 +40,7 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 1,
+    "blockers": 0,
     "concerns": 0,
     "applied": 14,
     "applied_concerns": 8,
