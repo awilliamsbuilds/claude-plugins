@@ -3,10 +3,11 @@
   "feature": "plan-linkage",
   "branch": "feature/plan-linkage",
   "mode": "autopilot",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -80,7 +81,9 @@
       "spec_start": "2026-08-23T20:37:05Z",
       "spec_end": "2026-08-23T21:11:19Z",
       "plan_start": "2026-08-23T21:13:44Z",
-      "plan_end": "2026-08-23T21:18:10Z"
+      "plan_end": "2026-08-23T21:18:10Z",
+      "build_start": "2026-08-23T21:35:57Z",
+      "build_end": "2026-08-23T21:38:32Z"
     }
   },
   "handoff_at": "plan"
