@@ -35,3 +35,26 @@ Spec, plan and validation committed at: f875e01ea5d06594d7dd99ef9565ace2ce3143ec
 
 ## Note on this cycle's own execution
 This is the **last** cycle whose decision log and retrospective land on `main` after the merge. It ran under the previously-deployed skills, where `dev:done` still owned Steps 4/4a/5/6; the change it merged takes effect from the next cycle, which will carry both inside its own PR.
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-23*
+
+**Spec:** Healthy quadrant — 3 challenger blockers caught against 0 spec revisions, which is the "author's grounding pass is weak, challenger is catching it — working as designed" reading. Confidence 100%/Ready held up: nothing in Build or Validate contradicted the spec, and the grounding inventory's measured counts (35 citation-bearing lines, the six post-merge commit sites) were still accurate at Build.
+
+**Shape:** Skipped (no UI).
+
+**Plan:** `metrics.stage_timestamps.plan_end` is stamped at Step 7, which runs *before* Step 7a's cold review and its autopilot revision loop. This cycle's Plan reports 6 minutes; it actually took ~34. The 28 minutes of challenger loops are silently attributed to the gap before Build. `dev:spec` already solves the analogous problem — Step 13 re-stamps `spec_end` on every revision — so the fix is a known shape, not a new design. The mis-measurement grows with tier: deep allows 5 iterations.
+
+**Validate:** 3/5 loops, clean. Two things worth recording. First, **Step 4's circuit breaker fired for what appears to be the first time**, and was right: a *cosmetic* roster-ordering edit in loop 2 duplicated `dev:validate` in the canonical Mode-symmetry roster, which loop 3 caught as a P2. The rule's premise — that this diff's prose is more fragile than its open P3s are valuable — was demonstrated rather than assumed. Second, **Step 3b's measure-before-commit rule caught a defect both cold reviewers passed**: `head -n 0` is illegal on BSD `head`, so the first retrospective-replace branch would have broken on a log whose heading is line 1. Two independent reviewers read that snippet and neither ran it.
+
+**Flow:** Deep + no-ui was right. The handoff at Plan worked cleanly — `handoff_at` recorded it, and the decision log rendered it correctly.
+
+**Token efficiency:** `files_read_in_build` = 8 on a 13-file change, because Plan named exact files and exact edits. The plan challenger's 4 loops are where the cost went: 14 fixes, of which 6 were blocker-driven and 8 concern-driven. This is the first cycle to exercise `applied_concerns` (added by `challenger-loop-economics`), and the split is the interesting part — most of the plan's revision effort went to non-fatal findings.
+
+**Suggestions:**
+1. Re-stamp `plan_end` after Step 7a's revision loop, mirroring `dev:spec` Step 13's `spec_end` handling, so Plan's duration includes the challenger.
+2. Consider whether the fix-diff re-review should be told to *run* the shell snippets it reviews. Step 3b already requires the fixer to measure; the reviewers were not asked to, and the one portability defect this cycle produced was found by measurement, not review.
+
+**Deferred to tech debt:** `retro-inside-pr-deferred-prose-p3s`, `debt-plan-end-excludes-challenger-loop`, `debt-fix-diff-reviewers-not-asked-to-run-snippets`.
+
+**User observations:** none raised.
