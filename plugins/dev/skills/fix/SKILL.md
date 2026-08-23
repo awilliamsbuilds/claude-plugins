@@ -268,7 +268,7 @@ step entirely" is scoped to Step 2a and must not be read forward.
 |---|---|
 | `backlog` | the normalized `<item>` basename bound in Step 2a |
 | `linear` | **§A6's `<short-title>`** — derive §A6's cycle slug (`<ID>-<short-title>`) from the fetched issue title, then strip the `<ID>-` prefix |
-| free text | the raw argument put through `dev:spec` Step 6's construction (lowercase, collapse every run outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`) |
+| free text | the raw argument put through `dev:spec` Step 6's construction (lowercase, collapse every run outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`); if that yields an **empty** string, skip the check — treat it as §L4's `unlinked` and print nothing, rather than passing §L1 a value its input contract forbids |
 
 On the `linear` row, do **not** use `dev:spec` Step 6's whole-title normalization: that is the
 non-Linear construction, and it yields `fix-broken-logout-button-on-mobile` where §A6 yields
@@ -287,6 +287,11 @@ Pass the resolved name to `../../references/product-plans.md` §L1 and apply §L
 Pre-lane hook set the issue to its `started` status. (The `config.json` status-cache write has **not**
 happened — Step 5 performs it, and Step 5 is never reached from here.) Say so plainly: the issue was
 moved to `started`; move it back if the switch was intended.
+
+**This lane asks here, and that is deliberate.** `## Purpose`'s "runs unattended to an open PR" is
+about the *work*: once the lane starts changing files it never stops to consult. This check runs
+before any of that, and it is the lane's second deliberate question alongside Step 1's no-argument
+case. §L5 files it under its asking arm; the lane has no `mode` field to put it on the other one.
 
 **This is not an adapter hook.** It alters no adapter behaviour and no lane behaviour — not triage,
 not the escalation threshold, not PR flow (§A1's first invariant).
@@ -397,7 +402,7 @@ only one of them starts with `fix/`.
 **Free text.** Name the branch `fix/<kebab-summary>`, where `<kebab-summary>` describes the change in
 2–4 words. The allowlist applies to `<kebab-summary>` **alone**, not to the full branch name — a
 prefixed `fix/…` can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be
-collapsed. Normalize by `dev:spec` Step 6's construction (`spec/SKILL.md:161`): lowercase, collapse
+collapsed. Normalize by `dev:spec` Step 6's construction (`dev:spec` Step 6's **Feature name (derive and normalize first)** paragraph): lowercase, collapse
 every run of characters outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`. If the
 result is empty, ask for a name rather than proceeding.
 

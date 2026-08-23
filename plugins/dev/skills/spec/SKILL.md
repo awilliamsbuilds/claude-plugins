@@ -155,7 +155,9 @@ The Standard/Deep value is provisional — whether Shape runs isn't known until 
 
 ## Step 6: Create Feature Branch
 
-Create the branch before asking any questions. All artifacts commit to this branch.
+Create the branch before asking any spec questions. All artifacts commit to this branch. **The one
+question that precedes it, deliberately, is the plan-order check below** — it runs before the worktree
+exists precisely so answering `switch` costs nothing.
 
 **On the Linear entry path, derive the slug per §A6 instead.** The cycle slug is
 `<ID>-<short-title>`, normalized to the uppercase-tolerant `^[A-Za-z0-9][A-Za-z0-9-]*$` — uppercase
@@ -170,10 +172,14 @@ proceeds identically. The non-Linear construction below is **untouched** and sta
 
     GIT_COMMON=$(git rev-parse --git-common-dir) || { echo "Not a git repository."; exit 1; }
     PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
+    [ -n "$PRIMARY" ] || { echo "Could not resolve the primary checkout."; exit 1; }
 
-This is the stage's **single** `PRIMARY` derivation, with its existing guard — it is bound here rather
-than inside the worktree block below only so the plan-order check can read it. Everything after this
-reuses `$PRIMARY`; never derive it a second time.
+This is the stage's **single** `PRIMARY` derivation — it is bound here rather than inside the worktree
+block below only so the plan-order check can read it. Everything after this reuses `$PRIMARY`; never
+derive it a second time. The non-empty guard is required now that a *reader* precedes the first
+`git -C "$PRIMARY"` command: an empty `$PRIMARY` used to fail loudly at `git worktree add`, but it
+would make §L1 glob `/docs/dev/product-plans/*.md` from the filesystem root, find nothing, and
+degrade the check to silence.
 
 **Plan-order check (before anything is created).** Run `../../references/product-plans.md` §L1
 against the normalized `<feature-name>`, then apply §L4's outcome and §L5's mode rule. **Hold §L1's
@@ -308,16 +314,22 @@ path `linear_issue` stays `null`, exactly as today.
 
 Set `parentFeature` to the feature name found by Step 1's Nesting Detection (or `null` if top-level). Set `worktreePath` to `".dev-worktrees/<feature-name>"` (the worktree created above — always set for new cycles).
 
-**Product-plan inheritance (path (B) — nested child of a plan-bearing parent).** `(writes: both)` Independent of whether *this* cycle authored a plan: if Step 1's Nesting Detection found an active parent whose **committed** `state.json.product_plan` is non-null, set this child's `state.json.product_plan` to that same path (inherit the parent's value — do **not** compute a new slug). This runs even for a plain nested feature cycle that never triggers Step 2/4, so `dev:done` can still locate and check off the governing plan. **Precedence (never run two):** a cycle that is *itself* product-scale takes path (A) below and authors its own plan/slug; else a nested cycle under a plan-bearing parent inherits here (path (B)); else a cycle whose name matches an item in **exactly one** existing plan adopts it at path (C) below; else `product_plan` stays `null`. Path (C) runs only when (A) and (B) did not. Read the parent's *committed* `state.json` — a child cut before the parent set `product_plan` inherits `null` and simply skips plan updates (safe degradation, matching today's nested-without-plan behavior). This is a mode-agnostic write (no gate), part of the initial state.json commit below.
+**Product-plan inheritance (path (B) — nested child of a plan-bearing parent).** `(writes: both)` Independent of whether *this* cycle authored a plan: if Step 1's Nesting Detection found an active parent whose **committed** `state.json.product_plan` is non-null, set this child's `state.json.product_plan` to that same path (inherit the parent's value — do **not** compute a new slug). This runs even for a plain nested feature cycle that never triggers Step 2/4, so `dev:done` can still locate and check off the governing plan. **Precedence (never run more than one):** a cycle that is *itself* product-scale takes path (A) below and authors its own plan/slug; else a nested cycle under a plan-bearing parent inherits here (path (B)); else a cycle whose name matches an item in **exactly one** existing plan adopts it at path (C) below; else `product_plan` stays `null`. Path (C) runs only when (A) and (B) did not. Read the parent's *committed* `state.json` — a child cut before the parent set `product_plan` inherits `null` and simply skips plan updates (safe degradation, matching today's nested-without-plan behavior). This is a mode-agnostic write (no gate), part of the initial state.json commit below.
 
 **Product-plan adoption (path (C) — this cycle's name is an item in exactly one plan).**
 `(writes: both)` If the plan-order check above held a §L1 result naming a plan, set
 `state.json.product_plan` to that result's `plan-path` — the repo-relative
 `docs/dev/product-plans/<slug>.md`, the same shape paths (A) and (B) write.
 
-Three cases do **not** write here:
+Four cases do **not** write here:
 
 - **No match** — §L1 returned no plan; `product_plan` stays `null`.
+- **The matched item is already checked, or the plan is finished** — §L1's `item-checked` is `true`,
+  or its `next-item-name` is `null`. Stays `null`. Linking here would let `dev:done` Step 3 bump the
+  cycles-completed count with no box to tick, and — on a plan whose every box is already `[x]` —
+  would send Step 3b down its project-complete path, deleting the plan file and closing the promoted
+  source item on a cycle that completed nothing. Both fields are already in §L1's output, so this
+  costs no second lookup.
 - **A §L2 collision** — the name matched items in two plans, so §L1 already returned no plan and the
   check printed both. Stays `null`, deliberately: guessing is worse than not linking.
 - **Path (A) or (B) owns the value.** Test this on **what was prepared, not on the key's current

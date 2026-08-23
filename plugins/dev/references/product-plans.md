@@ -28,8 +28,18 @@ make the Linear entry points structurally incapable of linking or warning. Both 
 entry points behave identically on one issue.
 
 **Read root:** `$PRIMARY/docs/dev/product-plans/*.md` — `$PRIMARY`, not `$WORKDIR`. Both call sites
-run *before* their working tree exists, which is the whole point of where they sit (§L4's `switch`
-answer must cost nothing).
+run *before they have created anything*, which is the whole point of where they sit (§L4's `switch`
+answer must cost nothing). For `dev:spec` that is before its worktree exists; for `dev:fix` the
+working tree **is** `$PRIMARY` and the check runs before its branch exists. The rule is the same at
+both; only the reason differs.
+
+**The discovered filename is a trust boundary — allowlist its stem.** A plan file's name comes from
+the filesystem, not from any normalized value this contract controls, and the `plan-path` returned
+here is written to `state.json.product_plan` and later interpolated into `dev:done`'s `git rm -f` and
+`git add`. So: **the matched file's basename without `.md` must satisfy `^[a-z0-9][a-z0-9-]*$`; a file
+whose stem does not is skipped as though it did not exist.** If that leaves no match, return **no
+plan**. This keeps every producer of `product_plan` — paths (A), (B) and (C) alike — held to one slug
+shape, so no downstream interpolation has to re-guard it.
 
 **Item shape.** In each plan file, a *plan item* is a line matching `- [ ] <name>` or `- [x] <name>`,
 where `<name>` is the first whitespace-delimited token after the checkbox. The parenthesised suffix
@@ -47,7 +57,8 @@ Match the input against item names **exactly and case-sensitively**.
 | `item-milestone` | the nearest preceding `##` heading, or `"(top of file)"` where none precedes it |
 | `next-item-name` | per §L3 — the plan's first `- [ ]` item; `null` where every box is ticked |
 | `current-milestone` | per §L3 — the milestone holding `next-item-name`; `null` where every box is ticked |
-| `cycles-completed` | the plan header's cycles-completed string, as written (e.g. `4/6`) |
+| `cycles-completed` | the plan header's cycles-completed count — read the header's `Cycles completed: N/M` and return **only** the matched `^[0-9]+/[0-9]+$` (e.g. `4/6`); a header that yields no such match returns `null` and §L4 omits the count from its output rather than echoing the raw line |
+| `plan-name` | `plan-path`'s basename without the `.md` extension (e.g. `dev-process-hardening`) — the display name §L4's output lines use |
 
 Otherwise the lookup returns **no plan**.
 
@@ -69,8 +80,11 @@ If the name matches items in **more than one** plan file, return **no plan** and
 plan-scoped-worktree appears in 2 product plans:
   docs/dev/product-plans/dev-process-hardening.md
   docs/dev/product-plans/dev-observability.md
-Proceeding without linking to either — resolve by renaming one item.
+Proceeding without linking to any of them — resolve by renaming one item.
 ```
+
+Print **every** matching plan's path, one per line, and set the count in the first line accordingly —
+two is the common case, not the defined maximum.
 
 The consequence, in one line: `state.json.product_plan` stays `null`, so `dev:done` Step 3 skips the
 check-off and the operator ticks the box by hand. Guessing which plan governs the cycle is worse than
@@ -89,7 +103,9 @@ A plan with **no `- [ ]` item at all** (every box ticked) has no next item: both
 
 ## §L4 — The four outcomes
 
-Exhaustive, keyed on §L1's output. Exactly one applies.
+Exhaustive, keyed on §L1's output. **Evaluate in the order written and take the first that matches** —
+the arms are not mutually exclusive on their own terms (a plan with every box ticked satisfies both
+`unlinked` and `already-done`), and this ordering is what settles it.
 
 **unlinked** — §L1 returned no plan, or the matched plan has no next unchecked item.
 
@@ -107,6 +123,16 @@ mid-cycle stages.
 > Plan dev-process-hardening (4/6) — plan-linkage is in the current milestone.
 > ```
 
+**already-done** — matched and `item-checked` is `true`.
+
+> Prints and asks, naming the real condition rather than reusing the mismatch wording:
+>
+> ```
+> Plan dev-process-hardening is 4/6 cycles complete.
+> retro-inside-pr is already checked off. Next up is plan-linkage.
+> Continue anyway, or switch?
+> ```
+
 **mismatch** — matched, `item-checked` is `false`, and `item-milestone` is a **later** milestone than
 `current-milestone`.
 
@@ -114,19 +140,13 @@ mid-cycle stages.
 >
 > ```
 > Plan dev-process-hardening is 4/6 cycles complete.
-> Next up is plan-scoped-worktree, not telemetry-schema.
+> Next up is plan-linkage, not plan-scoped-worktree.
 > Continue anyway, or switch?
 > ```
-
-**already-done** — matched and `item-checked` is `true`.
-
-> Prints and asks, naming the real condition rather than reusing the mismatch wording:
 >
-> ```
-> Plan dev-process-hardening is 4/6 cycles complete.
-> retro-inside-pr is already checked off. Next up is plan-scoped-worktree.
-> Continue anyway, or switch?
-> ```
+> Both names come from **one** plan — `next-item-name` is resolved inside the matched plan, never
+> across plans. A name belonging to a *different* plan is that plan's business, and §L1 would have
+> matched it there.
 
 **Milestone order is binding; item order within a milestone is not.** That single rule is what
 separates *on-order* from *mismatch*. It comes from the spec's "the plan's next unchecked item is
