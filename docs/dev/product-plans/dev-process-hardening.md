@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 4/6*
+*Created: 2026-08-17 · Cycles completed: 5/6*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -70,7 +70,7 @@ the end of Validate the PR and merge have not happened, so `pr_created`, the mer
 the cycle must decide explicitly whether the merge-tail ones are deferred or dropped.
 
 ## Milestone 4a: Plan linkage
-- [ ] plan-linkage (feature)
+- [x] plan-linkage (feature)
 
 Sources: `backlog-project-context-lost-between-cycles` (human-visible half),
 `debt-plan-item-cycles-never-set-product-plan`.
