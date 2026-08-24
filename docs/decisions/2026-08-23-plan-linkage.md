@@ -65,3 +65,42 @@ only by accident, since (A) overwrites it moments later.
 
 ## Artifacts (archived)
 Spec, plan, and validation committed at: 7fa84cfea08c26875463a5aded36c8d0a93e097d on branch feature/plan-linkage
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-08-23*
+
+**Spec:** Confidence 90%/Ready with `spec_revisions: 0` — the score matched actual clarity, and the
+challenger's 3 blockers + 4 concerns were all applied before the gate, so nothing churned afterward.
+The healthy quadrant of the blockers/revisions table.
+
+**Shape:** Skipped (no-ui).
+
+**Plan:** The expensive stage — 2 challenger loops, 14 fixes of which 7 were concern-driven. Coverage
+and sequencing went clean after round 1; **Interfaces never did.** Every surviving finding was the
+same shape: a value crossing a task boundary with its name stated and its *type* left implicit —
+`plan-path` absolute or repo-relative, one Linear name derived two incompatible ways at two call
+sites, §L1's output missing two fields §L4 prints.
+
+**Validate:** 3 of 3 loops, 0 P1, 2 P2. Both P2s were that same shape one stage later: a value
+crossing a boundary without its constraint stated (an unallowlisted filename reaching an interpolated
+`git rm -f`; a link written without checking whether the item was already checked). Two of the three
+loops were spent on drift the cycle's *own* fix caused — adding a `$PRIMARY` guard falsified a "12
+sites" count asserted in three other files and one backlog item.
+
+**Flow:** Tier was right. Handed off to autopilot at Plan and ran to PR without a stop; the one
+`dev:reflect` pause worked as designed.
+
+**Token efficiency:** `files_read_in_build` reads 0 and is wrong — files were read throughout Build
+and the counter was never bumped, so the metric is unreliable for this cycle. Stage durations were
+unremarkable except Validate (~25 min), which is where the three loops went.
+
+**Suggestions:**
+- Plan tasks state a *name* for every value crossing a task boundary but not a *type*. Both this
+  cycle's P2s and most of its plan-challenger findings were untyped-boundary defects. Worth
+  considering whether `Interfaces:` should require a stated type per produced value.
+- A fix that changes a counted fact (guard counts, site counts, "N places do X") should trigger a
+  repo-wide grep for that count inside the same loop. Not doing it cost two of three validate loops.
+
+**Deferred to tech debt:** `plan-interfaces-state-names-not-types`, `validate-counted-facts-not-regrepped`
+
+**User observations:** None raised at the Step 4 turn.
