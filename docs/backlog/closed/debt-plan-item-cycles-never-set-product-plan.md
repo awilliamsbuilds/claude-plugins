@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-08-24
+closed_by: plan-linkage
 first_recorded: 2026-08-20
 cycles: [autopilot-resume-stage]
 recurrence: 1
