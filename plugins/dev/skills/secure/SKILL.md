@@ -40,9 +40,10 @@ PRIMARY=$(cd "$(dirname "$GIT_COMMON")" && pwd)
 if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 1; fi
 ```
 
-The third line is the non-empty guard the 12 stage-header shell sites do not carry — the gap
-`docs/backlog/debt-primary-cd-failure-unchecked.md` records. This site carries it, so adding this
-skill does not grow that item's count to 13. `dev:fix` carries the same guard for the same reason
+The third line is the non-empty guard the 11 remaining unguarded stage-header shell sites do not
+carry — the gap `docs/backlog/debt-primary-cd-failure-unchecked.md` records. (`dev:spec` Step 6 was
+the twelfth until the `plan-linkage` cycle guarded it.) This site carries it, so adding this
+skill does not grow that item's count. `dev:fix` carries the same guard for the same reason
 (`fix/SKILL.md:34-36`). Do not "simplify" it away to match the others.
 
 **Which tree each verb audits — and this is per-verb, not blanket:**

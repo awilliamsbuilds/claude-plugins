@@ -47,9 +47,9 @@ if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 
 ```
 
 The third line is the non-empty guard the stage-header shell sites do not carry — the gap
-`docs/backlog/debt-primary-cd-failure-unchecked.md` records. This is the repo's **fourth** guarded
-derivation, alongside `dev:fix` (`fix/SKILL.md:34-36`), `dev:secure` (`secure/SKILL.md:37-41`), and
-the `dev:debt` viewer. Because it carries the guard, adding this skill does **not** grow that item's
+`docs/backlog/debt-primary-cd-failure-unchecked.md` records. This is one of the repo's **five** guarded
+derivations, alongside `dev:fix` (`fix/SKILL.md:34-36`), `dev:secure` (`secure/SKILL.md:37-41`),
+`dev:spec` Step 6, and the `dev:debt` viewer. Because it carries the guard, adding this skill does **not** grow that item's
 count of unguarded sites. Do not "simplify" it away to match the others.
 
 **`$PRIMARY` is this skill's fallback, not its scope.** Each mode resolves what it actually reviews

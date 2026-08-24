@@ -134,6 +134,17 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 
 **Debt surfacing: print, never ask.** `dev:spec` Step 7's fourth pass cross-checks open tech debt against the grounding inventory and, in standard mode, asks whether to fold matches into scope. In autopilot it **prints its matches into the run log and folds nothing in** — scope changes need a human. Nothing is written to `## To Close`. This is not a stop condition; the run continues normally. (The debt *writes* in `dev:build`, `dev:validate`, `dev:pr`, `dev:reflect`, and `dev:done` are unconditional and self-applied — they run identically here. Only the fold-in question is suppressed.)
 
+**Plan-order check: print, never ask.** `dev:spec` Step 6's plan-order check
+(`../../references/product-plans.md` §L4) asks for confirmation in standard mode on its **mismatch** and
+**already-done** outcomes. In autopilot it **prints the outcome into the run log and continues** — no
+question, no stop. This is **not** a stop condition and is deliberately absent from `## Purpose`'s
+"When autopilot stops" list: the check never refuses in any mode, so there is nothing to stop on. The
+other two outcomes are unchanged here — `unlinked` prints nothing and `on-order` prints one line,
+neither asks in either mode — so this override is scoped to the two asking outcomes alone. Path (C)'s
+`product_plan` write is **not** suppressed: it is a mode-agnostic write in the initial state.json
+commit, exactly like path (B)'s, so an autopilot cycle links to its plan and reaches `dev:done` Step 3
+with the box ready to tick.
+
 **Validate: extended auto-fix.** After the loop limit, attempt one additional auto-fix pass. If P1/P2 remain → STOP: surface the issues and require human input.
 
 **Spec challenger: bounded revision loop.** `dev:spec` Step 12a's blockers drive an auto-revision loop capped at `challenge.loops_max` (micro 1 / standard 3 / deep 5), incrementing `challenge.loops_run` per iteration and `challenge.applied` by the fixes each iteration lands. Concerns are counted in `challenge.concerns`. A concern's fix **may** be folded into an iteration already running — and should be when it is mechanical, since the alternative is the same defect resurfacing at Validate at the cost of a full fix loop. A concern is **never a reason to loop**: never to run another iteration, never to re-dispatch, never to STOP. `applied` therefore counts blocker and concern fixes alike; `loops_run` is the blocker-driven number. **`challenge.applied_concerns` splits that total**: a concern fix increments both `applied` and `applied_concerns`, a blocker fix increments `applied` only, so blocker-driven fixes are `applied - applied_concerns`. (`dev:spec` Step 12a is **canonical** for this pair; `dev:plan` Step 7a is its mirror, and the restatement here is a summary of both.) If blockers remain after the cap → STOP: surface them and require human input. **Scope blockers bypass the loop entirely and STOP immediately.** A right-sizing blocker is not text-fixable — a cycle cannot be split by editing prose. The loop handles only clarity, consistency, and grounding.

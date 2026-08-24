@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 4/5*
+*Created: 2026-08-17 · Cycles completed: 4/6*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -16,8 +16,14 @@ in the set.
   validate-prose-resync ──────► retro-inside-pr ─────────┐
     (validate)                    (done, reflect,        │
                                    validate)             ├──► project-scoped-worktree
-  autopilot-resume-stage ─────► challenger-loop-economics┘      (12 files)
-    (autopilot)                   (spec, autopilot)
+  autopilot-resume-stage ─────► challenger-loop-economics┘      │
+    (autopilot)                   (spec, autopilot)              ▼
+                                                        4a plan-linkage
+                                                        (spec, fix, done)
+                                                                 │
+                                                                 ▼
+                                                        4b plan-scoped-worktree
+                                                             (12 files)
 ```
 
 Milestone 1's two cycles share no files and are genuinely parallelizable. Milestones 2 and 3 are
@@ -63,33 +69,72 @@ the end of Validate the PR and merge have not happened, so `pr_created`, the mer
 `dev:done` Step 4a's docs-prose reconciliation are not yet available — most retro dimensions are, and
 the cycle must decide explicitly whether the merge-tail ones are deferred or dropped.
 
-## Milestone 4: Persistent project context
-- [ ] project-scoped-worktree (feature, deep)
+## Milestone 4a: Plan linkage
+- [ ] plan-linkage (feature)
 
-Sources: `backlog-project-context-lost-between-cycles`, `debt-plan-item-cycles-never-set-product-plan`.
+Sources: `backlog-project-context-lost-between-cycles` (human-visible half),
+`debt-plan-item-cycles-never-set-product-plan`.
 
-Blocked by everything above — it changes the identity of the cycle directory from `<feature>` to a
-plan slug, so **12 files** that hardcode `.dev-worktrees/<feature>/` or `.dev-worktrees/*/` all move
-(`build`, `debt`, `dev`, `autopilot`, `done`, `fix`, `reflect`, `pr`, `plan`, `secure`, `shape`,
-`validate`). Two design questions belong in its spec rather than in flight: what happens when cycles
-sharing one worktree need different branches checked out, and whether several cycles'
-`docs/dev/<feature>/` directories coexist in the shared tree.
+Split out of the original Milestone 4 on a cold reviewer's right-sizing blocker at that cycle's Spec
+gate. Builds the mechanism both halves need — **given a feature name, find the product plan that
+governs it** — and ships its two cheap consumers: `dev:spec` Step 6 path (C) setting
+`state.json.product_plan` so `dev:done` Step 3 stops depending on the operator remembering, and an
+order-mismatch check at `/dev:spec` and `/dev:fix` so naming the wrong item is a deliberate choice
+rather than an accident.
 
-Worth stating plainly: **this milestone fixes the problem that made this plan necessary.** The item
-records the user losing track of which milestone is current and unintentionally skipping order — which
-this plan is itself exposed to until Milestone 4 lands.
+Touches no worktree behavior, so it is standard tier and carries none of 4b's coordinated-edit risk.
+It satisfies the first source's "Done looks like" in full: at the start of a cycle the human sees
+which milestone is current and what is next, without having to remember it across a session boundary.
 
-**The second source is in scope and must be disposed of explicitly.**
-`debt-plan-item-cycles-never-set-product-plan` is the machine-readable half of the same failure: a
-cycle that is a milestone item never sets `state.json.product_plan`, so `dev:done` Step 3 skips the
-check-off and the plan under-reports its own progress. This bit on `autopilot-resume-stage`, whose box
-had to be ticked by hand after the fact. Putting the plan slug in the cycle directory's identity would
-very likely fix it as a side effect — but the first source's "Done looks like" speaks only to what a
-*human* can see across a session boundary, so this milestone could satisfy that criterion in full and
-still leave the check-off broken. **Its spec must either adopt this item as in-scope or state why it
-stays open** — the two cheaper owners named in the item (`/dev` Step 6 forwarding the chosen plan
-path, or a `dev:spec` path (C) that adopts a plan by matching feature name) remain available if this
-milestone declines it.
+## Milestone 4b: Plan-scoped worktree
+- [ ] plan-scoped-worktree (feature, deep)
+
+Source: `backlog-project-context-lost-between-cycles` (the "one worktree per project" direction).
+Blocked by 4a — the worktree cannot be named after the governing plan until a cycle can determine
+what its governing plan is.
+
+**The original rationale did not survive grounding and must not be restated.** The source item argues
+that a per-cycle worktree means "the plan and the accumulated context persist rather than being torn
+down and rebuilt." That premise is false: worktrees are cut from `origin/main` and the plan lives at
+`docs/dev/product-plans/`, so a freshly created worktree already contains the plan with every
+completed box ticked. Verified during 4a's Spec. Nothing was ever torn down.
+
+**The surviving rationale is narrower and prospective.** A fresh worktree does not inherit ignored
+files, so in a repo with a dependency install it needs a full reinstall per cycle. Three of the five
+repos running `/dev` carry one (`node_modules` at 186M / 571M / 584M); none of them currently runs a
+product plan, so the saving is real but not yet observed. Two smaller benefits do apply today: a
+stable directory path across milestones, and the directory name itself as ambient evidence of which
+project is in flight.
+
+**Four findings from 4a's cold review belong to this cycle** and are recorded here rather than lost
+with the split:
+
+1. **Resolution must not derive the plan slug.** `<plan-slug>` cannot come from
+   `state.json.product_plan` — that file is inside the tree being located. Resolve by glob instead:
+   `$PRIMARY/.dev-worktrees/*/docs/dev/<feature>/state.json` (first hit wins; more than one hit STOPs
+   and names both), then `$PRIMARY/docs/dev/<feature>/state.json` for a legacy in-place cycle. The
+   glob makes the directory name irrelevant, so resolution survives `dev:done` Step 3b deleting the
+   plan file at project completion — the case a slug-derivation route silently breaks. This is the
+   glob `dev` Step 3 and `autopilot` already use for discovery.
+2. **Concurrency needs a stated fallback.** `git worktree add` refuses a branch already checked out
+   elsewhere, so a shared plan tree holds one cycle at a time. When it is occupied by an unmerged
+   branch, `dev:spec` must create a per-cycle worktree instead. Without this, two cycles in one plan
+   can no longer run in parallel — and adding it later means reopening all ten resolution blocks.
+3. **Plan-tree removal must appear in scope, not only in the criteria.** `dev:done` Step 3b, on the
+   all-`[x]` path that deletes the plan file, also removes the plan tree (`worktree remove --force` +
+   `prune`) from `$PRIMARY`, after Step 2's detach has freed it.
+4. **The plan's second design question needs one line, not reconstruction.** Cycle directories never
+   coexist in a shared tree: one cycle occupies it at a time, and Step 7's
+   `rm -rf docs/dev/<feature>/` lands on the integration branch before the next milestone branches
+   from it.
+
+Also worth weighing before building: seeding a new worktree's ignored dependency directories from the
+primary checkout would capture the same saving for **every** cycle, plan-governed or not, without
+changing directory identity or losing concurrency. If that turns out to be the better trade, this
+milestone may close as declined rather than built.
+
+**The second source is disposed of, not deferred.** `debt-plan-item-cycles-never-set-product-plan` is
+adopted by 4a, which is the cheaper of the owners the original entry named.
 
 ---
 

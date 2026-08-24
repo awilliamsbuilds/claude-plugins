@@ -37,9 +37,10 @@ if [ -z "$PRIMARY" ]; then echo "Could not resolve the primary checkout."; exit 
 ```
 
 The first two lines are the derivation every `dev` stage header uses (`build/SKILL.md:26-27`). The
-third is the non-empty guard **none of those 12 shell sites carries** — the gap
-`docs/backlog/debt-primary-cd-failure-unchecked.md` records. This site carries it, so adding the
-lane does not grow that item's count to 13. Do not "simplify" the guard away to match the others.
+third is the non-empty guard **the 11 remaining unguarded shell sites do not carry** — the gap
+`docs/backlog/debt-primary-cd-failure-unchecked.md` records. (`dev:spec` Step 6 was the twelfth; the
+`plan-linkage` cycle gave it the guard when the plan-order check became a reader of `$PRIMARY`.) This
+site carries it, so adding the lane does not grow that item's count. Do not "simplify" the guard away to match the others.
 
 For the rest of this lane: run every git command as `git -C "$PRIMARY" …`, **and resolve every file
 path you read or edit against `$PRIMARY/`**. Never `cd`.
@@ -110,7 +111,10 @@ work in that order keeps the stated rationale true. If both rungs come back empt
 **Reads.** Read these once at the start of the run and work from that reading:
 
 - `../../references/entry-adapters.md` — the adapter seam contract (§A1 hooks, §A2 argument tokens,
-  §A3 Linear, §A4 backlog). Only the adapter dispatches consume §A3/§A4; the parse below is §A2.
+  §A3 Linear, §A4 backlog, §A6 the cycle slug). Only the adapter dispatches consume §A3/§A4; the parse
+  below is §A2; Step 2b's `linear` row derives its checked name from §A6.
+- `../../references/product-plans.md` — the governing-plan lookup (§L1) and plan-order check
+  (§L4/§L5), consumed by Step 2b. Read on **every** dispatch, unlike `docs/dev/config.json` below.
 - `docs/dev/config.json` — the `linear.<teamId>.{started,in_review}` status-ID cache (§A3). Read on
   the **`linear` dispatch only**, and legitimately absent on every other path — a repo with no
   `/dev` setup, or any non-Linear invocation, never needs it.
@@ -250,6 +254,50 @@ Its **Pre-lane and Post-PR hooks are no-ops** — a backlog item has no external
 is the seam's "a hook with nothing to do is a no-op, never an error" invariant (§A1), stated here so
 the absence does not read as an oversight.
 
+## Step 2b: Plan-order check
+
+**Placement is the point.** This step runs after Step 2a's resolve and before Step 3's grounding, so
+everything it can do happens **before Step 5 creates any branch** — the same ordering Step 2a states
+for adapter failures, for the same reason: a stop here has created nothing.
+
+**Every dispatch reaches this step, free text included.** Step 2a's "free-text dispatch skips this
+step entirely" is scoped to Step 2a and must not be read forward.
+
+**The name checked, per dispatch:**
+
+| Dispatch | Name checked |
+|---|---|
+| `backlog` | the normalized `<item>` basename bound in Step 2a |
+| `linear` | **§A6's `<short-title>`** — derive §A6's cycle slug (`<ID>-<short-title>`) from the fetched issue title, then strip the `<ID>-` prefix |
+| free text | the raw argument put through `dev:spec` Step 6's construction (lowercase, collapse every run outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`); if that yields an **empty** string, skip the check — treat it as §L4's `unlinked` and print nothing, rather than passing §L1 a value its input contract forbids |
+
+On the `linear` row, do **not** use `dev:spec` Step 6's whole-title normalization: that is the
+non-Linear construction, and it yields `fix-broken-logout-button-on-mobile` where §A6 yields
+`fix-logout-button` — two different names for one issue. §A6's `<short-title>` is exactly the value
+`/dev:spec linear` checks, so both Linear entry points resolve one name.
+
+Free text is safe to check for the same reason it is safe to ignore: normalizing a sentence yields a
+long hyphenated string that matches no plan item, so §L1 returns no plan, §L4's outcome is `unlinked`,
+and nothing prints.
+
+Pass the resolved name to `../../references/product-plans.md` §L1 and apply §L4's outcome under §L5's
+**asking** arm — this lane has no autopilot mode. Do not restate §L4's outcomes here.
+
+**On `switch`:** stop with nothing created, printing §L4's `/dev:spec "<next-item-name>"` line. On the
+`linear` dispatch, name the one side effect that has already fired so the user can undo it: §A3's
+Pre-lane hook set the issue to its `started` status. (The `config.json` status-cache write has **not**
+happened — Step 5 performs it, and Step 5 is never reached from here.) Say so plainly: the issue was
+moved to `started`; move it back if the switch was intended.
+
+**This lane asks here, and that is deliberate.** `## Purpose`'s "runs unattended to an open PR" is
+about the *work*: once the lane starts changing files it never stops to consult. This check runs
+before any of that, and it is one of the lane's deliberate questions about *what to work on*,
+alongside Step 1's no-argument case and §A3's issue picker. (Step 5's "if the normalized name is empty, ask for a name" is a degenerate
+error path, not a question about the work.) §L5 files it under its asking arm; the lane has no `mode` field to put it on the other one.
+
+**This is not an adapter hook.** It alters no adapter behaviour and no lane behaviour — not triage,
+not the escalation threshold, not PR flow (§A1's first invariant).
+
 ## Step 3: Ground
 
 Read the actual files. Verify every as-is claim the request makes against what is really there.
@@ -356,7 +404,7 @@ only one of them starts with `fix/`.
 **Free text.** Name the branch `fix/<kebab-summary>`, where `<kebab-summary>` describes the change in
 2–4 words. The allowlist applies to `<kebab-summary>` **alone**, not to the full branch name — a
 prefixed `fix/…` can never match the anchored `^[a-z0-9][a-z0-9-]*$` because the `/` would be
-collapsed. Normalize by `dev:spec` Step 6's construction (`spec/SKILL.md:161`): lowercase, collapse
+collapsed. Normalize by `dev:spec` Step 6's **Feature name (derive and normalize first)** construction: lowercase, collapse
 every run of characters outside `[a-z0-9]` to a single `-`, strip leading and trailing `-`. If the
 result is empty, ask for a name rather than proceeding.
 

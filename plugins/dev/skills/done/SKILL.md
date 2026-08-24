@@ -135,9 +135,10 @@ push_integration() {
 **Locate the plan (uniform).** If `state.json.product_plan` is null, **skip this step entirely**.
 Otherwise the governing plan is at `state.json.product_plan` — always
 `docs/dev/product-plans/<slug>.md`. There is **no** `parentFeature`-based path reconstruction:
-`dev:spec` now records the full relocated path for every product-scale cycle, and a nested child
-**inherits** the parent's `product_plan` value (`dev:spec` Step 6 path (B)), so top-level and nested
-collapse into this one read.
+`dev:spec` now records the full relocated path for every product-scale cycle, a nested child
+**inherits** the parent's `product_plan` value (`dev:spec` Step 6 path (B)), and a cycle whose feature
+name matched an item in exactly one plan **adopts** that plan at `dev:spec` Step 6 path (C) — so all
+three collapse into this one read.
 
 The plan file is present at the detached integration tip (Step 2's
 `checkout --detach origin/$INTEGRATION`) because it rides the creating cycle's PR — and, now living at
@@ -151,6 +152,22 @@ cycle merges.
 - Change `- [ ]` to `- [x]`
 - Update the header: increment the cycles-completed count
 
+**Matching by feature name — try `feature`, then the ID-stripped form.** The plan item's name equals
+`state.json.feature` on every path **except** a path (C) link on a Linear-sourced cycle: there
+`feature` is §A6's full `<ID>-<short-title>` slug, while the plan item is named — and `dev:spec`'s
+lookup matched — the `<short-title>` half alone.
+
+So: match on `feature` **unchanged first**. If that finds no item and `state.json.linear_issue` is
+non-null, retry with the `<ID>-` prefix removed, where `<ID>` is **`state.json.linear_issue.id`
+verbatim** — strip the literal prefix `"<id>-"`, never "everything up to the first hyphen" (the ID
+itself contains one: `ENG-123-fix-logout-button` must become `fix-logout-button`, not
+`123-fix-logout-button`).
+
+Unchanged-first matters: a Linear-sourced cycle that reached `product_plan` through path (A) or (B)
+may legitimately carry the full slug as its plan item name, and an unconditional strip would break a
+match that works today. Without the retry, a Linear-sourced path (C) cycle arrives here linked but
+unmatchable, and its box never gets ticked.
+
 **2. Completion detection.** After the check-off, test whether **every** checkbox item across all
 milestones is now `[x]`. That boolean is "project complete." Anything less is a mid-project child
 teardown, which only checks off (path 3a) and never deletes.
@@ -158,7 +175,7 @@ teardown, which only checks off (path 3a) and never deletes.
 **3a. Project NOT complete — commit only the check-off** (today's behavior):
 
 ```bash
-git -C "$WORKDIR" add <plan-path>          # docs/dev/product-plans/<slug>.md
+git -C "$WORKDIR" add "<plan-path>"        # docs/dev/product-plans/<slug>.md
 git -C "$WORKDIR" commit -m "chore: mark <feature> complete in product plan"
 push_integration
 ```
