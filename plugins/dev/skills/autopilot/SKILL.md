@@ -140,7 +140,8 @@ there is no offer to accept. Autopilot inherits this with no special handling; a
 question, no stop. This is **not** a stop condition and is deliberately absent from `## Purpose`'s
 "When autopilot stops" list: the check never refuses in any mode, so there is nothing to stop on. The
 other two outcomes are unchanged here — `on-order` prints one line, and `unlinked` prints nothing
-unless §L4's near-miss test fires, in which case it prints that one line; neither asks in either mode — so this override is scoped to the two asking outcomes alone. Path (C)'s
+unless §L4's near-miss test fires, in which case it prints that test's suggestion; neither asks in
+either mode — so this override is scoped to the two asking outcomes alone. Path (C)'s
 `product_plan` write is **not** suppressed: it is a mode-agnostic write in the initial state.json
 commit, exactly like path (B)'s, so an autopilot cycle links to its plan and reaches `dev:done` Step 3
 with the box ready to tick.
