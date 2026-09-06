@@ -20,7 +20,8 @@ the file invites a human to paste.
 
 **Why deferred:** The gap predates the near-miss arm and sits on three arms that cycle did not touch.
 Bounding `next-item-name` is a change to §L1's output contract with four call sites to re-check,
-which is more than a fast-path change should carry.
+which is more than a fast-path change should carry. (`dev:spec` Step 6 and `dev:fix` Step 2b are the
+callers; `dev:autopilot` Step 2 cites the behaviour; Milestone 4b will consume §L1.)
 
 **The cost, measured:** the `plan-order-near-miss` cycle added a *fourth* echo and bounded it, then
 wrote a sentence claiming it was "the one place a name is echoed without having been matched against
