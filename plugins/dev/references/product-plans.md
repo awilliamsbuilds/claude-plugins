@@ -109,11 +109,56 @@ the arms are not mutually exclusive on their own terms (a plan with every box ti
 
 **unlinked** — §L1 returned no plan, or the matched plan has no next unchecked item.
 
-> Prints **nothing.**
+> Prints **nothing** — unless the near-miss test below fires.
 
 This is the ordinary standalone cycle, and roughly half of recent cycles take it. Printing here is
 what would train the reader to skip the check — the same reason a passive plan line is kept out of
 mid-cycle stages.
+
+**The near-miss test.** A cycle that *is* a plan item but was named differently — `worktree-scoping`
+for `plan-scoped-worktree` — lands here and gets silence, so it never links and `dev:done` never
+ticks its box. That is the original defect reachable through a rename. When the name misses but comes
+close, say so:
+
+```
+No plan item matches "worktree-scoping" — did you mean plan-scoped-worktree?
+Continuing unlinked. Re-run with the item's name to link this cycle to its plan.
+```
+
+**It prints and proceeds. It never asks**, in either mode, so it adds no fourth asking outcome and
+§L5 needs no arm for it. The line is a nudge, not a gate.
+
+**Two triggers, both mechanical.** Split both names on `-`. Two tokens **match** when they are
+identical, or when one is a prefix of the other sharing at least **four** leading characters (so
+`scoped` matches `scoping`, and `plan` does not match `p`). The test fires when either holds against
+a plan item:
+
+- **T1 — token overlap.** At least **two** of the *plan item's* tokens are matched by a token of the
+  name, **and** that is at least half the item's tokens. (`worktree-scoping` → `plan-scoped-worktree`
+  matches `scoped` and `worktree`: 2 of 3.)
+- **T2 — whole-token prefix.** One name's token sequence is a contiguous run of the other's —
+  `telemetry` against `telemetry-schema`, `plan-linkage-v2` against `plan-linkage`.
+
+Both thresholds are load-bearing, not tuning. **T1's floor of two matched tokens** is what keeps a
+single shared word from firing: `plan-viewer` shares `plan` with `plan-linkage` and must stay silent.
+**The four-character prefix floor** is what stops short tokens from matching each other by accident.
+**A substituted token never counts** — `plan-viewer` against `plan-linkage` is two different things,
+not a near miss.
+
+**Measured against this repo's real corpus** (10 items across two plans) before it shipped: it fires
+on all five renames of a real item, and on none of eleven ordinary standalone requests —
+`fix the plan viewer`, `update the readme`, `bump the lockfile`, `telemetry for the viewer` and the
+rest all stay silent. Re-measure it if the triggers are ever loosened; the whole value of this arm is
+that it stays quiet.
+
+**Name every item that fires, up to three** (`telemetry` legitimately near-misses both
+`telemetry-schema` and `telemetry-instrumentation`), and beyond three name the first three and the
+count. Unlike §L2's collision, this is a *suggestion* and not a link, so showing several costs
+nothing and picking one would be the guess §L2 refuses to make.
+
+**A name that matches an item exactly never reaches this test** — the three arms above already
+claimed it. The test runs only on `unlinked`, and only on the `no plan` branch of it: a matched plan
+whose boxes are all ticked is not a near miss, it is a finished plan.
 
 **on-order** — matched, `item-checked` is `false`, and `item-milestone == current-milestone`.
 

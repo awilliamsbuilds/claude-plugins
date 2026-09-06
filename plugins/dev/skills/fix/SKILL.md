@@ -277,8 +277,11 @@ non-Linear construction, and it yields `fix-broken-logout-button-on-mobile` wher
 `/dev:spec linear` checks, so both Linear entry points resolve one name.
 
 Free text is safe to check for the same reason it is safe to ignore: normalizing a sentence yields a
-long hyphenated string that matches no plan item, so §L1 returns no plan, §L4's outcome is `unlinked`,
-and nothing prints.
+long hyphenated string that matches no plan item, so §L1 returns no plan and §L4's outcome is
+`unlinked`. That normally prints nothing — a sentence is structurally unable to trip §L4's near-miss
+triggers, both of which need most of a short item name's tokens. A *short* free-text argument can
+trip them, which is the point: `/dev:fix "worktree scoping"` is exactly the rename that used to link
+to nothing silently.
 
 Pass the resolved name to `../../references/product-plans.md` §L1 and apply §L4's outcome under §L5's
 **asking** arm — this lane has no autopilot mode. Do not restate §L4's outcomes here.
