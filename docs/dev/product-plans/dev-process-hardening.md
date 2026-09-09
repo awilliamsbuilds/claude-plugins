@@ -1,5 +1,5 @@
 # /dev Process Hardening — Product Plan
-*Created: 2026-08-17 · Cycles completed: 5/6*
+*Created: 2026-08-17 · Cycles completed: 6/6 — 5 built, 1 declined*
 
 Five recorded `docs/backlog/` items about `/dev`'s own process, grouped so that the cheap fixes which
 make every later cycle cheaper land first. Four of the five were surfaced by `dev:reflect` at the
@@ -87,7 +87,7 @@ It satisfies the first source's "Done looks like" in full: at the start of a cyc
 which milestone is current and what is next, without having to remember it across a session boundary.
 
 ## Milestone 4b: Plan-scoped worktree
-- [ ] plan-scoped-worktree (feature, deep)
+- [x] plan-scoped-worktree (feature, deep) — **declined 2026-09-08**, not built. See `docs/decisions/2026-09-08-dev-process-hardening.md`. There is no declined checkbox state; `[x]` here means *settled*, not *shipped*.
 
 Source: `backlog-project-context-lost-between-cycles` (the "one worktree per project" direction).
 Blocked by 4a — the worktree cannot be named after the governing plan until a cycle can determine
