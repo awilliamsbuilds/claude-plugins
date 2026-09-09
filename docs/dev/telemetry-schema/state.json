@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "feature": "telemetry-schema",
-  "branch": "arch/telemetry-schema",
+  "branch": "feature/telemetry-schema",
   "mode": "standard",
   "stage": "spec",
   "completed": [],
@@ -17,32 +17,51 @@
   },
   "validate": {
     "loops_run": 0,
-    "loops_max": 5,
-    "p1_open": [], "p2_open": [], "p3_open": [], "nits_open": []
+    "loops_max": 3,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [],
+    "nits_open": []
   },
   "challenge": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "applied_concerns": 0, "dismissed": 0,
-    "loops_run": 0, "loops_max": 5
+    "run": false,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 0,
+    "applied_concerns": 0,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
   },
   "challenge_plan": {
-    "run": false, "blockers": 0, "concerns": 0,
-    "applied": 0, "applied_concerns": 0, "dismissed": 0,
-    "loops_run": 0, "loops_max": 5
+    "run": false,
+    "blockers": 0,
+    "concerns": 0,
+    "applied": 0,
+    "applied_concerns": 0,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
   },
   "confidence": {
     "final_score": 0,
     "final_level": "Low",
     "dimensions": {
-      "intent": false, "scope": false, "success_criteria": false,
-      "happy_path": false, "edge_cases": false, "out_of_scope": false,
-      "ui_needed": false, "technical_constraints": false,
-      "audience": false, "dependencies": false
+      "intent": false,
+      "scope": false,
+      "success_criteria": false,
+      "happy_path": false,
+      "edge_cases": false,
+      "out_of_scope": false,
+      "ui_needed": false,
+      "technical_constraints": false,
+      "audience": false,
+      "dependencies": false
     },
     "auto_filled": []
   },
-  "cycle_type": "architecture",
-  "tier": "deep",
+  "cycle_type": "feature",
+  "tier": "standard",
   "product_plan": "docs/dev/product-plans/dev-observability.md",
   "linear_issue": null,
   "parentFeature": null,
