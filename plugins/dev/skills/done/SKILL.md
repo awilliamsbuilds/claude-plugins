@@ -27,6 +27,8 @@ Define `INTEGRATION` — the branch this cycle's post-merge commits land on: `ma
 `state.json.parentFeature` is null; otherwise the parent feature's branch, read from
 `docs/dev/<parentFeature>/state.json.branch`.
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `done_start`, written into the telemetry record in Step 6b. It is **not** written to `state.json`. Capturing it now, before the merge, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Close the feature cycle: merge the PR, check off the product plan, flush tech debt, and clean up.
@@ -120,7 +122,7 @@ This merges with a merge commit; `delete_feature_branch` then removes the remote
 
 **Why not `gh pr merge --delete-branch`?** `gh`'s `--delete-branch` runs its branch cleanup *after* the server-side merge and reads the *current* branch to do it. On the worktree cycle's detached HEAD that read fails ("could not determine current branch"), and `gh` aborts **before** deleting the remote branch — leaking both the remote and local branch even though the merge itself succeeded. `gh pr merge --merge` on its own never reads the current branch, so the merge is detached-HEAD-safe; deleting both branches with explicit `git` plumbing is deterministic regardless of what HEAD points at. Do not re-add `--delete-branch`.
 
-All post-merge commits in this stage (Steps 3, 6a and 7) are made in `$WORKDIR` and pushed to `$INTEGRATION` through one helper, defined once and reused for every push. It pushes via an explicit `HEAD:$INTEGRATION` refspec, which works whether `HEAD` is detached (worktree cycle) or on the branch (legacy):
+All post-merge commits in this stage (Steps 3, 6a, 6b and 7) are made in `$WORKDIR` and pushed to `$INTEGRATION` through one helper, defined once and reused for every push. It pushes via an explicit `HEAD:$INTEGRATION` refspec, which works whether `HEAD` is detached (worktree cycle) or on the branch (legacy):
 
 ```bash
 push_integration() {
@@ -361,6 +363,54 @@ it (do not resolve the conflict by picking a side — **both** cycles' items mus
 again. If it still fails, stop the stage and surface it; the buffer is still on disk and the flush
 can be re-run.
 
+## Step 6b: Append the Telemetry Record
+
+Write this cycle's record into the durable ledger at `docs/telemetry/runs.jsonl`. The format and the
+append procedure are in `../../references/telemetry.md` — §T-envelope, §T-cycle, §T-stagemap, and
+§T-append (T1–T6). This step is a **call site** of that contract, not a second copy of it.
+
+**The position of this step is load-bearing.** After Step 6a, so a flush that STOPped never reaches
+an append that would then be followed by Step 7's teardown; and before Step 7, so the record is
+written while `state.json` still exists. Step 7's `rm -rf "$WORKDIR/docs/dev/<feature>/"` is what
+makes this the last possible moment. Do not move it.
+
+1. Run `date -u +%Y-%m-%dT%H:%M:%SZ` — this is `done_end`. Together with `done_start` (captured at
+   the top of this skill) it is the Done stage's stamp pair. **Neither is written to `state.json`:**
+   this stage writes no `metrics.*`, and Step 7 deletes that file seconds later, so a state round
+   trip would add a writer to a file already being torn down, for no reader.
+
+2. Re-read `$WORKDIR/docs/dev/<feature>/state.json`. It was already read at Step 1; read it again
+   here so the record reflects every write this stage has made since.
+
+3. Build the record per §T-envelope + §T-cycle + §T-stagemap, with:
+   - `kind: "cycle"`, `id: <state.json.feature>`
+   - `pr_number: <state.json.artifacts.pr_number>`
+   - `start: <metrics.stage_timestamps.spec_start>`, `end: <done_end>`, `basis: "spec_start"`,
+     `note: null`
+   - `stages.done = {"start": <done_start>, "end": <done_end>}`
+
+4. Run §T-append **T1–T5** with `$ROOT = "$WORKDIR"` and commit message
+   `chore: record telemetry for <feature>`. Then push with `push_integration` (defined at the end of
+   Step 2 — it pushes `HEAD:$INTEGRATION`, which is correct from the detached HEAD Step 2 left).
+
+   On a **legacy in-place cycle** (`worktreePath` null) `$WORKDIR` *is* `$PRIMARY`. The ledger path
+   is repo-relative either way, so this step needs no special case.
+
+5. **Any failure — append, verify, commit, or push — is a hard STOP for the stage:**
+
+   ```
+   STOP: telemetry record for <feature> did not land — do not run Step 7 (it deletes state.json).
+   ```
+
+   This is not a formality. Step 7 `rm -rf`s the cycle directory, destroying the only copy of the
+   data this step failed to save. Resolve and re-run; T2's dedup makes the re-run append at most one
+   record. (This is §T-append T6's "stops the caller" clause, in the form this stage takes it.)
+
+**Three consecutive steps now commit with three different pathspecs, and none may widen.** Step 6a
+commits `-- docs/backlog/`, Step 6b commits `-- docs/telemetry/`, Step 7 commits
+`-- docs/dev/<feature>/`. Each stages only its own tree. An unpathspec'd commit here would sweep in
+whatever Step 6a left staged, under a telemetry message.
+
 ## Step 7: Clean Up
 
 **Duplicated at `dev:fix`.** This step's post-merge primary-checkout reconciliation is canonical;
@@ -369,14 +419,16 @@ to `checkout --detach` when another worktree holds the default branch. A change 
 reflected there. (Branch deletion is **not** part of this step — Step 2's `delete_feature_branch`
 already did it.)
 
-**Check for a rebase in progress first — before deleting anything.** If Step 6a's flush hit a
-push conflict and left `$WORKDIR` mid-rebase, the buffer at `docs/dev/<feature>/debt-pending.md`
-is still the only copy of this cycle's buffered items, and the `rm -rf` below destroys it. A commit
-made mid-rebase also lands on the rebase's temporary HEAD rather than the integration tip:
+**Check for a rebase in progress first — before deleting anything.** If Step 6a's flush or Step 6b's
+telemetry append hit a push conflict and left `$WORKDIR` mid-rebase, the `rm -rf` below destroys
+data neither step managed to save — the buffer at `docs/dev/<feature>/debt-pending.md` is still the
+only copy of this cycle's buffered items, and `state.json` is still the only copy of its metrics. A
+commit made mid-rebase also lands on the rebase's temporary HEAD rather than the integration tip.
+The guard covers both steps; only this sentence names them:
 
 ```bash
 if git -C "$WORKDIR" rebase --show-current-patch >/dev/null 2>&1; then
-  echo "STOP: $WORKDIR is mid-rebase — Step 6a's flush did not land"
+  echo "STOP: $WORKDIR is mid-rebase — Step 6a's flush or Step 6b's telemetry append did not land"
   exit 1
 fi
 ```
@@ -504,7 +556,11 @@ condition.)
   Decision log: docs/decisions/YYYY-MM-DD-<feature>.md
   Retrospective appended (see decision log)
   Tech debt: N recorded, M closed
+  Telemetry: cycle record appended to docs/telemetry/runs.jsonl
 ```
+
+The `Telemetry:` line is unconditional — every cycle appends a record. On Step 6b's already-recorded
+re-entry path it reads `Telemetry: already recorded (re-entry)` instead.
 
 Omit the `Tech debt:` line entirely when both counts are zero. Append any Step 6a anomaly to
 this line rather than failing the stage: an unmatched close — `Tech debt: N recorded, M closed
@@ -513,9 +569,10 @@ a malformed buffer — `(malformed buffer: duplicate "## To Close" section ignor
 
 **Primary-checkout reconciliation line.** The completion display carries one line derived from
 `RECONCILE_MSG` (set by Step 7), telling the user whether their `main` folder still needs a
-manual `git pull`. Render it in the same `✓ <feature> cycle complete` summary block, right after
-the tech-debt line (or in its place when both debt counts are zero) —
-one more terse two-space-indented line, no new heading or blank line. The
+manual `git pull`. Render it in the same `✓ <feature> cycle complete` summary block, **after the `Telemetry:` line** —
+one more terse two-space-indented line, no new heading or blank line. The block's order is: tech-debt
+line (when non-zero) → telemetry line → this one. The telemetry line is unconditional, so it is
+always the anchor; there is no "in its place when both debt counts are zero" case any more. The
 `uptodate` case (already current — a no-op or an already-pulled cycle) prints **no** line: there
 is nothing to reconcile, so no reminder is needed.
 
