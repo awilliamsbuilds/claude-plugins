@@ -3,8 +3,10 @@
   "feature": "telemetry-schema",
   "branch": "feature/telemetry-schema",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
