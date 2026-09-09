@@ -1135,10 +1135,59 @@ else
 fi
 
 delete_feature_branch || exit 1
+
+# Telemetry derivation — merge-commit-relative, per ../../references/telemetry.md §T-lane.
+MERGE_SHA=$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json mergeCommit -q '.mergeCommit.oid')
+git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+# A SHA GitHub knows but this checkout cannot read is a fetch failure, not a squash.
+if [ -n "$MERGE_SHA" ] && ! git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}" 2>/dev/null; then
+  git -C "$PRIMARY" fetch --quiet origin "$MERGE_SHA" 2>/dev/null || true
+  git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}" 2>/dev/null || MERGE_SHA=""
+fi
+echo "TELEMETRY branch=$BRANCH pr=$PR_NUMBER sha=${MERGE_SHA:-none}"
+if [ -n "$MERGE_SHA" ] && git -C "$PRIMARY" rev-parse --verify --quiet "$MERGE_SHA^2" >/dev/null; then
+  echo "TELEMETRY start=$(git -C "$PRIMARY" log --format=%cI "$MERGE_SHA^1..$MERGE_SHA^2" | tail -1)"
+  echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
+  echo "TELEMETRY commits=$(git -C "$PRIMARY" rev-list --count "$MERGE_SHA^1..$MERGE_SHA^2")"
+  echo "TELEMETRY churn=$(git -C "$PRIMARY" diff --shortstat "$MERGE_SHA^1" "$MERGE_SHA^2")"
+elif [ -n "$MERGE_SHA" ]; then
+  echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
+  echo "TELEMETRY squash=1"
+else
+  echo "TELEMETRY end=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "TELEMETRY nosha=1"
+fi
 ```
 
 Ordering matters: the local branch cannot be deleted while it is checked out, so the checkout comes
 first.
+
+**The telemetry derivation is inside the fence, and that is not a stylistic choice.** `BRANCH` and
+`PR_NUMBER` cannot be re-derived afterwards: the fence has just deleted both branches and moved the
+checkout, so a re-run of the resolution block would bind `BRANCH` to `$DEFAULT_BRANCH` and exit on
+its own guard — the same reasoning the closeout hook below gives for `ITEM` and `BRANCH_MERGED`. It
+sits after `delete_feature_branch || exit 1` so a failed deletion still stops the fence before
+anything is recorded. Annotate the following in prose:
+
+- **Why `gh pr view --json mergeCommit` rather than `rev-parse HEAD`.** `HEAD` is the merge commit
+  only when reconciliation succeeded; on the `--detach` fallback it is not. Asking GitHub for the
+  merge commit is correct on every path.
+- **Why the `fetch` is `|| true`, and why an unreadable SHA is demoted rather than tolerated.** The
+  merge commit must be present locally for `git log` / `rev-list` / `rev-parse` to read it. On the
+  healthy path the `pull --ff-only` above already brought it in; the fetch covers the
+  `RECONCILED=0` paths. But `gh` and `git` do not share credentials — `gh` speaks HTTPS with its own
+  token while the remote may be SSH — so a SHA GitHub happily reports can be one this checkout
+  cannot read. Left unguarded, `rev-parse "$MERGE_SHA^2"` would fail for the *wrong reason*, the
+  squash arm would run `git log -1` against an object git does not have, `end` would come back
+  **empty** (violating §T-envelope's "never null"), and the record would assert a squash that may
+  never have happened. The `cat-file -e` probe plus the targeted second fetch settles it: a commit
+  that still cannot be read blanks `MERGE_SHA`, routing the run to the no-SHA arm.
+- **Why `commits` and `churn` are absent on the squash branch.** No `^2` exists, so the range
+  `^1..^2` is unresolvable. `end` is still read from the merge commit itself.
+- **Why there is a third arm and not two.** An empty `MERGE_SHA` is a *tooling failure*, not a
+  squash. Folding it into the squash arm would emit `merge_sha: ""` — a type violation of §T-lane —
+  plus a `note` asserting a merge shape nobody observed. The `nosha=1` arm takes wall-clock time as
+  `end`, since no commit is available to read one from, and gets its own record arm below.
 
 **The `--detach` fallback is what makes the "re-run it" advice true.** `checkout "$DEFAULT_BRANCH"`
 fails if another worktree already holds that branch — git forbids one branch in two worktrees — and
@@ -1157,6 +1206,83 @@ server-side merge and reads the current branch to do it, which makes it fragile 
 this lane can be in. `gh pr merge --merge` on its own never reads the current branch; deleting both
 branches with explicit git plumbing is deterministic regardless of what `HEAD` points at. Do not
 re-add `--delete-branch`.
+
+### Telemetry record
+
+Append this lane run to the durable ledger at `docs/telemetry/runs.jsonl`. The format and the append
+procedure are in `../../references/telemetry.md` — §T-envelope, §T-lane, and §T-append (T1–T6). This
+segment is a **call site** of that contract, not a second copy of it.
+
+**It sits before `### Closeout hook`, deliberately.** That hook is conditional and its script
+`exit 0`s on the common non-backlog path, so a telemetry block placed after it in the same
+invocation would never run. This block uses `if`/`fi` rather than `exit`, so concatenating it with
+anything is safe in either direction.
+
+**Three classes of value, handled differently** — the same distinction the closeout hook draws,
+because this block also almost certainly runs in a *new* shell invocation:
+
+- **`BRANCH_MERGED`, `PR_NUMBER`, `MERGE_SHA` and the four derived values are substituted literals**,
+  read from the derivation block's `TELEMETRY …` output. The fence's variables are gone by now, and
+  a `:?` assertion on them would abort with advice that cannot be followed.
+- **`PRIMARY` and `DEFAULT_BRANCH` are `:?`-asserted**, because both have re-runnable derivations at
+  the top of this skill.
+- **`RECONCILED` is re-derived from observable state**, never inherited — it was bound inside the
+  merge fence.
+
+```bash
+: "${PRIMARY:?re-run this skill's PRIMARY derivation, above}" \
+  "${DEFAULT_BRANCH:?re-run this skill's default-branch derivation, above}"
+
+RECONCILED=0
+CMP_REF="origin/$DEFAULT_BRANCH"
+git -C "$PRIMARY" rev-parse --verify --quiet "$CMP_REF" >/dev/null || CMP_REF="$DEFAULT_BRANCH"
+if [ "$(git -C "$PRIMARY" branch --show-current)" = "$DEFAULT_BRANCH" ] \
+   && git -C "$PRIMARY" merge-base --is-ancestor "$CMP_REF" HEAD 2>/dev/null; then
+  RECONCILED=1
+fi
+if [ "$RECONCILED" -eq 0 ]; then
+  echo "Telemetry skipped: checkout not reconciled — no lane record written."
+fi
+```
+
+**When `RECONCILED=0`, do not append.** The checkout is detached or unadvanced, so a commit here
+would land somewhere unpushable. This is a **skip, never a stop** — the run is reported as
+unrecorded and the tail continues.
+
+**When `RECONCILED=1`**, build the record per §T-envelope + §T-lane with `kind: "lane"`,
+`id: <BRANCH_MERGED>`, `pr_number: <PR_NUMBER>`, and one of the three arms the derivation printed:
+
+- **derived** (`start=`/`commits=`/`churn=` present) — `merge_sha` set, `start` as derived,
+  `basis: "first_commit"`, `commits`, `churn`, `note: null`;
+- **squash** (`squash=1`) — `merge_sha` set; `start: null`, `basis: "unavailable"`, `commits: null`,
+  `churn: null`, `note: "squash merge — no second parent; start, commits and churn underivable"`;
+- **no-SHA** (`nosha=1`) — `merge_sha: null`; `start: null`, `basis: "unavailable"`,
+  `commits: null`, `churn: null`,
+  `note: "merge commit not available locally (no mergeCommit from gh, or the commit could not be fetched); start, commits and churn underivable"`.
+  `end` is the wall-clock stamp the derivation emitted. **Never write the squash `note` on this
+  arm** — the two are distinguished by which marker the derivation printed, not by inference.
+
+Then run §T-append **T1–T5** with `$ROOT = "$PRIMARY"` and commit message
+`chore: record telemetry for <BRANCH_MERGED>`, and push with the fetch/rebase/re-push shape the
+closeout hook below uses. The lane has no `push_integration` helper — it targets `$DEFAULT_BRANCH`
+directly — so the **shape** is reused, not the helper.
+
+**T2's dedup is keyed on `kind == "lane"` and `id == <BRANCH_MERGED>.`** The `pr_number` is also
+carried and could serve as the key; `id` is chosen because it is the field the cycle record
+deduplicates on too, so one dedup rule covers both kinds.
+
+**State the re-entry reality plainly, because it is the opposite of `dev:done`'s and a reader will
+otherwise assume symmetry.** By the time this segment runs, the merge fence has deleted the feature
+branch and moved the checkout to `$DEFAULT_BRANCH`, so a re-invoked `/dev:fix merge` STOPs in
+`### Resolve the branch and PR` long before reaching here. Two consequences, both deliberate:
+
+- The no-double-append guarantee is **delivered by that guard**, not by T2. T2 remains as defence in
+  depth, against a hand-run of this segment.
+- **A failed append here is not recoverable by re-running the tail.** Say so in the Report rather
+  than advising a re-run: the remedy is to append the line by hand, or to accept the gap. This is
+  the deliberate counterpart to `dev:done` Step 6b, where §T-append T6's stop is a hard STOP
+  *because* an irreversible teardown follows. Here nothing is destroyed, so a missing lane record
+  costs one under-counted run and nothing else.
 
 ### Closeout hook
 
@@ -1254,7 +1380,14 @@ full, because they leave the checkout in different places:
 
 The fourth state is genuinely unmet either way, and saying so is the whole point.
 
-**On a backlog-sourced branch, add the closeout's outcome** as a fifth line — one of: the item closed
+**Add the telemetry outcome as its own line**, beside — not in place of — the backlog-closeout line
+below. One of: the lane record appended and pushed; the record appended but unpushed after a failed
+retry (name the file, and say the remedy is a push); the record skipped because the checkout was not
+reconciled; or already recorded. If the append itself **failed**, say the record is missing and that
+the remedy is a manual append — **do not advise re-running `/dev:fix merge`**, which STOPs at
+`### Resolve the branch and PR` before reaching that segment.
+
+**On a backlog-sourced branch, add the closeout's outcome** as a further line — one of: the item closed
 and pushed (name it); the item left open because the checkout was not reconciled; the item edited but
 unpushed after a failed retry (name the file); or, on a free-text branch, nothing at all, because the
 hook was a no-op.
