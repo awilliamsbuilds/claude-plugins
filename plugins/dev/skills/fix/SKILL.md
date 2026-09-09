@@ -118,6 +118,9 @@ work in that order keeps the stated rationale true. If both rungs come back empt
 - `docs/dev/config.json` — the `linear.<teamId>.{started,in_review}` status-ID cache (§A3). Read on
   the **`linear` dispatch only**, and legitimately absent on every other path — a repo with no
   `/dev` setup, or any non-Linear invocation, never needs it.
+- `../../references/telemetry.md` — the ledger record contract (§T-envelope, §T-lane, §T-append),
+  consumed by the `### Telemetry record` segment of the merge tail. Read on the **`merge` dispatch
+  only**; no other dispatch writes a record.
 
 **The parse is four-way**, and the order matters:
 
@@ -962,6 +965,12 @@ must be captured here or they will be re-derived later against a checkout that h
 ```bash
 BRANCH=$(git -C "$PRIMARY" branch --show-current)
 if [ -z "$BRANCH" ]; then echo "STOP: $PRIMARY is in detached HEAD — check out the feature branch first."; exit 1; fi
+# Re-validate before BRANCH reaches any interpolation. See the note below — this is enforcement,
+# not decoration: git refnames legally contain $, backtick, ( ) ; & | ' and ".
+printf '%s' "$BRANCH" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]*$' || {
+  echo "STOP: branch name '$BRANCH' is outside the allowed shape ^[A-Za-z0-9][A-Za-z0-9._/-]*\$ — refusing to merge."
+  exit 1
+}
 ITEM=${BRANCH#fix/}   # backlog-adapter identity; resolves to no file on a free-text branch
 if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
   FETCH_OK=1
@@ -1000,6 +1009,21 @@ if [ -z "$PR_NUMBER" ]; then
 fi
 if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; exit 1; fi
 ```
+
+**The branch-name allowlist is enforced here, not assumed from where the branch came from.** `BRANCH`
+is interpolated downstream into a commit `-m` and written into the telemetry ledger as a record
+field, and `git check-ref-format` permits `$`, backtick, `(`, `)`, `;`, `&`, `|`, `'` and `"` — it
+forbids only whitespace, `~^:?*[\`, control characters, `..` and `@{`. A branch named
+`fix/a$(…)b` is a legal ref, and interpolating it into a double-quoted `-m` would execute it.
+
+Both branch-creating paths already normalize to a safe shape — `../../references/entry-adapters.md`
+§A3's `^[A-Za-z0-9][A-Za-z0-9._/-]*$` for a Linear `gitBranchName`, and Step 5's
+`^[a-z0-9][a-z0-9-]*$` for a `<kebab-summary>` — but **this tail does not require the branch to have
+been created by the lane.** Its own leftover-branch message tells the user to
+`git checkout <branch> && /dev:fix merge`, which is exactly how a fetched foreign branch head reaches
+this code. So the guarantee is re-checked here rather than inherited. This is the same discipline
+§A6 states for `<feature>`, which is why `dev:done` may interpolate a slug into a `-m` without
+re-guarding it.
 
 **More than one open PR for the branch is a stop, and the count read above is what delivers it.**
 Reading `.[0].number` alone would silently take the first — a guard stated in prose but not
@@ -1138,7 +1162,9 @@ delete_feature_branch || exit 1
 
 # Telemetry derivation — merge-commit-relative, per ../../references/telemetry.md §T-lane.
 MERGE_SHA=$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json mergeCommit -q '.mergeCommit.oid')
-git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+# Hex-only allowlist: a malformed or absent OID already has a correct destination (the no-SHA arm),
+# and this keeps an unexpected value from reaching git as a ref or a range operand.
+case "$MERGE_SHA" in *[!0-9a-f]*|"") MERGE_SHA="" ;; esac
 # A SHA GitHub knows but this checkout cannot read is a fetch failure, not a squash.
 if [ -n "$MERGE_SHA" ] && ! git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}" 2>/dev/null; then
   git -C "$PRIMARY" fetch --quiet origin "$MERGE_SHA" 2>/dev/null || true
@@ -1146,12 +1172,12 @@ if [ -n "$MERGE_SHA" ] && ! git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}
 fi
 echo "TELEMETRY branch=$BRANCH pr=$PR_NUMBER sha=${MERGE_SHA:-none}"
 if [ -n "$MERGE_SHA" ] && git -C "$PRIMARY" rev-parse --verify --quiet "$MERGE_SHA^2" >/dev/null; then
-  echo "TELEMETRY start=$(git -C "$PRIMARY" log --format=%cI "$MERGE_SHA^1..$MERGE_SHA^2" | tail -1)"
-  echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
-  echo "TELEMETRY commits=$(git -C "$PRIMARY" rev-list --count "$MERGE_SHA^1..$MERGE_SHA^2")"
-  echo "TELEMETRY churn=$(git -C "$PRIMARY" diff --shortstat "$MERGE_SHA^1" "$MERGE_SHA^2")"
+  echo "TELEMETRY start=$(TZ=UTC git -C "$PRIMARY" log --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd --end-of-options "$MERGE_SHA^1..$MERGE_SHA^2" | tail -1)"
+  echo "TELEMETRY end=$(TZ=UTC git -C "$PRIMARY" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd --end-of-options "$MERGE_SHA")"
+  echo "TELEMETRY commits=$(git -C "$PRIMARY" rev-list --count --end-of-options "$MERGE_SHA^1..$MERGE_SHA^2")"
+  echo "TELEMETRY churn=$(git -C "$PRIMARY" diff --shortstat --end-of-options "$MERGE_SHA^1...$MERGE_SHA^2")"
 elif [ -n "$MERGE_SHA" ]; then
-  echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
+  echo "TELEMETRY end=$(TZ=UTC git -C "$PRIMARY" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd --end-of-options "$MERGE_SHA")"
   echo "TELEMETRY squash=1"
 else
   echo "TELEMETRY end=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -1172,16 +1198,36 @@ anything is recorded. Annotate the following in prose:
 - **Why `gh pr view --json mergeCommit` rather than `rev-parse HEAD`.** `HEAD` is the merge commit
   only when reconciliation succeeded; on the `--detach` fallback it is not. Asking GitHub for the
   merge commit is correct on every path.
-- **Why the `fetch` is `|| true`, and why an unreadable SHA is demoted rather than tolerated.** The
-  merge commit must be present locally for `git log` / `rev-list` / `rev-parse` to read it. On the
-  healthy path the `pull --ff-only` above already brought it in; the fetch covers the
-  `RECONCILED=0` paths. But `gh` and `git` do not share credentials — `gh` speaks HTTPS with its own
+- **There is no `fetch origin "$DEFAULT_BRANCH"` here, deliberately.** It would look harmless and is
+  not: it advances `origin/$DEFAULT_BRANCH`, which is the very ref both the telemetry block and the
+  closeout hook re-derive `RECONCILED` against — so a third-party push landing between the
+  `pull --ff-only` above and that fetch would flip both to "not reconciled" and silently skip both.
+  It is also unnecessary. On the reconciled path the `pull --ff-only` already brought the merge
+  commit in, and on the unreconciled path the append is skipped anyway; the targeted
+  `fetch origin "$MERGE_SHA"` below covers the remainder.
+- **Why the targeted fetch is `|| true`, and why an unreadable SHA is demoted rather than tolerated.**
+  The merge commit must be present locally for `git log` / `rev-list` / `rev-parse` to read it. But
+  `gh` and `git` do not share credentials — `gh` speaks HTTPS with its own
   token while the remote may be SSH — so a SHA GitHub happily reports can be one this checkout
   cannot read. Left unguarded, `rev-parse "$MERGE_SHA^2"` would fail for the *wrong reason*, the
   squash arm would run `git log -1` against an object git does not have, `end` would come back
   **empty** (violating §T-envelope's "never null"), and the record would assert a squash that may
-  never have happened. The `cat-file -e` probe plus the targeted second fetch settles it: a commit
-  that still cannot be read blanks `MERGE_SHA`, routing the run to the no-SHA arm.
+  never have happened. The `cat-file -e` probe plus the targeted fetch settles it: a commit that
+  still cannot be read blanks `MERGE_SHA`, routing the run to the no-SHA arm.
+- **Why the hex allowlist and `--end-of-options`.** `MERGE_SHA` is a server-supplied value that
+  reaches `git` as both a ref and a range operand, and `git log` / `git diff` accept
+  `--output=<file>` — the primitive `--end-of-options` exists to stop. The `case` also absorbs the
+  literal `null` that `-q '.mergeCommit.oid'` yields on an unmerged PR. Defence in depth rather than
+  a live hole, and it matches the guard `dev:secure` already puts on its own base ref.
+- **Why `--date=format-local:` with `%cd` rather than `%cI`.** `%cI` emits the *committer's* offset
+  and `TZ` does not change it, so it would write `…-05:00` into a ledger whose every other stamp is
+  `…Z` — §T-envelope pins one format for the whole file. Measured: `%cI` → `2026-09-09T00:10:07-05:00`
+  against this form's `2026-09-09T05:10:07Z`, the same instant.
+- **Why churn uses the three-dot range.** `start` and `commits` are exclusive ranges; a two-dot
+  `diff` compares the two tips directly, so anything `$DEFAULT_BRANCH` gained after the branch point
+  is counted inverted into this lane's churn. Three-dot diffs from the merge base, matching the other
+  two. Measured identical on this repo's recent merges — the defect is latent, and surfaces exactly
+  when two runs overlap.
 - **Why `commits` and `churn` are absent on the squash branch.** No `^2` exists, so the range
   `^1..^2` is unresolvable. `end` is still read from the merge commit itself.
 - **Why there is a third arm and not two.** An empty `MERGE_SHA` is a *tooling failure*, not a
@@ -1267,9 +1313,14 @@ Then run §T-append **T1–T5** with `$ROOT = "$PRIMARY"` and commit message
 closeout hook below uses. The lane has no `push_integration` helper — it targets `$DEFAULT_BRANCH`
 directly — so the **shape** is reused, not the helper.
 
-**T2's dedup is keyed on `kind == "lane"` and `id == <BRANCH_MERGED>.`** The `pr_number` is also
-carried and could serve as the key; `id` is chosen because it is the field the cycle record
-deduplicates on too, so one dedup rule covers both kinds.
+**T2's dedup is keyed on `kind == "lane"` and `pr_number == <PR_NUMBER>` — not on `id`.** Branch
+names are not unique across lane runs: the merge fence deletes both branches, so Step 5's
+branch-collision check sees no trace of a previous run, and two free-text `/dev:fix` invocations that
+kebab to the same summary get the identical branch name with no suffix. Keying on `id` would match
+the older record, report "already recorded," and permanently block that branch name from ever being
+recorded again — a silent under-count, which is the failure §T-lane's three-branch rule exists to
+prevent. `pr_number` is unique per run and known on all three arms. §T-append T2's table is canonical
+for this.
 
 **State the re-entry reality plainly, because it is the opposite of `dev:done`'s and a reader will
 otherwise assume symmetry.** By the time this segment runs, the merge fence has deleted the feature
@@ -1278,6 +1329,13 @@ branch and moved the checkout to `$DEFAULT_BRANCH`, so a re-invoked `/dev:fix me
 
 - The no-double-append guarantee is **delivered by that guard**, not by T2. T2 remains as defence in
   depth, against a hand-run of this segment.
+- **A conflicted push leaves `$PRIMARY` mid-rebase, and that must be reported, not swallowed.** This
+  retry shape now runs on *every* `/dev:fix merge` rather than only on backlog-sourced ones, in the
+  user's primary checkout, against a file whose conflicts are end-of-file conflicts. If the rebase
+  conflicts, resolve it by **keeping both lines** (§T-append T5) and re-push; if it cannot be
+  resolved, `git rebase --abort` rather than leaving the checkout mid-rebase, and say so in the
+  Report. A mid-rebase `$PRIMARY` would otherwise surface only as the closeout hook below skipping
+  with "checkout not reconciled," which names the wrong cause.
 - **A failed append here is not recoverable by re-running the tail.** Say so in the Report rather
   than advising a re-run: the remedy is to append the line by hand, or to accept the gap. This is
   the deliberate counterpart to `dev:done` Step 6b, where §T-append T6's stop is a hard STOP

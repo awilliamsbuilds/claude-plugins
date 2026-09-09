@@ -396,7 +396,13 @@ makes this the last possible moment. Do not move it.
    On a **legacy in-place cycle** (`worktreePath` null) `$WORKDIR` *is* `$PRIMARY`. The ledger path
    is repo-relative either way, so this step needs no special case.
 
-5. **Any failure — append, verify, commit, or push — is a hard STOP for the stage:**
+5. **"Already recorded" is a success, not a failure.** On a re-entry T2 finds this cycle's record
+   already present, skips T3 and T4, and reaches T5's `--quiet` guard, which no-ops. Do **not** treat
+   that outcome as a failed append — T4 verifies the file's *last* line, which on a re-run is very
+   likely some later run's record, so running it here would fail a check it was never meant to
+   perform and STOP a cycle whose record is present and correct.
+
+6. **Any other failure — append, verify, commit, or push — is a hard STOP for the stage:**
 
    ```
    STOP: telemetry record for <feature> did not land — do not run Step 7 (it deletes state.json).
@@ -405,6 +411,11 @@ makes this the last possible moment. Do not move it.
    This is not a formality. Step 7 `rm -rf`s the cycle directory, destroying the only copy of the
    data this step failed to save. Resolve and re-run; T2's dedup makes the re-run append at most one
    record. (This is §T-append T6's "stops the caller" clause, in the form this stage takes it.)
+
+7. **`done_start` is re-captured on such a re-run**, so a resumed Done reports only the resumed
+   span. It cannot be write-once the way the three `pr` stamps are — it is deliberately never
+   persisted, so there is no prior value to preserve. Noted rather than fixed: the alternative is
+   writing it to a file this stage is about to delete.
 
 **Three consecutive steps now commit with three different pathspecs, and none may widen.** Step 6a
 commits `-- docs/backlog/`, Step 6b commits `-- docs/telemetry/`, Step 7 commits

@@ -259,7 +259,7 @@ git -C "$WORKDIR" diff --cached --quiet -- CLAUDE.md || \
 
 The guard is for the re-entry path (Step 4): a second entry regenerates the same table, stages
 nothing, and an unguarded `git commit` exits non-zero on an empty index. This is the likeliest of the
-four sub-steps to land on identical content, and the re-entry path is a documented **healthy** path —
+five sub-steps to land on identical content, and the re-entry path is a documented **healthy** path —
 so it must exit 0.
 
 For architecture cycles: skip this step.
@@ -411,11 +411,13 @@ commit.
 
 ### Push and display
 
-The final push carries anything Steps 5–5d committed that `dev:reflect`'s own push (Step 5d) did not
-already send. On the healthy path that is usually nothing — reflect pushes last — so
-`Everything up-to-date` here is the expected outcome, not a sign something was skipped. It is kept
-because Steps 5a–5c can commit on a run where Step 5d never reaches its push — a `dev:reflect` that
-stops early, or a stage resumed after reflect already ran — and those commits must still reach PR #N.
+The final push carries anything Steps 5–5e committed that `dev:reflect`'s own push (Step 5d) did not
+already send. **Step 5e commits after that push**, so on the healthy path this one always has at
+least Step 5e's commit to send — `Everything up-to-date` here is now a signal that **Step 5e did not
+commit**, not the expected outcome it used to be. (Before Step 5e existed, reflect pushed last and
+up-to-date was normal; that is no longer true.) It also still carries Steps 5a–5c on a run where Step
+5d never reaches its push — a `dev:reflect` that stops early, or a stage resumed after reflect
+already ran — and those commits must reach PR #N too.
 (Not an architecture cycle: `dev:reflect` has no architecture carve-out and still runs there, while
 Steps 5a and 5b are the ones that skip.):
 
@@ -435,7 +437,7 @@ Safe to /clear now — resume with: /dev:done <feature> [PR URL]
 [If worktreePath is set: Worktree: <worktreePath>]
 ```
 
-**These four sub-steps' commits are reviewed by the human on the PR, and by no automated reviewer.**
+**These five sub-steps' commits are reviewed by the human on the PR, and by no automated reviewer.**
 `dev:validate` (Stage 5) has already run by the time this stage starts, so its cold
 `/dev:review diff` + `/dev:secure diff` pair never sees them. That is a deliberate consequence of
 placing them here: the alternative — running them before Validate — has no PR number for the decision

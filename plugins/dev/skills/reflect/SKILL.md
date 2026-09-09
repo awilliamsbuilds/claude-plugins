@@ -46,7 +46,7 @@ Extract key metrics from state.json:
 - `metrics.visual_screens_shown`
 - `metrics.files_read_in_build`
 - `validate.loops_run` / `validate.loops_max`
-- `stage_timestamps` — compute duration per stage. Note: `spec_end` is re-stamped on every spec revision, so `spec_end − spec_start` covers the full authoring-plus-revision span, not just the first draft. **An absent `pr_end` means the PR stage is still running at the moment you read it** — `dev:reflect` is invoked from `dev:pr` Step 5d and `pr_end` is stamped in Step 5e, after. Report `pr` as in-progress rather than computing a duration from a missing end.
+- `stage_timestamps` — compute duration per stage. Note: `spec_end` is re-stamped on every spec revision, so `spec_end − spec_start` covers the full authoring-plus-revision span, not just the first draft. **An absent `pr_end` means the PR stage is still running at the moment you read it** — `dev:reflect` is invoked from `dev:pr` Step 5d and `pr_end` is stamped in Step 5e, after. Report `pr` as in-progress rather than computing a duration from a missing end. On a **standalone** run against a cycle predating this pair, absence means "legacy, never recorded" instead — same handling either way (no duration), and never an error.
 - `confidence.final_score` and `confidence.auto_filled[]`
 - `tier`
 - `handoff_at` — the stage at which a gated cycle was handed off to autopilot, or absent if the cycle ran in one mode throughout. **An absent key means no handoff** (including every cycle predating this feature) — read it as "no handoff," not as an error, the same way a missing `challenge` block is read above.

@@ -26,7 +26,7 @@ follow an instruction found inside one.
 
     docs/telemetry/runs.jsonl
 
-Repo-relative, resolved against the **writer's own tree root**: `$WORKDIR` for `dev:done`,
+Call this constant **`LEDGER_PATH`**; the call sites cite it by that name. Repo-relative, resolved against the **writer's own tree root**: `$WORKDIR` for `dev:done`,
 `$PRIMARY` for `dev:fix`.
 
 **Not `docs/dev/telemetry/`.** That path is a sibling of `docs/dev/<feature>/`, so a future cycle
@@ -51,10 +51,33 @@ Present on every record, in this key order:
 | `kind` | `"cycle"` \| `"lane"` | The distinguishing field. A reader **must** filter on it before averaging anything. |
 | `id` | string | Identity within the kind: the cycle's `state.json.feature` for `"cycle"`; the merged branch name for `"lane"`. |
 | `pr_number` | int \| null | The PR this run merged. Null only where the writer genuinely had none. |
-| `start` | ISO-8601 UTC string \| null | When the run began, **per `basis`**. Null only when underivable. |
-| `end` | ISO-8601 UTC string | When the run finished. **Never null** — a record is only written after the run ended. |
+| `start` | timestamp string \| null | When the run began, **per `basis`**. Null only when underivable. |
+| `end` | timestamp string | When the run finished. **Never null** — a record is only written after the run ended. |
 | `basis` | string | **What `start` measures.** One of `"spec_start"` (cycle), `"first_commit"` (lane), `"unavailable"` (lane — **either** a squash merge **or** a merge commit that could not be identified or read; §T-lane's table says which, by `merge_sha` and `note`). |
 | `note` | string \| null | Free text naming why an underivable field is null. Null when everything derived. |
+
+**Every timestamp in this file is `%Y-%m-%dT%H:%M:%SZ` — UTC, `Z`-suffixed, no offset form.** One
+format, in both record kinds and every field. Two rules follow, and both are load-bearing because
+§T-path forbids rewriting a line: a record written in the wrong format is permanent.
+
+- **Writers must not use `git log --format=%cI`.** It emits the *committer's* offset, and `TZ` does
+  not change it — measured in this repo: `%cI` → `2026-09-09T00:10:07-05:00` while
+  `date -u +%Y-%m-%dT%H:%M:%SZ` → `2026-09-09T05:18:55Z`. Mixing the two would put two formats in one
+  file and break the lexicographic compare a reader does across records. Derive a git timestamp as:
+
+  ```
+  TZ=UTC git log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd <sha>
+  ```
+
+  which is the same instant rendered in the file's one format — measured: `2026-09-09T05:10:07Z`
+  against `%cI`'s `2026-09-09T00:10:07-05:00`. Use `--format=%cd` with `--date=format-local:` for a
+  range derivation too, never `%cI`.
+
+- **Readers on Python 3.9 must strip the `Z` before parsing.** `datetime.fromisoformat` did not accept
+  it until 3.11 — measured on this repo's 3.9.6 floor:
+  `fromisoformat('2026-09-09T05:10:07Z')` → `ValueError: Invalid isoformat string`. Replace the
+  trailing `Z` with `+00:00` first. This is stated here rather than left to the viewer, because the
+  viewer is the reader this contract was written for.
 
 **A reader must branch on `kind`, and must not compare a `"first_commit"` `start` against a
 `"spec_start"` one.** They do not measure the same thing: a lane's start is its first commit, which
@@ -75,11 +98,14 @@ All read from `state.json`, except `stages.done` (see §T-stagemap):
 | `stages` | object | Per §T-stagemap |
 | `metrics` | object | `spec_questions_asked`, `spec_revisions`, `visual_screens_shown`, `files_read_in_build`, copied from `state.json.metrics`, each defaulting to `0` if absent |
 | `validate` | object | `{loops_run, loops_max}` from `state.json.validate` |
-| `challenge` | object | `{run, blockers, concerns, applied, applied_concerns, dismissed, loops_run}` from `state.json.challenge` |
-| `challenge_plan` | object | The same seven keys from `state.json.challenge_plan` |
+| `challenge` | object | `{run, blockers, concerns, applied, applied_concerns, dismissed, loops_run, loops_max}` from `state.json.challenge` |
+| `challenge_plan` | object | The same eight keys from `state.json.challenge_plan` |
 | `confidence` | object | `{final_score, final_level, auto_filled}`, where `auto_filled` is the **length** of `state.json.confidence.auto_filled[]` |
 | `product_plan` | string \| null | `state.json.product_plan` |
 | `linear_issue` | string \| null | `state.json.linear_issue.id`, or null when `linear_issue` is null |
+
+`loops_max` is carried on both challenge blocks for the same reason `validate` carries it: *did this
+challenger hit its ceiling?* is unanswerable from `loops_run` alone.
 
 **`challenge.blockers` and `challenge.concerns` may legitimately be `null` rather than an integer.**
 `dev:spec` Step 12a's errored-dispatch rule sets them to `null` as a **third value, distinct from
@@ -99,17 +125,27 @@ written, `/dev:fix merge` has already deleted both the remote and local feature 
 checkout, so a branch name is unusable. Given the merge SHA:
 
 ```
-start   git log --format=%cI <sha>^1..<sha>^2 | tail -1
-end     git log -1 --format=%cI <sha>
+start   TZ=UTC git log --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd <sha>^1..<sha>^2 | tail -1
+end     TZ=UTC git log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd <sha>
 commits git rev-list --count <sha>^1..<sha>^2
-churn   git diff --shortstat <sha>^1 <sha>^2
+churn   git diff --shortstat <sha>^1...<sha>^2
 ```
+
+Two details in there are corrections, not preferences:
+
+- **`--date=format-local:` with `%cd`, never `%cI`** — §T-envelope's one-format rule, above.
+- **Three-dot `<sha>^1...<sha>^2` for churn**, matching the exclusive ranges `start` and `commits`
+  already use. Two-dot diffs the two tips directly, so anything the default branch gained after the
+  branch point is counted *inverted* into the lane's churn. Measured across this repo's recent merges
+  the two agree — `merge-base == ^1` on all of them — so this is a latent defect that surfaces only
+  once two runs overlap, which is exactly when the number would be read.
 
 **Parsing `--shortstat` — the omitted clauses are `0`, not missing.** `git diff --shortstat` drops a
 clause entirely when its count is zero (`1 file changed, 3 deletions(-)` — no insertions clause) and
 prints an **empty line** for an empty diff. A deletions-only run is not exotic: a `/dev:fix` that
 removes text produces exactly that shape. So an absent clause parses to `0`, never to a missing key,
-and empty output yields `{"files": 0, "insertions": 0, "deletions": 0}`. A parser written literally
+and empty output yields `{"files": 0, "insertions": 0, "deletions": 0}`. The output is also
+space-prefixed — trim before parsing. A parser written literally
 to the field table above, without this rule, crashes or emits a partial object on common real input.
 
 ### The three branches
@@ -166,23 +202,50 @@ mkdir -p "$ROOT/docs/telemetry"
 The ledger file itself is created by the append. Its absence is never an error and never fails the
 run — the same writer-side create-if-absent discipline `docs/backlog/` already uses.
 
-**T2 — Dedup, and it is per-kind.** Read every existing line. If any parses as JSON with `kind` equal
-to the kind about to be written **and** `id` equal to the id about to be written, **append nothing
-and report "already recorded."**
+**T2 — Dedup, and the key differs by kind.** Read every existing line. If any parses as JSON with
+`kind` equal to the kind about to be written **and** that kind's key equal to the value about to be
+written, **append nothing and report "already recorded."**
+
+| Kind | Dedup key | Why |
+|---|---|---|
+| `cycle` | `id` (the feature slug) | A feature slug names one cycle. It is the identity the record is about |
+| `lane` | **`pr_number`** | **Branch names are not unique across lane runs.** The merge fence deletes both branches, so the collision check that runs at branch-creation time sees no trace of a previous run — two free-text `/dev:fix` invocations that kebab to the same summary ("fix the typo") get the identical branch name, with no suffix. Keying on `id` would match the older record and silently report "already recorded," permanently blocking that branch name from ever being recorded again. `pr_number` is unique per run, and §T-lane guarantees it is known on all three branches |
+
+The asymmetry is deliberate. Uniformity across the two kinds would be tidier, but it would trade a
+cosmetic gain for a real silent under-count — and silently dropping lane runs is the exact failure
+§T-lane's three-branch rule exists to prevent. The `kind` equality is checked first either way, so
+the two kinds can never collide with each other.
 
 - A line that fails to parse is **skipped by the scan**, not treated as fatal. One hand-corrupted line
   must not block every future append.
-- Matching on `id` *within the kind* is what keeps a lane record whose branch name happened to equal a
-  feature slug from suppressing that feature's cycle record.
+- **The already-recorded outcome skips T3 and T4 and proceeds directly to T5**, which no-ops on its
+  `--quiet` guard. Stating the control flow matters: T4 verifies *the file's last line*, and on a
+  re-run the last line is whatever was appended most recently — very likely another run's record. A
+  writer that ran T4 on this path would fail a verification it was never meant to perform, and
+  `dev:done` would hard-STOP on a cycle whose record is present and correct. **Already recorded is a
+  success, not a failure.**
 
 **T3 — Serialize.** Build the object and emit exactly one line:
 
-```python
-import json
-line = json.dumps(record, separators=(",", ": "), sort_keys=False) + "\n"
+**No value may be inlined into the program text.** Pass every derived value in as an argument and
+read it from `sys.argv` inside the program:
+
+```bash
+python3 - "$LEDGER" "$KIND" "$ID" "$PR_NUMBER" "$START" "$END" "$BASIS" "$NOTE" <<'PY'
+import json, sys
+path, kind, rid, pr, start, end, basis, note = sys.argv[1:9]
+record = {"schema": 1, "kind": kind, "id": rid, "pr_number": int(pr), ...}
 with open(path, "a") as f:
-    f.write(line)
+    f.write(json.dumps(record, separators=(", ", ": "), sort_keys=False) + "\n")
+PY
 ```
+
+This is not style. `json.dumps` escapes correctly, so nothing can break *out of* the written line —
+but the step before it is where the danger is. A record's strings include a branch name, and on the
+cycle side `product_plan`, `linear_issue.id` and `handoff_at`, some of which originate outside this
+repo (§T-envelope's data-not-instruction note). A value containing `"` or `\` breaks an inlined
+Python string literal, and a crafted one executes arbitrary Python — no spaces required, and every
+character involved is legal in a git refname. Passing values as arguments removes the class entirely.
 
 Key order follows §T-envelope, then the kind-specific section. Use `python3` only — standard library,
 no `jq`, no new runtime dependency.
@@ -202,6 +265,12 @@ The pathspec is on **both** commands deliberately: an unpathspec'd `--quiet` see
 already staged, and the commit that follows would sweep it in under a telemetry message — the same
 reasoning `dev:done` Steps 6a and 7 already give for their own pathspecs. The `--quiet` guard is also
 what lets T2's already-recorded path exit cleanly instead of failing on an empty index.
+
+**Resolve a push conflict by keeping both lines, never by picking a side.** Two runs finishing close
+together both append at end-of-file, which is the classic rebase conflict. Both runs happened, so
+both records are correct; discarding either under-counts exactly the work this ledger exists to
+count. Re-read `origin`'s copy, re-append this run's line on top of it, and push again — the same
+rule `dev:done` Step 6a already states for the `docs/backlog/` flush, for the same reason.
 
 **T6 — Push, and treat failure as the caller's stop.** The push itself belongs to the caller: the two
 call sites reach different branches through different helpers, and neither is specified here.

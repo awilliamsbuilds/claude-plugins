@@ -90,7 +90,7 @@ Stated by cause rather than by route: **`handoff_at` names whatever stage `compl
 
 The value domain is deliberately open — any stage name, not an enum. No offer is printed at the Validate or PR gates, but a user who types `/dev:autopilot` there has still handed off, and the marker records that stage accurately.
 
-**Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:pr` Step 5c): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
+**Read contract for downstream consumers** (`dev:reflect` Step 4, `dev:pr` Step 5c, `dev:done` Step 6b via `references/telemetry.md` §T-cycle): an absent `handoff_at` means "no handoff," including on every cycle that predates this feature. Never an error.
 
 This is the key's only write site. There is no standard-mode writer — the Spec and Shape gates print text and write nothing — so no standard-side default is needed.
 
