@@ -136,13 +136,20 @@ Implementation steps:
    |---|---|---|
    | **Derived** | a merge SHA is known and `<sha>^2` resolves | every field derived; `basis: "first_commit"`, `note: null` |
    | **Squash** | a merge SHA is known but `<sha>^2` does not resolve | `merge_sha` set; `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, `note: "squash merge — no second parent; start, commits and churn underivable"`. `end` is read from the merge commit itself |
-   | **No SHA** | the merge commit could not be identified (a transient `gh pr view --json mergeCommit` failure or auth loss — reachable even with `RECONCILED=1`) | `merge_sha: null`; `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, `note: "merge commit not identified (gh pr view returned no mergeCommit); start, commits and churn underivable"`. `end` is the wall-clock time of the append |
+   | **No SHA** | the merge commit could not be identified **or could not be read in the writer's tree** — a transient `gh pr view --json mergeCommit` failure, auth loss, or a commit `gh` reports that `git` cannot fetch (the two do not share credentials). Reachable even with `RECONCILED=1` | `merge_sha: null`; `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, `note: "merge commit not available locally (no mergeCommit from gh, or the commit could not be fetched); start, commits and churn underivable"`. `end` is the wall-clock time of the append |
 
    **Never collapse the third branch into the second.** They differ in what actually happened: one
    is a genuine squash, the other is a tooling failure on a merge that may well have had two
    parents. Writing the squash `note` on a no-SHA run asserts a merge shape nobody observed — the
-   same class of misreading the `basis` field exists to prevent. `end` and `pr_number` are known on
-   all three branches.
+   same class of misreading the `basis` field exists to prevent. **The squash arm may only be
+   entered with the commit readable in the writer's tree**; an unreadable SHA belongs to the third
+   branch, not the second. `end` and `pr_number` are known on all three branches.
+
+   **The three branches are the shapes a *written* record can take; they are not a claim that every
+   merged lane run produces one.** The caller carries its own guard above this contract: `dev:fix`
+   skips the append entirely when its checkout is not reconciled, because a commit there would be
+   unpushable (Task 4 step 3). That skip is the caller's, not §T-lane's, and it is reported rather
+   than recorded.
 
 6. Define **§T-stagemap** — how `stages` is built:
    - The stage list is `spec`, `shape`, `plan`, `build`, `validate`, `pr`, `done`, in that order.
@@ -416,6 +423,11 @@ Implementation steps:
    # Telemetry derivation — merge-commit-relative, per references/telemetry.md §T-lane.
    MERGE_SHA=$(gh pr view "$PR_NUMBER" --repo "$SLUG" --json mergeCommit -q '.mergeCommit.oid')
    git -C "$PRIMARY" fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+   # A SHA GitHub knows but this checkout cannot read is a fetch failure, not a squash.
+   if [ -n "$MERGE_SHA" ] && ! git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}" 2>/dev/null; then
+     git -C "$PRIMARY" fetch --quiet origin "$MERGE_SHA" 2>/dev/null || true
+     git -C "$PRIMARY" cat-file -e "${MERGE_SHA}^{commit}" 2>/dev/null || MERGE_SHA=""
+   fi
    echo "TELEMETRY branch=$BRANCH pr=$PR_NUMBER sha=${MERGE_SHA:-none}"
    if [ -n "$MERGE_SHA" ] && git -C "$PRIMARY" rev-parse --verify --quiet "$MERGE_SHA^2" >/dev/null; then
      echo "TELEMETRY start=$(git -C "$PRIMARY" log --format=%cI "$MERGE_SHA^1..$MERGE_SHA^2" | tail -1)"
@@ -436,10 +448,17 @@ Implementation steps:
      fence deletes both branches and moves the checkout, and a re-run of the resolution block would
      bind `BRANCH` to `$DEFAULT_BRANCH` and exit on its own guard (`fix/SKILL.md:1218` already
      states this for `ITEM`/`BRANCH_MERGED`; the same reasoning applies here).
-   - **Why the `fetch` is `|| true`.** The merge commit must be present locally for `git log`/
-     `rev-list` to read it. On the healthy path `pull --ff-only` above already brought it in; the
-     fetch covers the `RECONCILED=0` paths. Its failure is not fatal — the block below simply finds
-     no `^2` and takes the squash branch, which is a correct record rather than an error.
+   - **Why the `fetch` is `|| true`, and why an unreadable SHA is demoted rather than tolerated.**
+     The merge commit must be present locally for `git log` / `rev-list` / `rev-parse` to read it.
+     On the healthy path `pull --ff-only` above already brought it in; the fetch covers the
+     `RECONCILED=0` paths. But `gh` and `git` do not share credentials — `gh` speaks HTTPS with its
+     own token while the remote may be SSH — so a SHA GitHub happily reports can be one this
+     checkout cannot read. Left unguarded, `rev-parse "$MERGE_SHA^2"` fails for the *wrong reason*,
+     the squash arm runs `git log -1` against an object git does not have, `end` comes back **empty**
+     (violating §T-envelope's "never null"), and the record asserts a squash that may never have
+     happened. The `cat-file -e` probe plus the targeted second fetch is what settles it: a commit
+     that still cannot be read blanks `MERGE_SHA`, which routes the run to the no-SHA arm — the arm
+     that already handles "we could not identify the merge" and takes a wall-clock `end`.
    - **Why `gh pr view --json mergeCommit` rather than `rev-parse HEAD`.** `HEAD` is only the merge
      commit when reconciliation succeeded; on the `--detach` fallback it is not. Asking GitHub for
      the merge commit is correct on every path.
@@ -473,7 +492,7 @@ Implementation steps:
        `note: "squash merge — no second parent; start, commits and churn underivable"`; or
      - **no-SHA branch** (`nosha=1`) — `merge_sha: null`; `start: null`, `basis: "unavailable"`,
        `commits: null`, `churn: null`,
-       `note: "merge commit not identified (gh pr view returned no mergeCommit); start, commits and churn underivable"`.
+       `note: "merge commit not available locally (no mergeCommit from gh, or the commit could not be fetched); start, commits and churn underivable"`.
        `end` is the wall-clock stamp the derivation block emitted. Never write the squash `note` on
        this branch — the two are distinguished by which marker the derivation printed.
    - Guard on reconciliation before committing, re-deriving it from observable state exactly as the
@@ -495,16 +514,30 @@ Implementation steps:
      a skip, never a stop.
    - When `RECONCILED=1`, run §T-append T1–T5 with `$ROOT = "$PRIMARY"` and commit message
      `chore: record telemetry for <BRANCH_MERGED>`, then push with the fetch/rebase/re-push shape.
-   - T2's dedup is keyed on `kind == "lane"` **and** `id == <BRANCH_MERGED>`, which is what makes a
-     re-run of `/dev:fix merge` append nothing (Success Criterion 6). Note that the `pr_number` is
+   - T2's dedup is keyed on `kind == "lane"` **and** `id == <BRANCH_MERGED>`. The `pr_number` is
      also carried and could serve as the key — `id` is chosen because it is the same field the
      cycle record deduplicates on, so one dedup rule covers both kinds.
+   - **State the re-entry reality plainly, because it is the opposite of `dev:done`'s and a reader
+     will otherwise assume symmetry.** By the time this segment runs, the merge fence has deleted
+     the feature branch and moved the checkout to `$DEFAULT_BRANCH`, so a re-invoked
+     `/dev:fix merge` STOPs in `### Resolve the branch and PR` (`fix/SKILL.md:966–985`) long before
+     reaching here. Two consequences, both deliberate:
+     - Success Criterion 6's lane half is **delivered by that guard**, not by T2. T2 remains, as
+       defence in depth against a hand-run of this segment.
+     - **A failed append here is not recoverable by re-running the tail.** Say so in the Report
+       rather than advising a re-run: the remedy is to append the line by hand or to accept the
+       gap. This is the deliberate counterpart to Task 3's D3, where recovery matters *because*
+       an irreversible teardown follows; here nothing is destroyed, so a missing lane record costs
+       one under-counted run and nothing else.
 
 4. In **`### Report`**, add the telemetry outcome as an additional line, sitting **beside** the
    existing backlog-closeout fifth line rather than replacing it — one of: the lane record appended
-   and pushed; the record appended but unpushed after a failed retry (name the file); the record
-   skipped because the checkout was not reconciled; or already recorded, on a re-run. Keep the
-   section's existing rule: read each state from the command that produced it, do not assert it.
+   and pushed; the record appended but unpushed after a failed retry (name the file, and say the
+   remedy is a push); the record skipped because the checkout was not reconciled; or the append
+   failed. On that last one, **do not advise re-running `/dev:fix merge`** — the resolve guard will
+   STOP before reaching this segment. Say the record is missing and that the remedy is a manual
+   append. Keep the section's existing rule: read each state from the command that produced it, do
+   not assert it.
 
 5. Do **not** change the merge fence's control flow, `delete_feature_branch`, the mergeability
    check, or the closeout hook. The derivation block in step 1 is an addition at the end of the
@@ -611,7 +644,7 @@ Implementation steps:
 |-----------|-----------|----------|
 | Ledger append fails (disk, bad `state.json`) | Task 1 (T4, T6) + Task 3 step 3 | T4 verifies the line landed; T6 makes failure the caller's stop; `dev:done` STOPs before Step 7's `rm -rf`, so nothing is torn down |
 | `dev:done` re-entry double-appends | Task 1 (T2) + Task 3 | Dedup on `kind == "cycle"` and `id == <feature>`; the T5 `--quiet` guard makes the no-op path exit cleanly |
-| `/dev:fix merge` re-entry double-appends | Task 1 (T2) + Task 4 step 3 | Dedup on `kind == "lane"` and `id == <branch merged>`; the tail is documented idempotent, so a re-run finds its own line and appends nothing |
+| `/dev:fix merge` re-entry double-appends | Task 4 step 3 (primary) + Task 1 (T2, defence in depth) | **The re-run never reaches the segment**: the merge fence has already deleted the branch and moved the checkout, so `### Resolve the branch and PR` binds `BRANCH` to `$DEFAULT_BRANCH` and STOPs (`fix/SKILL.md:966–985`) before any telemetry code runs. T2's `kind`+`id` dedup is a second line of defence, not the mechanism. Named honestly because the consequence is real — see the note in Task 4 step 3 |
 | Squash merge — no second parent | Task 1 (§T-lane) + Task 4 steps 1, 3 | Record written with `start`/`commits`/`churn` null, `basis: "unavailable"`, and a `note` naming why; never skipped |
 | Merge commit not identified (`gh pr view` returns no `mergeCommit`) | Task 1 (§T-lane, third branch) + Task 4 steps 1, 3 | Own record arm: `merge_sha: null`, `end` from wall clock, its own `note`. Never written as a squash — that would assert a merge shape nobody observed |
 | `--shortstat` omits a zero clause, or the diff is empty | Task 1 (§T-lane parse rule) | An absent clause parses to `0`, never a missing key; empty output yields all-zero churn. A deletions-only lane run is the common case, not an exotic one |
