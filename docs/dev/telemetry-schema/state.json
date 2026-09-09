@@ -3,12 +3,13 @@
   "feature": "telemetry-schema",
   "branch": "feature/telemetry-schema",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -18,9 +19,9 @@
     "spec": "docs/dev/telemetry-schema/spec.md",
     "design": null,
     "plan": "docs/dev/telemetry-schema/plan.md",
-    "validation": null,
-    "pr_url": null,
-    "pr_number": null
+    "validation": "docs/dev/telemetry-schema/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/96",
+    "pr_number": 96
   },
   "validate": {
     "loops_run": 2,
@@ -96,7 +97,9 @@
       "build_start": "2026-09-09T05:06:34Z",
       "build_end": "2026-09-09T05:10:07Z",
       "validate_start": "2026-09-09T05:10:14Z",
-      "validate_end": "2026-09-09T05:37:13Z"
+      "validate_end": "2026-09-09T05:37:13Z",
+      "pr_start": "2026-09-09T05:37:39Z",
+      "pr_created": "2026-09-09T05:38:32Z"
     }
   },
   "handoff_at": "plan"
