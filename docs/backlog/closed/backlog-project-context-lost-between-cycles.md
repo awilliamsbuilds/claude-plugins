@@ -1,7 +1,9 @@
 ---
 type: backlog
 scope: repo
-status: open
+status: closed
+closed: 2026-09-09
+closed_by: dev-process-hardening-closeout
 first_recorded: 2026-08-15
 cycles: [retire-legacy-commands]
 recurrence: 1
