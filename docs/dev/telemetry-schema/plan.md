@@ -7,6 +7,7 @@
 |------|--------|---------|
 | `plugins/dev/references/telemetry.md` | Create | Canonical ledger contract — path, envelope, both record shapes, the append procedure (T1–T6) |
 | `plugins/dev/skills/pr/SKILL.md` | Modify | Capture `pr_start`; write `pr_start`/`pr_end` into `state.json` (new Step 5e stamps `pr_end`) |
+| `plugins/dev/skills/reflect/SKILL.md` | Modify | One clause on Step 1's `stage_timestamps` bullet: an absent `pr_end` means the PR stage is still running |
 | `plugins/dev/skills/done/SKILL.md` | Modify | Capture `done_start`; new Step 6b appends the cycle record before Step 7's `rm -rf` |
 | `plugins/dev/skills/fix/SKILL.md` | Modify | Derive lane values inside the merge fence; new `### Telemetry record` segment appends the lane record; Report line |
 | `plugins/dev/skills/autopilot/SKILL.md` | Modify | Add the ledger-append failure to `## Purpose`'s "When autopilot stops" list |
@@ -107,7 +108,7 @@ Implementation steps:
    |---|---|---|
    | `commits` | int \| null | `git rev-list --count <sha>^1..<sha>^2` |
    | `churn` | object \| null | `{files, insertions, deletions}` parsed from `git diff --shortstat <sha>^1 <sha>^2` |
-   | `merge_sha` | string | The merge commit's full SHA — the basis every other lane value was derived from |
+   | `merge_sha` | string \| null | The merge commit's full SHA — the basis every other lane value was derived from. Null **only** when the merge commit could not be identified at all (see the third branch below) |
 
    State the derivation set as the four commands the spec grounded against merged PR #94, all
    merge-commit-relative and none branch-relative (the branch is deleted before a record can be
@@ -120,11 +121,28 @@ Implementation steps:
    churn   git diff --shortstat <sha>^1 <sha>^2
    ```
 
-   **The no-second-parent branch is mandatory, not optional.** When `<sha>^2` does not resolve (a
-   squash merge, which the `ALREADY_MERGED=1` path can legitimately reach), the record is still
-   written, with `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, and
-   `note: "squash merge — no second parent; start, commits and churn underivable"`. `end` and
-   `pr_number` are still known. Skipping the record instead would silently under-count lane work.
+   **Parsing `--shortstat` — the omitted clauses are `0`, not missing.** `git diff --shortstat`
+   drops a clause entirely when its count is zero (`1 file changed, 3 deletions(-)` — no
+   insertions clause) and prints an **empty line** for an empty diff. A deletions-only lane run is
+   not rare: a `/dev:fix` that removes text produces exactly that shape. So: an absent clause
+   parses to `0`, never to a missing key; empty output yields
+   `{"files": 0, "insertions": 0, "deletions": 0}`. A parser written literally to the field table
+   above, without this rule, crashes or emits a partial object on the commonest real input.
+
+   **There are three branches, not two, and the difference between the last two is load-bearing.**
+   A record is written on all three — skipping one would silently under-count lane work.
+
+   | Branch | Condition | Record |
+   |---|---|---|
+   | **Derived** | a merge SHA is known and `<sha>^2` resolves | every field derived; `basis: "first_commit"`, `note: null` |
+   | **Squash** | a merge SHA is known but `<sha>^2` does not resolve | `merge_sha` set; `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, `note: "squash merge — no second parent; start, commits and churn underivable"`. `end` is read from the merge commit itself |
+   | **No SHA** | the merge commit could not be identified (a transient `gh pr view --json mergeCommit` failure or auth loss — reachable even with `RECONCILED=1`) | `merge_sha: null`; `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`, `note: "merge commit not identified (gh pr view returned no mergeCommit); start, commits and churn underivable"`. `end` is the wall-clock time of the append |
+
+   **Never collapse the third branch into the second.** They differ in what actually happened: one
+   is a genuine squash, the other is a tooling failure on a merge that may well have had two
+   parents. Writing the squash `note` on a no-SHA run asserts a merge shape nobody observed — the
+   same class of misreading the `basis` field exists to prevent. `end` and `pr_number` are known on
+   all three branches.
 
 6. Define **§T-stagemap** — how `stages` is built:
    - The stage list is `spec`, `shape`, `plan`, `build`, `validate`, `pr`, `done`, in that order.
@@ -192,7 +210,7 @@ Used by: Task 3's record builder reads both keys through §T-stagemap; nothing e
 
 Depends on: Task 1 (§T-stagemap is what defines these two keys as required inputs).
 
-Files: modify `plugins/dev/skills/pr/SKILL.md`.
+Files: modify `plugins/dev/skills/pr/SKILL.md`, `plugins/dev/skills/reflect/SKILL.md`.
 
 Interfaces:
 - Consumes: Task 1's §T-stagemap (as the contract these keys satisfy).
@@ -200,8 +218,12 @@ Interfaces:
   `state.json.metrics.stage_timestamps.pr_end`, both ISO-8601 UTC strings from
   `date -u +%Y-%m-%dT%H:%M:%SZ`.
 - State keys: `metrics.stage_timestamps.pr_start` `(writes: both)`,
-  `metrics.stage_timestamps.pr_end` `(writes: both)`. Both modes run `dev:pr` identically — it has
-  no gate and no mode split — so both keys are written on every path.
+  `metrics.stage_timestamps.pr_end` `(writes: both)`. `dev:pr` **does** mode-split — Step 5b's
+  docs-prose reconciliation branches at `pr/SKILL.md:276`/`:290`, and `### Push and display`
+  branches again at `:398`/`:419` — but neither key sits inside a split arm: `pr_start` is written
+  in Step 5's unconditional state write, and `pr_end` in Step 5e, which precedes
+  `### Push and display`. Both keys are therefore written on every path — `(writes: both)`. Do not
+  place Step 5e inside either mode arm.
 - Shared procedure: none.
 
 Implementation steps:
@@ -243,7 +265,16 @@ Implementation steps:
    add one clause naming why 5e is last in the block: it dates the end of the stage, so anything
    that ran before it is inside the span and anything after it is only the push.
 
-5. Do **not** touch `pr_created`. It keeps its existing meaning and its existing reader
+5. **Extend `dev:reflect` Step 1's `stage_timestamps` bullet** (`reflect/SKILL.md:49`) with one
+   clause, because this task creates a stamp that is legitimately unpaired at read time:
+   `dev:reflect` runs at `dev:pr` Step 5d, so `pr_start` is on disk by then and `pr_end` — stamped
+   in Step 5e, after — is not. Add: *an absent `pr_end` means the PR stage is still running at the
+   moment Reflect reads it (Step 5e stamps it afterwards); report `pr` as in-progress rather than
+   computing a duration from a missing end.* Without this, every retrospective from this cycle
+   onward reads an unpaired `pr` stamp and has no rule for it. This is a one-clause edit to an
+   existing bullet — do not restructure Step 1.
+
+6. Do **not** touch `pr_created`. It keeps its existing meaning and its existing reader
    (`dev:reflect` Step 1, `reflect/SKILL.md:49`); §T-stagemap carries it through as
    `stages.pr.created` alongside the new pair.
 
@@ -325,10 +356,19 @@ Implementation steps:
    push conflict from *either* step leaves `$WORKDIR` mid-rebase, and the guard's `exit 1` covers
    both. The guard's code is unchanged — only the sentence explaining what it protects.
 
-6. In **Step 8**'s display block, add one line after the `Tech debt:` line (or in its place when
-   that line is omitted): `Telemetry: cycle record appended to docs/telemetry/runs.jsonl`. On T2's
-   already-recorded path, print `Telemetry: already recorded (re-entry)` instead. Keep it a single
-   two-space-indented line, matching the block's existing shape.
+6. In **Step 8**'s display block, add one line: `Telemetry: cycle record appended to
+   docs/telemetry/runs.jsonl` — or, on T2's already-recorded path,
+   `Telemetry: already recorded (re-entry)`. A single two-space-indented line, matching the block's
+   existing shape.
+
+   **Pin the order explicitly, because that slot is already claimed.** `done/SKILL.md:513–516`
+   places the primary-checkout reconciliation line "right after the tech-debt line (or in its place
+   when both debt counts are zero)" — the exact position this line would otherwise take, and the
+   `RECONCILE_MSG` `case` block is what actually prints it. So the block's order becomes: tech-debt
+   line (when non-zero) → **telemetry line** → reconciliation line. Reword the reconciliation
+   paragraph's "or in its place when both debt counts are zero" to say **after the telemetry line**,
+   which is unconditional and therefore always present. Leave the `case` block's code unchanged —
+   only its placement sentence moves.
 
 7. Do **not** change Step 3, Step 6a, or Step 7's commit blocks. The record is a fourth commit, not
    a widening of an existing one — spec Technical Constraints states Step 7's pathspec scoping is
@@ -382,9 +422,12 @@ Implementation steps:
      echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
      echo "TELEMETRY commits=$(git -C "$PRIMARY" rev-list --count "$MERGE_SHA^1..$MERGE_SHA^2")"
      echo "TELEMETRY churn=$(git -C "$PRIMARY" diff --shortstat "$MERGE_SHA^1" "$MERGE_SHA^2")"
-   else
-     echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "${MERGE_SHA:-HEAD}")"
+   elif [ -n "$MERGE_SHA" ]; then
+     echo "TELEMETRY end=$(git -C "$PRIMARY" log -1 --format=%cI "$MERGE_SHA")"
      echo "TELEMETRY squash=1"
+   else
+     echo "TELEMETRY end=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+     echo "TELEMETRY nosha=1"
    fi
    ```
 
@@ -402,6 +445,12 @@ Implementation steps:
      the merge commit is correct on every path.
    - **Why `commits` and `churn` are absent on the squash branch.** No `^2` exists, so the range
      `^1..^2` is unresolvable. `end` is still read from the merge commit itself.
+   - **Why there is a third `else` and not two branches.** `MERGE_SHA` can come back empty — a
+     transient `gh pr view --json mergeCommit` failure or auth loss, reachable even when
+     `RECONCILED=1`. That is a *tooling failure*, not a squash, and folding it into the squash arm
+     would emit `merge_sha: ""` (a type violation of §T-lane) plus a `note` asserting a merge shape
+     nobody observed. The `nosha=1` arm takes wall-clock time as `end`, since no commit is
+     available to read one from, and Task 4 step 3 gives it its own record arm.
 
 2. Add a new segment **`### Telemetry record`**, placed **after `### Merge, then clean up` and
    before `### Closeout hook`**. State the ordering reason in one line: the closeout hook is
@@ -419,8 +468,14 @@ Implementation steps:
      `id: <BRANCH_MERGED>`, `pr_number: <PR_NUMBER>`, `merge_sha: <MERGE_SHA>`, and either:
      - **derived branch** — `start: <derived start>`, `basis: "first_commit"`, `commits`, `churn`,
        `note: null`; or
-     - **squash branch** — `start: null`, `basis: "unavailable"`, `commits: null`, `churn: null`,
-       `note: "squash merge — no second parent; start, commits and churn underivable"`.
+     - **squash branch** (`squash=1`) — `merge_sha` set; `start: null`, `basis: "unavailable"`,
+       `commits: null`, `churn: null`,
+       `note: "squash merge — no second parent; start, commits and churn underivable"`; or
+     - **no-SHA branch** (`nosha=1`) — `merge_sha: null`; `start: null`, `basis: "unavailable"`,
+       `commits: null`, `churn: null`,
+       `note: "merge commit not identified (gh pr view returned no mergeCommit); start, commits and churn underivable"`.
+       `end` is the wall-clock stamp the derivation block emitted. Never write the squash `note` on
+       this branch — the two are distinguished by which marker the derivation printed.
    - Guard on reconciliation before committing, re-deriving it from observable state exactly as the
      closeout hook does (`fix/SKILL.md:1225`) rather than inheriting the fence's `RECONCILED`:
      ```bash
@@ -491,7 +546,8 @@ Implementation steps:
      add the flush STOP — that is a separate finding, not this cycle's scope.
    - Task 4's telemetry skip is a **skip, not a stop**, and `/dev:fix` is not an autopilot stage —
      no entry for it.
-   - Task 2 introduces no stop.
+   - Task 2 introduces no stop. Its `dev:reflect` edit changes how an absent `pr_end` is *reported*,
+     not whether the stage halts, so it is not a behaviour this list covers.
 
 ---
 
@@ -557,6 +613,9 @@ Implementation steps:
 | `dev:done` re-entry double-appends | Task 1 (T2) + Task 3 | Dedup on `kind == "cycle"` and `id == <feature>`; the T5 `--quiet` guard makes the no-op path exit cleanly |
 | `/dev:fix merge` re-entry double-appends | Task 1 (T2) + Task 4 step 3 | Dedup on `kind == "lane"` and `id == <branch merged>`; the tail is documented idempotent, so a re-run finds its own line and appends nothing |
 | Squash merge — no second parent | Task 1 (§T-lane) + Task 4 steps 1, 3 | Record written with `start`/`commits`/`churn` null, `basis: "unavailable"`, and a `note` naming why; never skipped |
+| Merge commit not identified (`gh pr view` returns no `mergeCommit`) | Task 1 (§T-lane, third branch) + Task 4 steps 1, 3 | Own record arm: `merge_sha: null`, `end` from wall clock, its own `note`. Never written as a squash — that would assert a merge shape nobody observed |
+| `--shortstat` omits a zero clause, or the diff is empty | Task 1 (§T-lane parse rule) | An absent clause parses to `0`, never a missing key; empty output yields all-zero churn. A deletions-only lane run is the common case, not an exotic one |
+| `pr_end` absent when `dev:reflect` reads `stage_timestamps` | Task 2 step 5 | Reflect runs at Step 5d, Step 5e stamps `pr_end` after it — so `pr` is reported in-progress rather than given a duration from a missing end |
 | Two cycles finish near-simultaneously | Task 1 (§T-path) + Task 3 D2/D3 | Append-only, one line each; a push conflict is resolved by keeping **both** lines, never by picking a side. `push_integration`'s fetch/rebase retry handles the ordinary case; a conflict that survives it is Task 3's STOP, and `dev:done` Step 7's existing mid-rebase guard catches the state |
 | Lane run whose PR is never merged | Task 4 (placement) | `/dev:fix merge` never runs, so the segment is never reached — no record. Correct: unmerged work is not a completed run |
 | Lane `start` is not comparable to a cycle `start` | Task 1 (§T-envelope `basis`) | The record names its own basis; the reference states the reader must not compare across bases |
