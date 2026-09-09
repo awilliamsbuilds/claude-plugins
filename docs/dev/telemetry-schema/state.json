@@ -3,11 +3,12 @@
   "feature": "telemetry-schema",
   "branch": "feature/telemetry-schema",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -25,12 +26,18 @@
     "loops_run": 2,
     "loops_max": 3,
     "p1_open": [],
-    "p2_open": [],
+    "p2_open": [
+      "telemetry.md \u00a7T-append T3: churn wrongly in the empty-string\u2192null mapping",
+      "telemetry.md \u00a7T-append T3: snippet binds LEDGER_PATH (repo-relative) to process cwd"
+    ],
     "p3_open": [
-      "fetch-ordering coupling noted rather than restructured (dev:fix merge fence)"
+      "\u00a7T-append nullable-field list mis-attributed and omits \u00a7T-cycle nullables",
+      "dev:fix merge-fence fetch ordering documented rather than restructured"
     ],
     "nits_open": [
-      "branch allowlist refuses legal-but-unusual refnames (+, @, non-ASCII) \u2014 loud STOP, matches A3"
+      "check-ref-format list omits leading-dot component",
+      "branch allowlist refuses +, @, non-ASCII refnames (matches \u00a7A3)",
+      "two paragraphs left ragged by in-place edits"
     ]
   },
   "challenge": {
@@ -87,7 +94,9 @@
       "plan_start": "2026-09-09T04:17:19Z",
       "plan_end": "2026-09-09T04:22:32Z",
       "build_start": "2026-09-09T05:06:34Z",
-      "build_end": "2026-09-09T05:10:07Z"
+      "build_end": "2026-09-09T05:10:07Z",
+      "validate_start": "2026-09-09T05:10:14Z",
+      "validate_end": "2026-09-09T05:37:13Z"
     }
   },
   "handoff_at": "plan"
