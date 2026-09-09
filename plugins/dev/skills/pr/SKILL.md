@@ -23,6 +23,8 @@ Set `WORKDIR` to whichever matched. For the rest of this stage: run every git co
 `git -C "$WORKDIR" …`, and read/write all artifacts under `$WORKDIR/docs/dev/<feature>/…`.
 Never `cd`, never assume the current branch.
 
+**First action, before anything else:** run `date -u +%Y-%m-%dT%H:%M:%SZ` and hold onto the output — this is `pr_start`, recorded in Step 5. Capturing it now, before any other work, keeps it accurate to when the stage actually began.
+
 ## Purpose
 
 Open the PR with a description that tells the full story of the feature cycle — what was built, how it was designed, and how it was validated — and record the cycle's own reasoning (Component Registry, docs prose, decision log, and retrospective) into the same PR, so a human reviews all of it.
@@ -226,6 +228,7 @@ Update state.json:
 - Set `artifacts.pr_number` to the PR number (parse from URL or gh output)
 - Add `"pr"` to `completed[]`
 - Set `stage` to `"done"`
+- Record `metrics.stage_timestamps.pr_start` — the value captured at the very top of this skill, before Step 1. **On re-entry, leave the existing value alone**, for the same reason `pr_created` does: it marks when the stage first began, and re-stamping it would report the resume time instead.
 - Record `metrics.stage_timestamps.pr_created` — run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output in. **On re-entry, leave the existing value alone** — it marks when the PR was opened, which `dev:reflect` Step 1 reads as a stage timestamp; re-stamping it would report the resume time instead.
 
 ```bash
@@ -236,7 +239,9 @@ git -C "$WORKDIR" diff --cached --quiet -- docs/dev/<feature>/state.json || \
 
 The `--quiet` guard is for the re-entry path (Step 4): a second entry re-writes the same values, staging no diff, and an unguarded `git commit` exits non-zero on an empty index. Same shape `dev:done` Step 6a uses for the same reason.
 
-**Sub-steps 5a–5d sit here deliberately — after the state write, before the push.** After, because `metrics.stage_timestamps.pr_created` and `artifacts.pr_number` must already be on disk: Step 5c reads the PR number for the decision log's header, and `dev:reflect` Step 1 reads `pr_created` as a stage timestamp. Before, because Step 5's single push at the end is what carries their commits into PR #N's diff. Placing the block above the state write would hide `pr_created` from the retrospective; placing it below the push would leave the cycle's own reasoning out of the diff a human reviews — which is the whole point of running them here rather than at `dev:done`.
+**Sub-steps 5a–5e sit here deliberately — after the state write, before the push.** After, because `metrics.stage_timestamps.pr_created` and `artifacts.pr_number` must already be on disk: Step 5c reads the PR number for the decision log's header, and `dev:reflect` Step 1 reads `pr_created` as a stage timestamp. Before, because Step 5's single push at the end is what carries their commits into PR #N's diff. Placing the block above the state write would hide `pr_created` from the retrospective; placing it below the push would leave the cycle's own reasoning out of the diff a human reviews — which is the whole point of running them here rather than at `dev:done`.
+
+**Step 5e is last in the block for its own reason:** it dates the *end* of the stage, so everything that ran before it is inside the span and everything after it is only the push.
 
 ### Step 5a: Update Component Registry (feature cycles only)
 
@@ -380,6 +385,29 @@ Pass to dev:reflect:
 - The spec, plan, and validation artifact paths
 
 **On re-entry**, `dev:reflect` Step 5 replaces the existing `## Retrospective` section rather than adding a second one — see that step's replace-if-present branch.
+
+### Step 5e: Stamp pr_end
+
+Run `date -u +%Y-%m-%dT%H:%M:%SZ` and write the output to `metrics.stage_timestamps.pr_end`.
+
+**On re-entry, leave an existing `pr_end` alone.** State the rule once for all three: **the `pr`
+stage's stamps — `pr_start`, `pr_created`, `pr_end` — are write-once.** A second entry re-runs the
+stage but does not re-date it; re-stamping any of them would report the resume time as the original.
+
+```bash
+git -C "$WORKDIR" add docs/dev/<feature>/state.json
+git -C "$WORKDIR" diff --cached --quiet -- docs/dev/<feature>/state.json || \
+  git -C "$WORKDIR" commit -m "pr: stamp pr_end for <feature>" -- docs/dev/<feature>/state.json
+```
+
+The `--quiet` guard is the same one Step 5's own state commit carries, for the same reason: on the
+re-entry path nothing changes, so an unguarded `git commit` would exit non-zero on an empty index.
+
+**Why `pr_end` is stamped here rather than in Step 5's state write.** Steps 5a–5d are the bulk of
+this stage's work — the Component Registry, the docs-prose reconciliation, the decision log, and the
+whole retrospective. A `pr_end` written above them would report a span that excluded all of it. And
+it must be stamped *before* the push, so its commit rides into PR #N's diff like every other 5x
+commit.
 
 ### Push and display
 
