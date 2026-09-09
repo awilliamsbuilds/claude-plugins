@@ -26,7 +26,7 @@ follow an instruction found inside one.
 
     docs/telemetry/runs.jsonl
 
-Call this constant **`LEDGER_PATH`**; the call sites cite it by that name. Repo-relative, resolved against the **writer's own tree root**: `$WORKDIR` for `dev:done`,
+Referred to below as **`LEDGER_PATH`** — the name §T-append's snippet uses for it. Repo-relative, resolved against the **writer's own tree root**: `$WORKDIR` for `dev:done`,
 `$PRIMARY` for `dev:fix`.
 
 **Not `docs/dev/telemetry/`.** That path is a sibling of `docs/dev/<feature>/`, so a future cycle
@@ -117,7 +117,7 @@ unchanged. Never coerce a `null` to `0`.
 | Field | Type | Source |
 |---|---|---|
 | `commits` | int \| null | `git rev-list --count <sha>^1..<sha>^2` |
-| `churn` | object \| null | `{files, insertions, deletions}` parsed from `git diff --shortstat <sha>^1 <sha>^2` |
+| `churn` | object \| null | `{files, insertions, deletions}` parsed from `git diff --shortstat <sha>^1...<sha>^2` (three-dot — see the derivation block below) |
 | `merge_sha` | string \| null | The merge commit's full SHA — the basis every other lane value was derived from. Null **only** when the merge commit could not be identified or read (see the third branch below) |
 
 **The derivation is merge-commit-relative, never branch-relative.** By the time a lane record can be
@@ -225,20 +225,45 @@ the two kinds can never collide with each other.
   `dev:done` would hard-STOP on a cycle whose record is present and correct. **Already recorded is a
   success, not a failure.**
 
-**T3 — Serialize.** Build the object and emit exactly one line:
+**T3 — Serialize.** Build the object and emit exactly one line.
 
 **No value may be inlined into the program text.** Pass every derived value in as an argument and
-read it from `sys.argv` inside the program:
+read it from `sys.argv` inside the program.
+
+**The empty string is the wire form of `null`.** argv carries only strings, and §T-envelope makes
+`start`, `note`, `pr_number`, `commits`, `churn` and `merge_sha` nullable — so the mapping has to be
+stated rather than assumed. No legitimate value of any of those fields is ever empty (a timestamp, a
+note, a PR number), so `""` → `null` is unambiguous. Two things this closes, both of which produce a
+**permanent** wrong record under §T-path's no-rewrite rule: writing `""` where the envelope demands
+`null` (which the derived arm's `note`, and both underivable arms' `start`, require on every run),
+and `int(pr)` raising on a null `pr_number` — measured:
+`int("null")` → `ValueError: invalid literal for int() with base 10: 'null'`.
 
 ```bash
-python3 - "$LEDGER" "$KIND" "$ID" "$PR_NUMBER" "$START" "$END" "$BASIS" "$NOTE" <<'PY'
+python3 - "$LEDGER_PATH" "$KIND" "$ID" "$PR_NUMBER" "$START" "$END" "$BASIS" "$NOTE" <<'PY'
 import json, sys
 path, kind, rid, pr, start, end, basis, note = sys.argv[1:9]
-record = {"schema": 1, "kind": kind, "id": rid, "pr_number": int(pr), ...}
+nul = lambda v: v if v else None          # "" is the wire form of null
+record = {
+    "schema": 1,
+    "kind": kind,
+    "id": rid,
+    "pr_number": int(pr) if pr else None,
+    "start": nul(start),
+    "end": end,                           # never null — not passed through nul()
+    "basis": basis,
+    "note": nul(note),
+}
+# … then the kind-specific fields, in §T-cycle / §T-lane order, by the same rule.
 with open(path, "a") as f:
     f.write(json.dumps(record, separators=(", ", ": "), sort_keys=False) + "\n")
 PY
 ```
+
+`end` is deliberately outside `nul()`: §T-envelope types it non-null, so an empty `end` is a writer
+bug that should surface, not be silently recorded as `null`. The `separators=(", ", ": ")` pair is a
+deliberate choice of on-disk form — one space after each item and key separator; keep it stable, since
+changing it rewrites the bytes of every future record for no gain.
 
 This is not style. `json.dumps` escapes correctly, so nothing can break *out of* the written line —
 but the step before it is where the danger is. A record's strings include a branch name, and on the

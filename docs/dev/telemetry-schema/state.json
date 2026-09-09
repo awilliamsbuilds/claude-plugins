@@ -22,12 +22,16 @@
     "pr_number": null
   },
   "validate": {
-    "loops_run": 0,
+    "loops_run": 2,
     "loops_max": 3,
     "p1_open": [],
     "p2_open": [],
-    "p3_open": [],
-    "nits_open": []
+    "p3_open": [
+      "fetch-ordering coupling noted rather than restructured (dev:fix merge fence)"
+    ],
+    "nits_open": [
+      "branch allowlist refuses legal-but-unusual refnames (+, @, non-ASCII) \u2014 loud STOP, matches A3"
+    ]
   },
   "challenge": {
     "run": true,

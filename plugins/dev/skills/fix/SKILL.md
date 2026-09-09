@@ -1013,7 +1013,9 @@ if [ -z "$PR_NUMBER" ]; then echo "STOP: no open or merged PR for '$BRANCH'."; e
 **The branch-name allowlist is enforced here, not assumed from where the branch came from.** `BRANCH`
 is interpolated downstream into a commit `-m` and written into the telemetry ledger as a record
 field, and `git check-ref-format` permits `$`, backtick, `(`, `)`, `;`, `&`, `|`, `'` and `"` — it
-forbids only whitespace, `~^:?*[\`, control characters, `..` and `@{`. A branch named
+forbids whitespace, `~^:?*[\`, control characters, `..`, `@{`, and a handful of
+positional forms (leading/trailing `/`, `//`, a trailing `.`, a `.lock` suffix, a bare `@`) — none of
+which excludes the metacharacters that matter here. A branch named
 `fix/a$(…)b` is a legal ref, and interpolating it into a double-quoted `-m` would execute it.
 
 Both branch-creating paths already normalize to a safe shape — `../../references/entry-adapters.md`
