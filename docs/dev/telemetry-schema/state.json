@@ -3,9 +3,10 @@
   "feature": "telemetry-schema",
   "branch": "feature/telemetry-schema",
   "mode": "autopilot",
-  "stage": "plan",
+  "stage": "build",
   "completed": [
-    "spec"
+    "spec",
+    "plan"
   ],
   "skipped": [
     "shape"
@@ -39,10 +40,10 @@
   },
   "challenge_plan": {
     "run": true,
-    "blockers": 1,
-    "concerns": 2,
-    "applied": 8,
-    "applied_concerns": 5,
+    "blockers": 0,
+    "concerns": 3,
+    "applied": 11,
+    "applied_concerns": 8,
     "dismissed": 0,
     "loops_run": 2,
     "loops_max": 3

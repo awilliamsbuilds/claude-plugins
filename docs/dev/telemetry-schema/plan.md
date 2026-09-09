@@ -74,7 +74,7 @@ Implementation steps:
    | `pr_number` | int \| null | The PR this run merged. Null only where the writer genuinely had none. |
    | `start` | ISO-8601 UTC string \| null | When the run began, per `basis`. Null only when underivable. |
    | `end` | ISO-8601 UTC string | When the run finished. Never null — a record is only written after the run ended. |
-   | `basis` | string | **What `start` measures.** One of `"spec_start"` (cycle), `"first_commit"` (lane), `"unavailable"` (lane, squash merge). Named because a lane's `start` is its first commit — after grounding and triage — and comparing it against a cycle's `spec_start` as though they measured the same thing is a real misreading, not a hypothetical one. |
+   | `basis` | string | **What `start` measures.** One of `"spec_start"` (cycle), `"first_commit"` (lane), `"unavailable"` (lane — **either** a squash merge **or** a merge commit that could not be identified or read; §T-lane's table says which by `merge_sha` and `note`). Named because a lane's `start` is its first commit — after grounding and triage — and comparing it against a cycle's `spec_start` as though they measured the same thing is a real misreading, not a hypothetical one. |
    | `note` | string \| null | Free text naming why an underivable field is null. Null when everything derived. |
 
    State plainly that a reader **must** branch on `kind` and **must not** compare a `"first_commit"`
@@ -377,7 +377,13 @@ Implementation steps:
    which is unconditional and therefore always present. Leave the `case` block's code unchanged —
    only its placement sentence moves.
 
-7. Do **not** change Step 3, Step 6a, or Step 7's commit blocks. The record is a fourth commit, not
+7. **Update the helper's caller enumeration.** Step 2's `push_integration` paragraph
+   (`done/SKILL.md:123`) reads "All post-merge commits in this stage (Steps 3, 6a and 7)…". Step 6b
+   is a fourth caller, so extend the parenthetical to **(Steps 3, 6a, 6b and 7)**. Nothing
+   downstream catches this: `dev:pr` Step 5b's docs-prose pass reconciles `README.md` and
+   `CLAUDE.md`, not intra-skill prose.
+
+8. Do **not** change Step 3, Step 6a, or Step 7's commit blocks. The record is a fourth commit, not
    a widening of an existing one — spec Technical Constraints states Step 7's pathspec scoping is
    load-bearing and must stay.
 
@@ -443,7 +449,7 @@ Implementation steps:
    fi
    ```
 
-   Annotate three things in prose beneath it:
+   Annotate the following in prose beneath it:
    - **Why it is inside the fence.** `BRANCH` and `PR_NUMBER` cannot be re-derived afterwards — the
      fence deletes both branches and moves the checkout, and a re-run of the resolution block would
      bind `BRANCH` to `$DEFAULT_BRANCH` and exit on its own guard (`fix/SKILL.md:1218` already
