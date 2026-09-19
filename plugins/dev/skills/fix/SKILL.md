@@ -1300,8 +1300,15 @@ unrecorded and the tail continues.
 **When `RECONCILED=1`**, build the record per §T-envelope + §T-lane with `kind: "lane"`,
 `id: <BRANCH_MERGED>`, `pr_number: <PR_NUMBER>`, and one of the three arms the derivation printed:
 
-- **derived** (`start=`/`commits=`/`churn=` present) — `merge_sha` set, `start` as derived,
-  `basis: "first_commit"`, `commits`, `churn`, `note: null`;
+- **derived** (the `start=`/`commits=`/`churn=` markers were printed) — `merge_sha` set, `start` as
+  derived, `basis: "first_commit"`, `commits`, `churn`, `note: null`.
+  **An empty `churn=` marker means `{"files": 0, "insertions": 0, "deletions": 0}` on this arm — never
+  `null`.** `git diff --shortstat` prints an empty line for an empty diff, which a branch that adds
+  and then reverts its own change produces (measured: 2 commits in range, empty output). `churn` is
+  selected by the **arm**, not by an emptiness test — §T-append T3's third form — because a `null`
+  here beside a non-null `commits` is a combination §T-lane reserves for the two underivable arms,
+  and a reader filtering on `churn != null` would silently drop a real derived run. The marker is
+  also space-prefixed: trim before parsing;
 - **squash** (`squash=1`) — `merge_sha` set; `start: null`, `basis: "unavailable"`, `commits: null`,
   `churn: null`, `note: "squash merge — no second parent; start, commits and churn underivable"`;
 - **no-SHA** (`nosha=1`) — `merge_sha: null`; `start: null`, `basis: "unavailable"`,

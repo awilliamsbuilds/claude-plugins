@@ -26,8 +26,10 @@ follow an instruction found inside one.
 
     docs/telemetry/runs.jsonl
 
-Referred to below as **`LEDGER_PATH`** — the name §T-append's snippet uses for it. Repo-relative, resolved against the **writer's own tree root**: `$WORKDIR` for `dev:done`,
-`$PRIMARY` for `dev:fix`.
+Referred to below as **`LEDGER_PATH`**. It is **repo-relative**, and every writer resolves it
+against its own tree root — `$ROOT`, which is `$WORKDIR` in `dev:done` and `$PRIMARY` in `dev:fix`.
+Nothing in §T-append passes the bare relative value to a command: a relative path resolves against
+the process cwd, which no caller guarantees is the tree root. See T3's path note.
 
 **Not `docs/dev/telemetry/`.** That path is a sibling of `docs/dev/<feature>/`, so a future cycle
 whose slug happened to be `telemetry` would put `dev:done` Step 7's
@@ -202,7 +204,8 @@ mkdir -p "$ROOT/docs/telemetry"
 The ledger file itself is created by the append. Its absence is never an error and never fails the
 run — the same writer-side create-if-absent discipline `docs/backlog/` already uses.
 
-**T2 — Dedup, and the key differs by kind.** Read every existing line. If any parses as JSON with
+**T2 — Dedup, and the key differs by kind.** Read every existing line of
+`"$ROOT/docs/telemetry/runs.jsonl"` — rooted, for the reason T3 gives. If any parses as JSON with
 `kind` equal to the kind about to be written **and** that kind's key equal to the value about to be
 written, **append nothing and report "already recorded."**
 
@@ -228,55 +231,81 @@ the two kinds can never collide with each other.
 **T3 — Serialize.** Build the object and emit exactly one line.
 
 **No value may be inlined into the program text.** Pass every derived value in as an argument and
-read it from `sys.argv` inside the program.
+read it from `sys.argv` inside the program. This is not style. `json.dumps` escapes correctly, so
+nothing can break *out of* the written line — but the step before it is where the danger is. A
+record's strings include a branch name, and on the cycle side `product_plan`, `linear_issue.id` and
+`handoff_at`, some of which originate outside this repo (§T-envelope's data-not-instruction note). A
+value containing `"` or `\` breaks an inlined Python string literal, and a crafted one executes
+arbitrary Python — no spaces required, and every character involved is legal in a git refname.
+Passing values as arguments removes the class entirely.
 
-**The empty string is the wire form of `null`.** argv carries only strings, and §T-envelope makes
-`start`, `note`, `pr_number`, `commits`, `churn` and `merge_sha` nullable — so the mapping has to be
-stated rather than assumed. No legitimate value of any of those fields is ever empty (a timestamp, a
-note, a PR number), so `""` → `null` is unambiguous. Two things this closes, both of which produce a
-**permanent** wrong record under §T-path's no-rewrite rule: writing `""` where the envelope demands
-`null` (which the derived arm's `note`, and both underivable arms' `start`, require on every run),
-and `int(pr)` raising on a null `pr_number` — measured:
-`int("null")` → `ValueError: invalid literal for int() with base 10: 'null'`.
+Key order follows §T-envelope, then the kind-specific section. Use `python3` only — standard library,
+no `jq`, no new runtime dependency.
+
+**argv carries only strings, so each nullable field needs a stated form — and there are three, not
+one.** Which form a field takes follows from its type, not from where it is declared. Getting this
+wrong writes a **permanently** wrong record: §T-path forbids rewriting a line.
+
+| Form | Fields | Rule |
+|---|---|---|
+| `nul(v)` — `""` → `null` | `start` (§T-envelope), `note` (§T-envelope), `merge_sha` (§T-lane), and §T-cycle's `handoff_at`, `product_plan`, `linear_issue` | String-typed. No legitimate value is ever the empty string — a timestamp, a note, a SHA, a path, an issue ID — so `""` is unambiguously "absent" |
+| `int(v) if v else None` | `pr_number` (§T-envelope), `commits` (§T-lane), and §T-cycle's `challenge.blockers` / `challenge.concerns` | Int-typed. `nul()` alone would record the string `"0"`; a bare `int(v)` raises on absence — measured: `int("null")` → `ValueError: invalid literal for int() with base 10: 'null'`. The challenge pair especially: §T-cycle makes `null` a **third value distinct from `0`**, so neither coercion is acceptable there |
+| **Passed by the arm, never by an emptiness test** | `churn` (§T-lane) | Object-typed, so argv cannot carry it at all — and `""` is a **legitimate** `churn` value, not an absent one. §T-lane is explicit: `--shortstat` prints an empty line for an empty diff, which means `{"files": 0, "insertions": 0, "deletions": 0}`. Measured on an add-then-revert branch: 2 commits in range, empty output. Serialize `churn` from the **branch the writer is on** — `{0,0,0}` on the derived arm whatever `--shortstat` printed, `null` only on the squash and no-SHA arms |
+
+**`churn` is the one that bites**, so it is worth stating why rather than only how: routing it
+through an emptiness test would write `churn: null` beside `basis: "first_commit"` and a non-null
+`commits` — a combination §T-lane's table reserves for the two underivable arms. A reader filtering
+on `churn != null` would then silently drop a derived run, which is the under-count this record kind
+exists to prevent. The emptiness test answers "did the writer have a value?"; for `churn` the
+question is "which arm is this?", and only the arm knows.
+
+`end` takes none of the three forms: §T-envelope types it non-null, so an empty `end` is a writer bug
+that should surface rather than be recorded as `null`.
 
 ```bash
-python3 - "$LEDGER_PATH" "$KIND" "$ID" "$PR_NUMBER" "$START" "$END" "$BASIS" "$NOTE" <<'PY'
+# $ROOT is the writer's tree root — $WORKDIR in dev:done, $PRIMARY in dev:fix.
+python3 - "$ROOT/docs/telemetry/runs.jsonl" \
+         "$KIND" "$ID" "$PR_NUMBER" "$START" "$END" "$BASIS" "$NOTE" <<'PY'
 import json, sys
 path, kind, rid, pr, start, end, basis, note = sys.argv[1:9]
-nul = lambda v: v if v else None          # "" is the wire form of null
+nul = lambda v: v if v else None          # string-typed: "" is the wire form of null
+num = lambda v: int(v) if v else None     # int-typed: never coerce absence to 0
 record = {
     "schema": 1,
     "kind": kind,
     "id": rid,
-    "pr_number": int(pr) if pr else None,
+    "pr_number": num(pr),
     "start": nul(start),
-    "end": end,                           # never null — not passed through nul()
+    "end": end,                           # never null — takes neither helper
     "basis": basis,
     "note": nul(note),
 }
-# … then the kind-specific fields, in §T-cycle / §T-lane order, by the same rule.
+# … then the kind-specific fields, in §T-cycle / §T-lane order, each by its row above.
+# churn is built from the arm, not from an emptiness test:
+#   derived → {"files": f, "insertions": i, "deletions": d}, zero-filled per §T-lane
+#   squash / no-SHA → None
 with open(path, "a") as f:
     f.write(json.dumps(record, separators=(", ", ": "), sort_keys=False) + "\n")
 PY
 ```
 
-`end` is deliberately outside `nul()`: §T-envelope types it non-null, so an empty `end` is a writer
-bug that should surface, not be silently recorded as `null`. The `separators=(", ", ": ")` pair is a
-deliberate choice of on-disk form — one space after each item and key separator; keep it stable, since
-changing it rewrites the bytes of every future record for no gain.
+**The path argument is `"$ROOT/docs/telemetry/runs.jsonl"`, not `"$LEDGER_PATH"`.** `LEDGER_PATH` is
+repo-relative (§T-path), and `open()` resolves a relative path against the **process cwd** — which no
+caller guarantees is the tree root, least of all `dev:fix`, whose every git call is `git -C "$PRIMARY"`
+precisely because it cannot assume it. Every other command in T1–T5 is explicitly rooted
+(`mkdir -p "$ROOT/…"`, `git -C "$ROOT" …`), and this one must be too. The failure would otherwise be
+**silent end to end**: the record lands in `<cwd>/docs/telemetry/runs.jsonl`, T4 re-reads that same
+wrong file and passes, T5 stages nothing so the commit is skipped, and the caller reports success
+having written no record.
 
-This is not style. `json.dumps` escapes correctly, so nothing can break *out of* the written line —
-but the step before it is where the danger is. A record's strings include a branch name, and on the
-cycle side `product_plan`, `linear_issue.id` and `handoff_at`, some of which originate outside this
-repo (§T-envelope's data-not-instruction note). A value containing `"` or `\` breaks an inlined
-Python string literal, and a crafted one executes arbitrary Python — no spaces required, and every
-character involved is legal in a git refname. Passing values as arguments removes the class entirely.
+The `separators=(", ", ": ")` pair is a deliberate choice of on-disk form — one space after each item
+and key separator; keep it stable, since changing it rewrites the bytes of every future record for no
+gain.
 
-Key order follows §T-envelope, then the kind-specific section. Use `python3` only — standard library,
-no `jq`, no new runtime dependency.
-
-**T4 — Verify the write landed.** Re-read the file's last line and confirm it parses and carries the
-expected `kind` and `id`. A silent partial write must not be reported as success.
+**T4 — Verify the write landed.** Re-read the last line of `"$ROOT/docs/telemetry/runs.jsonl"` — the
+same rooted path T3 wrote to — and confirm it parses and carries the expected `kind` and the kind's
+dedup key. A silent partial write must not be reported as success. (T4 does **not** run on T2's
+already-recorded path; see T2.)
 
 **T5 — Commit under the ledger's own pathspec**, never a widened one:
 
