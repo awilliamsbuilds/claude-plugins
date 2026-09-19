@@ -86,3 +86,40 @@ this also corrected its false claim that only `spec` carries a `_start`.
 
 ## Artifacts (archived)
 Spec and plan committed at: efd2ef400604e342866a794f714a0df721bb0125 on branch feature/telemetry-schema
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-09-09*
+
+**Spec:** 4 challenger blockers / 5 concerns against `spec_revisions: 0` — the high-blockers,
+low-revisions cell: the author's own grounding pass (Step 7) was weak, and the challenger caught it
+before the gate. Working as designed. Confidence 90% held with no auto-fills and no backtracks, and
+the grounding inventory did real work — it disproved the product plan's standing claim that only
+`spec` carried a `_start`, which is what collapsed the cycle from two items to one.
+
+**Shape:** skipped (no-ui).
+
+**Plan:** 0 blockers but 2 challenger loops and 11 applied fixes, 8 of them concern-driven. The
+plan challenger's value here was almost entirely non-fatal findings, and the ones that mattered came
+from it opening the files the plan cited rather than reading the plan alone — the
+rationale-asserting-another-skill's-behavior check earning its place.
+
+**Validate:** 2 loops / 3, exited on same-region recurrence rather than clean. Every loop-1 finding
+was real. **Both loop-2 P2s were introduced by the loop-1 fix, and both loop-3 findings by the
+loop-2 fix** — in that one region the loop was producing defects at roughly the rate it removed
+them. The same-region rule detected exactly that and routed the question to a human, which is the
+outcome it was designed for and the single most useful process control in this cycle.
+
+**Flow:** tier right. A 40-minute spec against a 3-minute build is the correct shape for a cycle
+whose deliverable is a contract, not code.
+
+**Token efficiency:** Validate (26 min) cost roughly 5× Build. Four cold dispatches at ~85k–155k
+tokens each dominated the cycle — the cost is in the reviewing, not the writing, which is the
+expected shape for docs-as-code and not an outlier to chase.
+
+**Suggestions:** none actionable this cycle. The same-region recurrence rule and its
+converging-cascade exemption were both exercised for real here — the exemption correctly declined to
+fire (severity flat at P2, and the fenced block itself changed between rounds), and the rule
+correctly stopped a loop that was not converging. Worth leaving alone.
+
+**Deferred to tech debt:** none. The two P2s the loop could not settle were settled at the PR gate
+and fixed before merge, so the buffered item was withdrawn rather than flushed.
