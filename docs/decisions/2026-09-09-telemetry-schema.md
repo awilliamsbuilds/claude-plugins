@@ -67,10 +67,19 @@ this also corrected its false claim that only `spec` carries a `_start`.
 - **P2 — lane dedup dropped genuine second runs.** → Resolved: keyed on `pr_number`.
 - **P2 — `dev:pr` prose went stale.** Step 5e commits after `dev:reflect`'s push, so
   `Everything up-to-date` flipped from expected to a warning sign. → Resolved.
-- **Two P2s accepted open**, both in §T-append T3: `churn` wrongly inside the empty-string→null
-  mapping (an empty `--shortstat` legitimately means `{0,0,0}`), and the snippet resolving
-  `LEDGER_PATH` against the process cwd. Both follow from one unsettled design question the loop
-  demonstrated it could not settle; buffered to `docs/backlog/` with the carrying cost stated.
+- **Two P2s survived the loop and were settled at the gate.** Both sat in §T-append T3: `churn`
+  wrongly inside the empty-string→null mapping (an empty `--shortstat` legitimately means
+  `{0,0,0}`), and the snippet resolving `LEDGER_PATH` against the process cwd. The same-region
+  recurrence rule stopped the loop and routed the question underneath them — *how should nullable
+  and non-scalar fields cross the argv boundary?* — to a human, which is exactly what that rule is
+  for. → The user settled it and directed both be fixed before merge. **Resolved:** `churn` is now
+  selected by the arm rather than by an emptiness test; the path argument is rooted at `$ROOT`; and
+  the nullable list became three type-keyed forms covering every nullable across all three sections.
+  Nothing ships open.
+- **The loop was generating defects in that region at about the rate it removed them.** Both loop-2
+  P2s were introduced by the loop-1 fix, and both loop-3 findings by the loop-2 fix. That is the
+  signature the same-region rule detects, and it detected it correctly — a third iteration would
+  have produced a fourth round of the same.
 - P3/Nits accepted as-is: nullable-field list attribution, merge-fence fetch ordering documented
   rather than restructured, `check-ref-format` leading-dot omission, the branch allowlist's refusal
   of legal-but-unusual refnames (`+`, `@`, non-ASCII — a loud STOP matching §A3), ragged wrapping.
