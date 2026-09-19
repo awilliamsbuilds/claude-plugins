@@ -1,5 +1,5 @@
 # /dev Observability — Product Plan
-*Created: 2026-08-13 · Cycles completed: 1/3*
+*Created: 2026-08-13 · Cycles completed: 2/3*
 
 Promoted from two backlog items — `backlog-backlog-viewer-app` and
 `backlog-stage-lifecycle-telemetry-app` — which both noted they may share a shell rather than
@@ -14,7 +14,7 @@ archive — as a browsable, filterable view. Ordered first because its data alre
 carries no instrumentation dependency.
 
 ## Milestone 2: Stage telemetry instrumentation
-- [ ] telemetry-schema (feature)
+- [x] telemetry-schema (feature)
 
 Narrower than the source item assumed, and narrower again than this plan first recorded.
 `metrics.stage_timestamps` already carries **both** `_start` and `_end` for `spec`, `shape`, `plan`,
