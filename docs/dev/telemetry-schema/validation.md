@@ -3,11 +3,12 @@
 
 ## Summary
 Loops run: 2 / 3
-Final status: proceeded with open issues
+Final status: clean
 
-Exited on the **same-region recurrence** rule (Step 4 step 8), not on the loop limit and not clean.
-Two P2s remain open in one region, deliberately buffered rather than fixed — see `## Issues
-Remaining` and `## Notes`.
+The fix loop exited at 2/3 on the **same-region recurrence** rule with two P2s open, correctly
+routing the unsettled question underneath them to a human rather than to a third iteration. **The
+user settled it at the PR gate and directed that both be fixed before merge**, which is the outcome
+that rule exists to produce. Both are now closed and verified; nothing ships open.
 
 ## Build
 no build system detected (markdown + stdlib-Python repo). The one suite present passed on every
@@ -62,7 +63,10 @@ loop: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/dev/ski
 - none
 
 ### P2 Open
-- **`churn` is in the empty-string→null mapping, but `""` is a legitimate `churn` value.**
+- none — both are closed below.
+
+### P2 Closed at the gate (post-loop, by user direction)
+- **`churn` was in the empty-string→null mapping, but `""` is a legitimate `churn` value.**
   `git diff --shortstat` prints an empty line for an empty diff, and §T-lane (eleven lines above the
   new rule) already says that means `{files: 0, insertions: 0, deletions: 0}`. Measured on a
   purpose-built add-then-revert branch: 2 commits in range, `--shortstat` output empty. So a
@@ -70,7 +74,10 @@ loop: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/dev/ski
   `basis: "first_commit"` — a combination §T-lane's table says occurs only on the two underivable
   arms. §T-path forbids rewriting a line, so such a record is permanent, and a reader filtering on
   `churn != null` silently drops a derived run. Secondary: `churn` is object-typed, so argv cannot
-  carry it at all, and the snippet gives no form for it.
+  carry it at all, and the snippet gave no form for it.
+  → **Fixed.** `churn` left the mapping entirely and is now selected by the **arm**: zero-filled on
+  derived, `null` only on squash/no-SHA. Verified by running the derived arm with an empty marker —
+  it records `{"files": 0, "insertions": 0, "deletions": 0}`.
 - **The `$LEDGER` → `$LEDGER_PATH` rename bound the snippet to a repo-relative path.** §T-path
   defines `LEDGER_PATH` as repo-relative, resolved against the writer's tree root, but the snippet's
   `open(path, "a")` resolves it against the **process cwd** — the only command in T1–T5 that is not
@@ -78,12 +85,15 @@ loop: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/dev/ski
   never assumes cwd is the tree root. The failure is silent: the record lands in
   `<cwd>/docs/telemetry/runs.jsonl`, T4 re-reads that same wrong file and passes, T5 stages nothing
   so the commit is skipped, and the caller reports success with no record written.
+  → **Fixed.** The snippet's path argument is now `"$ROOT/docs/telemetry/runs.jsonl"`, matching
+  T1's and T5's rooting, and T2 and T4 name the rooted path too. §T-path's `LEDGER_PATH` paragraph
+  no longer claims the snippet uses the bare name.
 
 ### P3 Open
-- §T-append's nullable-field list is attributed to §T-envelope but names §T-lane's fields too, and
-  omits every §T-cycle nullable — `handoff_at`, `product_plan`, `linear_issue`, and the int-typed
-  `challenge.blockers` / `challenge.concerns`, which need the `int(x) if x else None` form rather
-  than `nul()` or they record as strings.
+- ~~§T-append's nullable-field list attribution~~ → **fixed alongside the P2s**: it is now three
+  type-keyed forms covering every nullable across §T-envelope, §T-cycle and §T-lane, including the
+  int-typed `challenge.blockers` / `challenge.concerns`. Verified: a cycle record keeps `blockers`
+  `null` while `concerns` stays `0`.
 - The `dev:fix` merge fence's fetch ordering was documented rather than restructured.
 
 ### Nits Surfaced

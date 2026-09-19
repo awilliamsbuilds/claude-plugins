@@ -27,12 +27,8 @@
     "loops_run": 2,
     "loops_max": 3,
     "p1_open": [],
-    "p2_open": [
-      "telemetry.md \u00a7T-append T3: churn wrongly in the empty-string\u2192null mapping",
-      "telemetry.md \u00a7T-append T3: snippet binds LEDGER_PATH (repo-relative) to process cwd"
-    ],
+    "p2_open": [],
     "p3_open": [
-      "\u00a7T-append nullable-field list mis-attributed and omits \u00a7T-cycle nullables",
       "dev:fix merge-fence fetch ordering documented rather than restructured"
     ],
     "nits_open": [
