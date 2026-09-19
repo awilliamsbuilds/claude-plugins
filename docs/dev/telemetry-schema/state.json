@@ -1,0 +1,103 @@
+{
+  "version": "1.0",
+  "feature": "telemetry-schema",
+  "branch": "feature/telemetry-schema",
+  "mode": "autopilot",
+  "stage": "done",
+  "completed": [
+    "spec",
+    "plan",
+    "build",
+    "validate",
+    "pr"
+  ],
+  "skipped": [
+    "shape"
+  ],
+  "startedAt": "2026-09-09T03:18:33Z",
+  "artifacts": {
+    "spec": "docs/dev/telemetry-schema/spec.md",
+    "design": null,
+    "plan": "docs/dev/telemetry-schema/plan.md",
+    "validation": "docs/dev/telemetry-schema/validation.md",
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/96",
+    "pr_number": 96
+  },
+  "validate": {
+    "loops_run": 2,
+    "loops_max": 3,
+    "p1_open": [],
+    "p2_open": [],
+    "p3_open": [
+      "dev:fix merge-fence fetch ordering documented rather than restructured"
+    ],
+    "nits_open": [
+      "check-ref-format list omits leading-dot component",
+      "branch allowlist refuses +, @, non-ASCII refnames (matches \u00a7A3)",
+      "two paragraphs left ragged by in-place edits"
+    ]
+  },
+  "challenge": {
+    "run": true,
+    "blockers": 4,
+    "concerns": 5,
+    "applied": 9,
+    "applied_concerns": 5,
+    "dismissed": 0,
+    "loops_run": 0,
+    "loops_max": 3
+  },
+  "challenge_plan": {
+    "run": true,
+    "blockers": 0,
+    "concerns": 3,
+    "applied": 11,
+    "applied_concerns": 8,
+    "dismissed": 0,
+    "loops_run": 2,
+    "loops_max": 3
+  },
+  "confidence": {
+    "final_score": 90,
+    "final_level": "Ready",
+    "dimensions": {
+      "intent": true,
+      "scope": true,
+      "success_criteria": true,
+      "happy_path": true,
+      "edge_cases": true,
+      "out_of_scope": true,
+      "ui_needed": true,
+      "technical_constraints": true,
+      "audience": true,
+      "dependencies": true
+    },
+    "auto_filled": []
+  },
+  "cycle_type": "feature",
+  "tier": "standard",
+  "product_plan": "docs/dev/product-plans/dev-observability.md",
+  "linear_issue": null,
+  "parentFeature": null,
+  "worktreePath": ".dev-worktrees/telemetry-schema",
+  "metrics": {
+    "spec_questions_asked": 3,
+    "spec_revisions": 0,
+    "visual_screens_shown": 0,
+    "files_read_in_build": 8,
+    "stage_timestamps": {
+      "spec_start": "2026-09-09T03:18:33Z",
+      "spec_end": "2026-09-09T03:58:53Z",
+      "plan_start": "2026-09-09T04:17:19Z",
+      "plan_end": "2026-09-09T04:22:32Z",
+      "build_start": "2026-09-09T05:06:34Z",
+      "build_end": "2026-09-09T05:10:07Z",
+      "validate_start": "2026-09-09T05:10:14Z",
+      "validate_end": "2026-09-09T05:37:13Z",
+      "pr_start": "2026-09-09T05:37:39Z",
+      "pr_created": "2026-09-09T05:38:32Z",
+      "pr_end": "2026-09-19T20:18:58Z"
+    }
+  },
+  "handoff_at": "plan"
+}

@@ -1,5 +1,5 @@
 # /dev Observability — Product Plan
-*Created: 2026-08-13 · Cycles completed: 1/4*
+*Created: 2026-08-13 · Cycles completed: 1/3*
 
 Promoted from two backlog items — `backlog-backlog-viewer-app` and
 `backlog-stage-lifecycle-telemetry-app` — which both noted they may share a shell rather than
@@ -14,16 +14,20 @@ archive — as a browsable, filterable view. Ordered first because its data alre
 carries no instrumentation dependency.
 
 ## Milestone 2: Stage telemetry instrumentation
-- [ ] telemetry-schema (architecture)
-- [ ] telemetry-instrumentation (feature)
+- [ ] telemetry-schema (feature)
 
-The schema is its own architecture cycle: the metrics contract is consumed by ~10 stage skills
-plus a viewer, and token/cost estimation has no obvious answer to settle mid-build. Instrumentation
-then wires the writes into each stage skill per that contract.
+Narrower than the source item assumed, and narrower again than this plan first recorded.
+`metrics.stage_timestamps` already carries **both** `_start` and `_end` for `spec`, `shape`, `plan`,
+`build` and `validate` — grounding disproved the earlier claim here that only `spec` had one. The
+real gaps are `pr` (which records only `pr_created`), `done` (which records nothing), and the
+blocking one: all of it is deleted by `dev:done` Step 7 before anything outside the cycle can read
+it. So the work is a committed append-only ledger plus the two missing stamp pairs.
 
-Narrower than the source item assumed — `metrics.stage_timestamps` already exists and is written
-by spec/shape/plan/build/validate/pr, and `dev:reflect` already reads it. The real gaps are
-per-stage `_start` (only `spec` has one today), a `done` stamp, invocation counts, and cost data.
+One feature cycle, not the architecture-then-instrumentation pair originally planned. The contract
+turned out to be one file format with two writers, not a decision needing ADRs. Token and cost
+estimation is dropped — an agent cannot measure its own token usage from inside a skill — as is
+counting `/dev:debt` invocations, which would mean instrumenting a skill outside the thing being
+measured.
 
 ## Milestone 3: Lifecycle viewer
 - [ ] lifecycle-viewer (feature)
