@@ -144,11 +144,17 @@ reads it next. The failure is soft either way: a `spec.md` path bound as `<tree>
 `rev-parse --is-inside-work-tree` and stops, which is why a fixed rule is enough.
 
 **The blocks below bind tokens through placeholders, never through positional `$N` references.**
-Claude Code substitutes `$N` in a skill's body with the invocation's arguments **zero-indexed** before
-the agent reads it: N=0 is `diff`, N=2 is the tree and N=3 is the first artifact. Bound as N=2 for
-the base and N=3 for the tree, every `dev:validate` dispatch rendered with the tree as the base and
-the spec as the tree. (This paragraph names no literal dollar-digit for the same reason.) Replace `<base>` and `<tree>` with the tokens verbatim (`''` for an absent tree).
-A placeholder left unreplaced fails its guard and stops by name rather than reviewing anything.
+Claude Code substitutes `$N` in a skill's body with the invocation's arguments, **zero-indexed**,
+before the agent reads it (the "token" numbering above is one-indexed): N=0 is `diff`, N=2 is the
+tree and N=3 is the first artifact. Bound as N=2 for the base and N=3 for the tree, every
+`dev:validate` dispatch rendered with the tree as the base and the spec as the tree. This paragraph
+names no literal dollar-digit for the same reason. A shell positional list such as `"${@...}"` is no
+substitute either: the agent's shell has no positional parameters, so it expands to nothing.
+
+Replace `<base>`, `<tree>` (`''` when absent) and the artifact placeholders with the tokens
+verbatim. **Refuse, without running any block, a token containing a single quote** — it would break
+out of the quoting before the guards run. A placeholder left unreplaced fails its guard and stops by
+name rather than reviewing anything.
 
 ### Resolve `<tree>` — before the base, not after
 
@@ -157,7 +163,7 @@ the base first would reference an unbound `$TREE`, and it would also produce the
 mistyped tree would surface as "base does not resolve" rather than as a named tree refusal.
 
 ```bash
-TREE='<tree>'   # token 3, verbatim; '' when absent
+TREE='<tree>'   # third token, verbatim; '' when absent
 if [ -z "$TREE" ]; then
   TREE="$PRIMARY"
 else
@@ -233,7 +239,7 @@ notice and needs no flag; everything else in the branch structure is identical.
 ### Resolve `<base>`, in the tree just resolved
 
 ```bash
-BASE='<base>'   # token 2, verbatim
+BASE='<base>'   # second token, verbatim
 case "$BASE" in
   [A-Za-z0-9._]*) ;;
   *) echo "STOP: '$BASE' is not a valid base ref name."; exit 1 ;;
@@ -252,12 +258,13 @@ name with no allowlist change. `dev:validate` does exactly that.
 
 ### Bind the artifact paths
 
-Tokens 4 and beyond are absolute paths. Validate each with the same three `case` statements
+Tokens 4 and beyond are absolute paths. List one placeholder per supplied path in the loop below
+(drop the block when there are none). Validate each with the same three `case` statements
 `<tree>` uses — shape, charset, and `..` — then confirm each exists and **confirm each is inside
 `$TREE`**:
 
 ```bash
-for ARTIFACT in "${@:4}"; do
+for ARTIFACT in '<artifact-1>' '<artifact-2>'; do   # one single-quoted token per path, token 4 on
   case "$ARTIFACT" in
     /[A-Za-z0-9._]*) ;;
     *) echo "STOP: '$ARTIFACT' is not a valid absolute path."; exit 1 ;;
