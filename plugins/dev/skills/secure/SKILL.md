@@ -231,8 +231,14 @@ below. Base-first would reference an unbound `$TREE`, and it would report a mist
 does not resolve" rather than as a named tree refusal. Token *binding* order is unchanged; only the
 order of the two validations moves.
 
+**Bind through the placeholders, never positional `$N` references.** Claude Code substitutes `$N` in
+a skill body with the invocation's arguments, zero-indexed, so N=2 would render as the tree and N=3
+as nothing. Replace `<base>` and `<tree>` with the tokens verbatim, and **refuse, without running
+any block, a token containing a single quote**. This mirrors `dev:review`'s *The binding is
+positional and fixed*; an unreplaced placeholder fails its guard and stops.
+
 ```bash
-TREE="$3"
+TREE='<tree>'   # third token, verbatim; '' when absent
 if [ -z "$TREE" ]; then
   TREE="$PRIMARY"; TREE_SUPPLIED=""
 else
@@ -318,7 +324,7 @@ only. This is what lets a caller that has already resolved a default branch hand
 having this skill independently re-derive it, which is how the two come to disagree.
 
 ```bash
-BASE="$2"   # the second token, verbatim — e.g. origin/main
+BASE='<base>'   # second token, verbatim — e.g. origin/main; no second token → skip this block
 ```
 
 **Validate it before use — "explicit" is not "trusted."** The token reaches `git diff` as an
