@@ -164,7 +164,8 @@ if [ -n "$LAST" ]; then
   # Keep everything above that heading, dropping the trailing blank lines it leaves behind so a
   # re-entry cannot accumulate one per resume. One awk pass rather than `head -n $((LAST-1))`:
   # BSD head rejects `-n 0` (exit 1), which is what a log whose heading is line 1 would produce.
-  awk -v cut="$LAST" 'NR>=cut{exit} {l[NR]=$0; if(NF)p=NR} END{for(i=1;i<=p;i++) print l[i]}' \
+  # `$(0)`, not the bare dollar-zero form: Claude Code substitutes that in a skill body with the first argument.
+  awk -v cut="$LAST" 'NR>=cut{exit} {l[NR]=$(0); if(NF)p=NR} END{for(i=1;i<=p;i++) print l[i]}' \
     "$LOG" > "$LOG.tmp"
   mv "$LOG.tmp" "$LOG"
 fi

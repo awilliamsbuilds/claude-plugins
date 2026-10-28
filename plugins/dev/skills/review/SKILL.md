@@ -143,6 +143,13 @@ whether it is a git worktree — is a decision this file should settle rather th
 reads it next. The failure is soft either way: a `spec.md` path bound as `<tree>` fails
 `rev-parse --is-inside-work-tree` and stops, which is why a fixed rule is enough.
 
+**The blocks below bind tokens through placeholders, never through positional `$N` references.**
+Claude Code substitutes `$N` in a skill's body with the invocation's arguments **zero-indexed** before
+the agent reads it: N=0 is `diff`, N=2 is the tree and N=3 is the first artifact. Bound as N=2 for
+the base and N=3 for the tree, every `dev:validate` dispatch rendered with the tree as the base and
+the spec as the tree. (This paragraph names no literal dollar-digit for the same reason.) Replace `<base>` and `<tree>` with the tokens verbatim (`''` for an absent tree).
+A placeholder left unreplaced fails its guard and stops by name rather than reviewing anything.
+
 ### Resolve `<tree>` — before the base, not after
 
 `<tree>` is resolved **first**, because the base is verified *in* the tree (next section). Validating
@@ -150,7 +157,7 @@ the base first would reference an unbound `$TREE`, and it would also produce the
 mistyped tree would surface as "base does not resolve" rather than as a named tree refusal.
 
 ```bash
-TREE="$3"
+TREE='<tree>'   # token 3, verbatim; '' when absent
 if [ -z "$TREE" ]; then
   TREE="$PRIMARY"
 else
@@ -226,7 +233,7 @@ notice and needs no flag; everything else in the branch structure is identical.
 ### Resolve `<base>`, in the tree just resolved
 
 ```bash
-BASE="$2"
+BASE='<base>'   # token 2, verbatim
 case "$BASE" in
   [A-Za-z0-9._]*) ;;
   *) echo "STOP: '$BASE' is not a valid base ref name."; exit 1 ;;
