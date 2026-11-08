@@ -29,6 +29,11 @@
       "name": "naming",
       "description": "Business, brand, product, and feature naming toolkit",
       "source": "./plugins/naming"
+    },
+    {
+      "name": "plex",
+      "description": "Direct Plex Media Server control — manage collections, playlists, metadata, watch history, and run the /plex add ingest/normalize/junk-sweep workflow",
+      "source": "./plugins/plex"
     }
   ]
 }
