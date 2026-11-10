@@ -2,7 +2,7 @@
   "version": "1.0",
   "feature": "spec-review-autoloop",
   "branch": "feature/spec-review-autoloop",
-  "mode": "standard",
+  "mode": "autopilot",
   "stage": "plan",
   "completed": [
     "spec"
@@ -82,5 +82,6 @@
       "spec_start": "2026-11-10T04:20:36Z",
       "spec_end": "2026-11-10T05:05:16Z"
     }
-  }
+  },
+  "handoff_at": "plan"
 }
