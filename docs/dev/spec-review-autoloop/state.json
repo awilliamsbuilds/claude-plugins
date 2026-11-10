@@ -3,11 +3,12 @@
   "feature": "spec-review-autoloop",
   "branch": "feature/spec-review-autoloop",
   "mode": "autopilot",
-  "stage": "validate",
+  "stage": "pr",
   "completed": [
     "spec",
     "plan",
-    "build"
+    "build",
+    "validate"
   ],
   "skipped": [
     "shape"
@@ -17,7 +18,7 @@
     "spec": "docs/dev/spec-review-autoloop/spec.md",
     "design": null,
     "plan": "docs/dev/spec-review-autoloop/plan.md",
-    "validation": null,
+    "validation": "docs/dev/spec-review-autoloop/validation.md",
     "pr_url": null,
     "pr_number": null
   },
@@ -86,7 +87,9 @@
       "plan_start": "2026-11-10T05:08:49Z",
       "plan_end": "2026-11-10T05:10:39Z",
       "build_start": "2026-11-10T05:12:22Z",
-      "build_end": "2026-11-10T05:14:45Z"
+      "build_end": "2026-11-10T05:14:45Z",
+      "validate_start": "2026-11-10T05:15:00Z",
+      "validate_end": "2026-11-10T05:20:44Z"
     }
   },
   "handoff_at": "plan"
