@@ -14,7 +14,7 @@
   "artifacts": {
     "spec": "docs/dev/spec-review-autoloop/spec.md",
     "design": null,
-    "plan": null,
+    "plan": "docs/dev/spec-review-autoloop/plan.md",
     "validation": null,
     "pr_url": null,
     "pr_number": null
@@ -80,7 +80,9 @@
     "files_read_in_build": 0,
     "stage_timestamps": {
       "spec_start": "2026-11-10T04:20:36Z",
-      "spec_end": "2026-11-10T05:05:16Z"
+      "spec_end": "2026-11-10T05:05:16Z",
+      "plan_start": "2026-11-10T05:08:49Z",
+      "plan_end": "2026-11-10T05:10:39Z"
     }
   },
   "handoff_at": "plan"
