@@ -9,6 +9,7 @@
 | plugins/dev/skills/plan/SKILL.md | Modify | Mirror of the loop rule, errored-dispatch mirror, gate (Step 8), resume (Step 1), `plan_end` re-stamp |
 | plugins/dev/skills/autopilot/SKILL.md | Modify | Restate the rule in both challenger sections, and update the stop list |
 | plugins/dev/skills/reflect/SKILL.md | Modify | Readings of `loops_run` / `dismissed` / `applied` under the loop rule |
+| plugins/dev/references/telemetry.md | Modify | Adjacent fix (Build): the `null`-counter note now covers `challenge_plan` too, since Task 3 mirrors the errored-dispatch rule |
 
 ## The Loop Rule (the procedure every task below implements or restates)
 
