@@ -22,7 +22,8 @@ continues and when it stops.
    - A **round** is one cold-review dispatch and its verdict.
    - A round is **heavy** when its verdict contains **at least one Blocker, or 5 or more Concerns**.
      Otherwise it is **light**.
-   - **Light round:** apply every suggested fix from that round, then exit the loop. No further review.
+   - **Light round:** apply every suggested fix from that round, commit
+     (`spec|plan: apply challenger fixes for <feature>`), then exit the loop. No further review.
    - **Heavy round with rounds remaining:** apply every suggested fix from that round, commit, and
      dispatch the next round against the revised artifact.
    - **Heavy round on the last allowed round:** apply **none** of that round's fixes. Exit the loop
@@ -58,6 +59,16 @@ continues and when it stops.
      now re-dispatches by the rule above. A Path A `apply` of limit-hit leftovers at the gate does
      **not** start a new loop, so a gate's `apply` never re-dispatches.
    - The `loops_run` "autopilot-only; unused in standard mode" lines.
+   - The "Which commit carries the counters" paragraphs in Spec 12a / Plan 7a ("Step 12a/7a does
+     **not** commit"). Each loop round's commit carries the counters, in both modes.
+   - Other sentences that become false under the loop rule:
+     - autopilot:153: "standard mode never loops, so one retry per stage and one per round are
+       indistinguishable there"
+     - autopilot:151: "`loops_run` is the blocker-driven number"
+     - spec:700 / plan:249: "In standard mode Step 13/8 writes them at the gate", and "unactioned
+       concerns pass through by design"
+     - spec:710: "Pair it with `loops_run` … loops are what blockers actually drive"
+     - spec:682: "In standard mode a scope blocker is advisory like any other finding" (see Scope 5)
 
 5. **Scope blockers (Spec only).** Unchanged in substance. A right-sizing blocker cannot be fixed by
    editing text, so a round containing one exits the loop immediately and applies none of that round's
@@ -66,7 +77,8 @@ continues and when it stops.
 6. **Counters.** `applied` / `applied_concerns` are incremented by the loop in both modes, with the
    existing Blocker/Concern split. `dismissed` stays `(writes: standard)` and now counts only findings
    the user declines **at the gate**: limit-hit leftovers approved past, or auto-applied fixes the user
-   reverts. `dev:reflect`'s readings of `dismissed` and `loops_run` are updated to match (loops now run
+   reverts. `applied`/`applied_concerns` are not decremented on a revert: a reverted fix counts in
+   both `applied` and `dismissed`. `dev:reflect`'s readings of `dismissed` and `loops_run` are updated to match (loops now run
    in gated cycles, and `dismissed` no longer measures how often the user skips the brief).
 
 7. **Folded debt — plan errored dispatch** (`debt-plan-challenger-errored-dispatch-undefined`).
@@ -77,7 +89,17 @@ continues and when it stops.
 
 8. **Folded debt — `plan_end` timing** (`debt-plan-end-excludes-challenger-loop`). `plan_end` is
    re-stamped after Step 7a's loop exits, and on each gate revision, mirroring `dev:spec`'s `spec_end`
-   re-stamp.
+   re-stamp. `spec_end` is likewise re-stamped after Step 12a's loop exits, in addition to its
+   existing Path A/B re-stamps, so gated cycles keep counting review time inside Spec now that the
+   fixes land in the loop rather than through Path A.
+
+9. **Resume mid-approval (Spec Step 1, Plan Step 1).** A resumed gate re-enters the loop with
+   `loops_run` **carried forward**, so the loop gets only the rounds it has left. A resume after a
+   limit-hit exit (`loops_run == loops_max`) dispatches no new round. It re-dispatches once to
+   regenerate the leftover findings, since the verdict text is not persisted, and re-renders the gate
+   with them, without applying them. That dispatch is not a round and does not advance `loops_run`.
+   Today's Step 1 checks reset only `run`/`blockers`/`concerns`. That stays true, and `loops_run`
+   joins the carried-forward set.
 
 ## Out of Scope
 
@@ -100,9 +122,9 @@ continues and when it stops.
 4. No heavy round's fixes are ever applied without a following review round or the user seeing them.
 5. The loop never exceeds `loops_max` dispatches, not counting the one errored-dispatch retry.
 6. The rule (heavy = ≥1 Blocker or ≥5 Concerns; limit = tier cap) is stated canonically once, in
-   `dev:spec` Step 12a. `dev:plan` Step 7a mirrors it and `dev:autopilot` restates it. A grep across
-   `plugins/dev` finds no surviving "advisory", "never loop-extending", "once per gate arrival", or
-   "autopilot-only" wording that contradicts it.
+   `dev:spec` Step 12a. `dev:plan` Step 7a mirrors it and `dev:autopilot` restates it.
+   `grep -n 'loops_run.*autopilot-only\|never loop-extending\|never a reason to loop\|once per gate arrival\|standard mode never loops\|blocker-driven number\|advisory' plugins/dev/skills/{spec,plan,autopilot}/SKILL.md`
+   returns no hit that contradicts the rule.
 7. Both folded debt items' **Done looks like** conditions hold, and both are queued in
    `debt-pending.md` `## To Close`.
 
@@ -124,9 +146,9 @@ continues and when it stops.
 - **Fix in round N reintroduces an earlier finding.** No special handling. The cap bounds it.
 - **Errored dispatch mid-loop.** Spec: the existing rule. Plan: the newly mirrored rule (Scope 7). An
   error is not a round, and does not consume the cap.
-- **Resume mid-approval** (`/clear` at the gate, Spec Step 1). The resumed gate is a new gate arrival:
-  the loop restarts from round 1 with `loops_run` reset to 0. `applied`/`applied_concerns`/`dismissed`
-  carry forward.
+- **Resume mid-approval** (`/clear` at the gate). See Scope 9: `loops_run` carries forward, and a
+  limit-hit cycle re-renders its leftovers rather than looping again. `applied`/`applied_concerns`/
+  `dismissed` carry forward as today.
 - **User reverts an auto-applied fix at the gate.** This is a Path B change: `spec_revisions`
   increments and `dismissed` increments by the reverted count. No re-review.
 - **Autopilot, concern-heavy final round.** It STOPs where it previously would have exited. This is
@@ -150,4 +172,4 @@ No.
 
 ---
 *Auto-filled dimensions: edge_cases, dependencies (inferred, not asked)*
-*Grounding inventory: grep 'Mode behaviour — standard: advisory' / 'Re-run rule' → spec/SKILL.md:674,684 and plan/SKILL.md:243,259 (standard runs once per gate arrival, `apply` never re-dispatches) — verified; grep 'never loop-extending\|never a reason to loop' → spec/SKILL.md:653,678, autopilot/SKILL.md:151,155; grep 'loops_run.*autopilot-only' → spec:711, plan:256; grep 'plan_end' → plan/SKILL.md:192 only (stamped in Step 7, before 7a); grep -rln 'challenge\.' plugins → spec, plan, autopilot, reflect (reflect:42–85 reads dismissed/loops_run); README.md: no challenger prose; open debt intersect → 2 plan-challenger items folded in, the rest not touched by this scope.*
+*Grounding inventory: grep 'Mode behaviour — standard: advisory' / 'Re-run rule' → spec/SKILL.md:674,684 and plan/SKILL.md:243,259 (standard runs once per gate arrival, `apply` never re-dispatches) — verified; grep 'never loop-extending\|never a reason to loop' → spec/SKILL.md:653,678, autopilot/SKILL.md:151,155; grep 'loops_run.*autopilot-only' → spec:711, plan:256; grep 'plan_end' → plan/SKILL.md:192 only (stamped in Step 7, before 7a); grep -rln 'challenge\.' plugins → spec, plan, autopilot, reflect (reflect:42–85 reads dismissed/loops_run), references/telemetry.md:103–112 (copies keys verbatim; no wording change needed); README.md: no challenger prose; open debt intersect → 2 plan-challenger items folded in, the rest not touched by this scope.*
