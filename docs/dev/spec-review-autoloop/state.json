@@ -3,12 +3,13 @@
   "feature": "spec-review-autoloop",
   "branch": "feature/spec-review-autoloop",
   "mode": "autopilot",
-  "stage": "pr",
+  "stage": "done",
   "completed": [
     "spec",
     "plan",
     "build",
-    "validate"
+    "validate",
+    "pr"
   ],
   "skipped": [
     "shape"
@@ -19,8 +20,8 @@
     "design": null,
     "plan": "docs/dev/spec-review-autoloop/plan.md",
     "validation": "docs/dev/spec-review-autoloop/validation.md",
-    "pr_url": null,
-    "pr_number": null
+    "pr_url": "https://github.com/awilliamsbuilds/claude-plugins/pull/100",
+    "pr_number": 100
   },
   "validate": {
     "loops_run": 3,
@@ -89,7 +90,9 @@
       "build_start": "2026-11-10T05:12:22Z",
       "build_end": "2026-11-10T05:14:45Z",
       "validate_start": "2026-11-10T05:15:00Z",
-      "validate_end": "2026-11-10T05:20:44Z"
+      "validate_end": "2026-11-10T05:20:44Z",
+      "pr_start": "2026-11-10T05:21:09Z",
+      "pr_created": "2026-11-10T05:21:20Z"
     }
   },
   "handoff_at": "plan"
