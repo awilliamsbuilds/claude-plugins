@@ -51,7 +51,11 @@ Read these files once at stage start. Work from this reading throughout — do n
 
 Determine mode from state.json if it exists, or from how the skill was invoked (`/dev:spec` = stage-only, mode from state; invoked by dev orchestrator = standard mode).
 
-**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a** — a resumed gate is a new gate arrival, so the challenger re-dispatches and regenerates the verdict (a resumed session has no verdict in memory, and the verdict text is not persisted). Per Step 12a's counter semantics `run`, `blockers`, and `concerns` are overwritten; `applied`, `applied_concerns`, and `dismissed` carry forward. Do not re-run Steps 2–12 from scratch.
+**Resume-mid-approval check:** if this feature's `spec.md` already exists and its `state.json.stage` is still `"spec"` (the artifact was written but never approved — e.g. a `/clear` happened while waiting at Step 13), skip straight to **Step 12a**, taking the first branch that matches:
+- **`challenge.loops_run < challenge.loops_max`** — re-enter the review loop with `loops_run` **carried forward**, so only the remaining rounds are available. A `/clear` never buys a fresh cap.
+- **`challenge.loops_run == challenge.loops_max`** — the loop already exited on its limit. Dispatch **once** to regenerate the leftover findings (a resumed session has no verdict in memory, and verdict text is not persisted). This dispatch is **not a round**: do not advance `loops_run`, and apply nothing. Render Step 13 as a `limit` exit: the per-round log reads `<loops_run> round(s) ran; per-round detail not persisted`, the regenerated findings render under the limit line whatever their weight, and zero findings render as "no unresolved findings". If this dispatch errors, Step 12a's errored-dispatch rule applies.
+
+Either way, `run`, `blockers`, and `concerns` are overwritten by any dispatch; `applied`, `applied_concerns`, `dismissed`, and `loops_run` carry forward. Do not re-run Steps 2–12 from scratch.
 
 **Nesting detection:** determine whether this Spec invocation is itself happening inside an already-active parent cycle (i.e., the feature about to be specced is a sub-milestone of a cycle already in progress), so Step 4 knows where to write a product plan if needed. Check, in order:
 1. Was this invocation given an explicit parent-feature hint (e.g. invoked as part of a parent cycle's own Build/Plan work, with an instruction naming the enclosing feature)? If so, use it.
@@ -737,12 +741,19 @@ Determine the next-stage command the same way as before (Shape if UI needed, Pla
 ```
 Spec written and committed to docs/dev/<feature-name>/spec.md.
 
-[Step 12a's verdict, verbatim]
+Cold review — <N> round(s):
+  Round 1: <the round's per-lens tally header> — applied <k> fix(es): <one line each, ≤ 8 words>
+  Round 2: …
+[Exit clean, final round had zero findings: "Round <n>: clean"]
 
-[If the verdict has findings: Reply `apply` to take all suggested fixes, apply them selectively, edit directly, or dismiss. — omit this line entirely on a clean verdict; there is nothing to apply.]
+[Exit limit: "Round limit (<loops_max>) reached — these findings are unresolved:" then the last round's findings verbatim, with their suggested fixes]
+[Exit scope: "Scope blocker — this spec spans more than one cycle:" then the scope finding verbatim, plus the round's other findings]
+[Exit limit or scope only: Reply `apply` to take the suggested fixes, apply them selectively, edit directly, rescope, or approve as-is.]
 
-Please review it and let me know if you'd like any changes before we continue.
+Every fix above is already committed. Revert or edit any of them, or approve the spec.
 ```
+
+The gate renders **once**, after Step 12a's review loop exits. It never asks whether to apply fixes the loop already applied — those are committed, and the only question on a `clean` exit is approval.
 
 **What this offer deliberately does not do.** It is static text. It adds no prompt, consumes no user answer, writes no state, and does not end the session. It prints **after** the `When approved` state write, so a user who wants the gated flow simply ignores the extra line. The approval flow itself — "Wait for explicit user approval," Path A, Path B, and the `When approved` state write — is unchanged in content and order; only what prints after it moved.
 
@@ -754,11 +765,11 @@ Because the gate body holds no state, a Path A or Path B revision re-displays it
 
 Wait for explicit user approval. If changes are requested, take the path that matches where the change came from:
 
-**Path A — challenger-applied fixes** (user replies `apply`, or names a subset):
+**Path A — challenger leftovers applied** (on a `limit` or `scope` exit, the user replies `apply`, or names a subset of the unresolved findings):
 - update `spec.md` with the accepted suggested fixes
 - increment `challenge.applied` by the number of findings applied
 - increment `challenge.applied_concerns` by the number of those findings that were Concerns
-- increment `challenge.dismissed` by the number of surfaced findings the user declined
+- increment `challenge.dismissed` by the number of unresolved findings the user declined
 - re-stamp `metrics.stage_timestamps.spec_end` (run `date -u +%Y-%m-%dT%H:%M:%SZ` again)
 - **do not** increment `metrics.spec_revisions`
 - commit:
@@ -768,13 +779,13 @@ Wait for explicit user approval. If changes are requested, take the path that ma
   ```
 - re-display the gate **without re-dispatching** Step 12a (its re-run rule)
 
-**Path B — user-originated changes** (anything the challenger did not surface): update spec.md, re-run Step 11, then **re-stamp `metrics.stage_timestamps.spec_end`** (run `date -u +%Y-%m-%dT%H:%M:%SZ` again) and **increment `metrics.spec_revisions`** before re-committing — so the recorded spec span covers the full authoring-plus-revision work, and Reflect can see the churn directly instead of inferring it from a frozen timestamp. Re-commit, re-display gate.
+**Path B — user-originated changes** (anything the challenger did not surface, **including reverting or editing a fix the review loop applied**): update spec.md, re-run Step 11, then **re-stamp `metrics.stage_timestamps.spec_end`** (run `date -u +%Y-%m-%dT%H:%M:%SZ` again) and **increment `metrics.spec_revisions`** before re-committing — so the recorded spec span covers the full authoring-plus-revision work, and Reflect can see the churn directly instead of inferring it from a frozen timestamp. Re-commit, re-display gate. **A revert of an auto-applied fix** also increments `challenge.dismissed` by the number of fixes reverted; `applied` / `applied_concerns` are not decremented (Step 12a's counter semantics). Neither kind of Path B change re-runs the review.
 
 The split exists because `spec_revisions` means churn the *human* had to catch after the spec felt done. Folding challenger catches into it would drive the number up precisely when the feature is working, and leave `dev:reflect` unable to tell which net caught the defect.
 
 The user raising missed edge cases and nuances here (Path B) is exactly the churn `spec_revisions` exists to surface: a high count means the grounding inventory (Step 7) and the cold review (Step 12a) missed things the human had to catch — a signal for Reflect, not a failure to hide by freezing the clock at the first draft.
 
-When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage, and carry any pending `challenge.*` writes from Step 12a into this same commit (per Step 12a's "which commit carries the counters"). **If the verdict surfaced findings and the user approved without acting on them, increment `challenge.dismissed` by the number left unactioned before committing** — approving past a finding is declining it, and this is the only path a fully-dismissed verdict takes, since dismissing everything requests no changes and so never reaches Path A. A high `dismissed` is precisely the signal `dev:reflect` reads as "the brief has become noise the user learns to skip." Commit the state update.
+When approved: update state.json — add `"spec"` to `completed[]`, set `stage` to next stage, and carry any pending `challenge.*` writes from Step 12a into this same commit (per Step 12a's "which commit carries the counters"). **If the loop exited `limit` or `scope` and the user approved without acting on the unresolved findings, increment `challenge.dismissed` by the number left unactioned before committing** — approving past a finding is declining it, and this is the only path fully-dismissed leftovers take, since dismissing everything requests no changes and so never reaches Path A. Fixes the loop already applied are not "unactioned" and never count here. Commit the state update.
 
 Then print the resume block:
 
@@ -791,4 +802,4 @@ Build → Validate → PR → Done run unattended: /clear now and run
 
 Keep the `Worktree:` line last so it applies to both commands. The `/dev:autopilot` command resolves the worktree itself — it runs from anywhere in the repo, with no `cd` asked of the user.
 
-**Autopilot mode:** No gate. Step 12a's revision loop has already resolved or escalated; update state and notify the orchestrator to proceed. No approval is taken and no gate renders, so neither the gate body nor the resume block prints here.
+**Autopilot mode:** No gate. Step 12a's review loop has already exited `clean` or STOPped; update state and notify the orchestrator to proceed. No approval is taken and no gate renders, so neither the gate body nor the resume block prints here.
