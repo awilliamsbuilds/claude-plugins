@@ -3,10 +3,11 @@
   "feature": "spec-review-autoloop",
   "branch": "feature/spec-review-autoloop",
   "mode": "autopilot",
-  "stage": "build",
+  "stage": "validate",
   "completed": [
     "spec",
-    "plan"
+    "plan",
+    "build"
   ],
   "skipped": [
     "shape"
@@ -78,12 +79,14 @@
     "spec_questions_asked": 7,
     "spec_revisions": 0,
     "visual_screens_shown": 0,
-    "files_read_in_build": 0,
+    "files_read_in_build": 6,
     "stage_timestamps": {
       "spec_start": "2026-11-10T04:20:36Z",
       "spec_end": "2026-11-10T05:05:16Z",
       "plan_start": "2026-11-10T05:08:49Z",
-      "plan_end": "2026-11-10T05:10:39Z"
+      "plan_end": "2026-11-10T05:10:39Z",
+      "build_start": "2026-11-10T05:12:22Z",
+      "build_end": "2026-11-10T05:14:45Z"
     }
   },
   "handoff_at": "plan"
