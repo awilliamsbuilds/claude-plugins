@@ -44,7 +44,7 @@ Implementation steps:
 3. Rewrite spec:653 ("The autopilot loop's exit follows from these two definitions plus …never loop-extending…"). The loop's exit now follows from the Blocker/Concern definitions plus the heavy-round threshold, in both modes. Still no separate exit step and no second severity concept.
 4. Rewrite **Scope-blocker exception** (spec:682). A round containing a scope blocker takes branch 1 in both modes: no fixes applied, exit `scope`. Standard surfaces it at Step 13, and acting on it means rescoping through Step 4. Autopilot STOPs. Delete "In standard mode a scope blocker is advisory like any other finding."
 5. Replace **Re-run rule** (spec:684). Dispatches are driven only by the review loop. A Path A `apply` at the Step 13 gate (leftovers from a `limit` exit) does **not** re-dispatch or start a new loop.
-6. Errored-dispatch paragraph (spec:686–696). Keep it as is. Change "Retry once — once per stage, not once per round" to add that this now matters in both modes, since both loop. Confirm that no sentence claims standard mode does not loop.
+6. Errored-dispatch paragraph (spec:686–696). Retitle it "An errored dispatch is not a round", and rewrite spec:692's re-entry sentence to "re-enters the review loop with `loops_run` carried forward". Otherwise keep it. Change "Retry once — once per stage, not once per round" to add that this now matters in both modes, since both loop. Confirm that no sentence claims standard mode does not loop.
 7. Counter-write semantics (spec:698–711):
    - Replace "In standard mode Step 13 writes them at the gate. In autopilot there is no gate, so the revision loop writes…" with "The review loop writes `applied` and `applied_concerns` itself, per round, in both modes. Step 13's Path A writes them only for `limit`/`scope` leftovers the user applies at the gate."
    - Replace the `dismissed` sentence ("stays `0` in autopilot — … unactioned concerns pass through by design …") with: `dismissed` `(writes: standard; =default 0 in autopilot)` counts findings the user declines at the Step 13 gate (leftovers approved past, or auto-applied fixes reverted). In autopilot it stays 0, because unresolved findings STOP rather than being declined.
@@ -67,7 +67,7 @@ Interfaces:
 - State keys: none new
 
 Implementation steps:
-1. Replace the gate body template (spec:725–733) with:
+1. Replace the gate body template (spec:725–734) with:
    ```
    Spec written and committed to docs/dev/<feature-name>/spec.md.
 
@@ -83,11 +83,12 @@ Implementation steps:
    Every fix above is committed. Revert or edit any of them, or approve the spec.
    ```
 2. **Path A** (spec:744–753): restrict to leftovers from a `limit`/`scope` exit. Keep its increment list (`applied`, `applied_concerns`, `dismissed` for declined leftovers), the `spec_end` re-stamp, the "do not increment `spec_revisions`" rule, and the commit. Keep "re-display the gate **without re-dispatching**".
-3. **Path B** (spec:755): add that reverting an auto-applied fix is a Path B change. It increments `spec_revisions` and increments `challenge.dismissed` by the number of fixes reverted, with no change to `applied`/`applied_concerns`, and no re-review.
-4. **When approved** (spec:761): keep the rule that approving past unactioned findings increments `dismissed`, now scoped to `limit`/`scope` leftovers (auto-applied fixes are not "unactioned").
+3. **Path B** (spec:758): add that reverting an auto-applied fix is a Path B change. It increments `spec_revisions` and increments `challenge.dismissed` by the number of fixes reverted, with no change to `applied`/`applied_concerns`, and no re-review.
+4. **When approved** (spec:764): keep the rule that approving past unactioned findings increments `dismissed`, now scoped to `limit`/`scope` leftovers (auto-applied fixes are not "unactioned").
 5. **Step 1 resume-mid-approval check** (spec:54): replace "a resumed gate is a new gate arrival, so the challenger re-dispatches… `run`, `blockers`, and `concerns` are overwritten; `applied`, `applied_concerns`, and `dismissed` carry forward" with these two branches:
    - `challenge.loops_run < challenge.loops_max`: re-enter Step 12a's review loop with `loops_run` carried forward, so only the remaining rounds are available.
    - `challenge.loops_run == challenge.loops_max`: dispatch once to regenerate the leftover findings, because verdict text is not persisted. This dispatch is not a round: do not advance `loops_run` and apply nothing. Then render Step 13 as a `limit` exit.
+   - On that limit-resume, the gate's per-round log shows only `<loops_run> round(s) ran; per-round detail not persisted`. The regenerated verdict renders under the limit line whatever its weight, and zero findings renders as "no unresolved findings". If the regenerating dispatch errors, Step 12a's errored-dispatch rule applies (one retry, then STOP).
    - Both branches: `run`/`blockers`/`concerns` are overwritten by any dispatch; `applied`, `applied_concerns`, `dismissed`, `loops_run` carry forward.
 6. Leave the resume-block ordering, Branch A/B offer logic and the "What this offer deliberately does not do" paragraphs untouched.
 
@@ -111,11 +112,11 @@ Implementation steps:
    - Exit handling: standard renders Step 8 once, while autopilot continues on `clean` and STOPs on `limit`.
    - **No scope exit:** keep the existing "There is NO scope-blocker bypass class" sentence and its reasoning.
 2. Replace the "see `dev:spec` Step 12a's 'Concerns: countable, foldable, never loop-extending'" reference with "Concerns: counted, applied, loop-extending only at five — as `dev:spec` Step 12a states".
-3. Add an **"An errored dispatch is not a round"** paragraph, marked "mirror of `dev:spec` Step 12a (canonical)". Restate it in full: a dispatch that returns an error (subagent fails, dispatch refused, non-verdict output) does not advance `challenge_plan.loops_run`, and sets `challenge_plan.blockers`/`concerns` to `null`. It is retried once per stage (not per round), and a second error STOPs the stage in both modes. It is distinct from the Fallback (no subagent facility: run in-session, produce a real verdict), and the discriminator is whether a verdict came back. `null` ≠ `0`. `challenge_plan.run` records whether any dispatch returned a verdict. Standard-mode recovery: re-run `/dev:plan`, which re-enters via Step 1's resume check.
+3. Add an **"An errored dispatch is not a round"** paragraph, marked "mirror of `dev:spec` Step 12a (canonical)". Restate it in full: a dispatch that returns an error (subagent fails, dispatch refused, non-verdict output) does not advance `challenge_plan.loops_run`, and sets `challenge_plan.blockers`/`concerns` to `null`. It is retried once per stage (not per round), and a second error STOPs the stage in both modes. It is distinct from the Fallback (no subagent facility: run in-session, produce a real verdict), and the discriminator is whether a verdict came back. `null` ≠ `0`. `challenge_plan.run` records whether any dispatch returned a verdict. Standard-mode recovery: re-run `/dev:plan`, which re-enters via Step 1's resume check. Step 8's gate does not render on a STOP; there is no "could not run" variant.
 4. Counter-write semantics (plan:247–257). Make the same changes as Task 1 step 7, with `challenge_plan.*` names: the loop writes `applied`/`applied_concerns` per round in both modes; Step 8 Path A writes them only for `limit` leftovers; the `dismissed` sentence is as in Task 1 step 7; a revert is not subtracted; `challenge_plan.loops_run` becomes `(writes: both)`. Keep the SC5-invariant bullet, and update its wording to "the review loop" as the autopilot-path writer.
 5. Replace **Re-run rule** (plan:259) with the same text as Task 1 step 5, citing Step 8.
 6. Replace **"Which commit carries the counters"** (plan:261) with the same text as Task 1 step 8 (commit message `plan: apply challenger fixes for <feature>`; a no-fix round's writes ride Step 8's commit in standard or Build's first commit in autopilot).
-7. **`plan_end` re-stamp:** in Step 7, leave the first `plan_end` stamp. Add to the review-loop block: "after the loop exits (any exit), re-stamp `metrics.stage_timestamps.plan_end`". Add to Step 8 Path A and Path B: "re-stamp `plan_end`". This mirrors `dev:spec`'s `spec_end` re-stamps and closes `debt-plan-end-excludes-challenger-loop`.
+7. **`plan_end` re-stamp:** in Step 7, leave the first `plan_end` stamp. Add to the review-loop block: "after the loop exits (any exit), re-stamp `metrics.stage_timestamps.plan_end`". (The Path A/B re-stamps are Task 4 steps 2–3's job.) This mirrors `dev:spec`'s `spec_end` re-stamps and closes `debt-plan-end-excludes-challenger-loop`.
 
 ### Task 4: `dev:plan` Step 8 gate and Step 1 resume
 What: Make the Plan gate render the loop's outcome with the per-round log, and make Step 1's resume carry `loops_run` forward.
@@ -149,6 +150,7 @@ Implementation steps:
 5. **Step 1 resume-mid-approval check** (plan:54): replace it with the two branches from Task 2 step 5, using `challenge_plan.*` names and Step 7a / Step 8:
    - `loops_run < loops_max`: re-enter Step 7a's review loop with `loops_run` carried forward.
    - `loops_run == loops_max`: dispatch once to regenerate leftovers, without counting a round or applying anything, then render Step 8 as a `limit` exit.
+   - On that limit-resume, the per-round log shows only `<loops_run> round(s) ran; per-round detail not persisted`. The regenerated verdict renders under the limit line whatever its weight, and zero findings renders as "no unresolved findings". An erroring regenerating dispatch follows Step 7a's errored-dispatch rule.
    - Both: `run`/`blockers`/`concerns` are overwritten by any dispatch, and `applied`, `applied_concerns`, `dismissed`, `loops_run` carry forward.
 
 ### Task 5: `dev:autopilot` — restate the rule, update the stop list
