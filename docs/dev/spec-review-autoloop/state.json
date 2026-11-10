@@ -3,8 +3,10 @@
   "feature": "spec-review-autoloop",
   "branch": "feature/spec-review-autoloop",
   "mode": "standard",
-  "stage": "spec",
-  "completed": [],
+  "stage": "plan",
+  "completed": [
+    "spec"
+  ],
   "skipped": [
     "shape"
   ],
