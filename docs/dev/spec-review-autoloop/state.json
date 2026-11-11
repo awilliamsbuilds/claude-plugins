@@ -92,7 +92,8 @@
       "validate_start": "2026-11-10T05:15:00Z",
       "validate_end": "2026-11-10T05:20:44Z",
       "pr_start": "2026-11-10T05:21:09Z",
-      "pr_created": "2026-11-10T05:21:20Z"
+      "pr_created": "2026-11-10T05:21:20Z",
+      "pr_end": "2026-11-11T01:47:23Z"
     }
   },
   "handoff_at": "plan"
