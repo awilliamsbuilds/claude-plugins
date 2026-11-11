@@ -24,3 +24,15 @@ Spec and plan cold reviews now apply their own fixes and re-review on their own 
 
 ## Artifacts (archived)
 Spec, design, and plan committed at: 3e3c81c on branch feature/spec-review-autoloop
+
+## Retrospective
+*Reviewed by dev:reflect · 2026-11-10*
+
+**Spec:** 87% confidence, 7 questions, 0 user revisions. The cold review found 0 blockers and 6 concerns (applied 6, all concern-driven; dismissed 0). The user accepted them with one "apply all" turn, which is the turn this feature removes. The score matched actual clarity.
+**Shape:** Shape skipped (no UI).
+**Plan:** The plan review found 0 blockers and 4 concerns, folded in 1 round. One unplanned Build change was recorded in `plan.md` (the `telemetry.md` null-counter note, a consequence of mirroring the errored-dispatch rule).
+**Validate:** 3 / 3 loops. Loop 1 fixed the one P2 (the spent-cap resume assumed a `limit` exit). Loops 2–3 were a converging cascade on that same resume paragraph, prose-only. Spec flagged the resume edge case but never fully specified it, and that is where Validate's churn landed.
+**Flow:** Standard tier was right. The handoff to autopilot at Plan ran to PR with no stops.
+**Token efficiency:** no outliers. Validate was the longest stage, about 6 minutes over 3 re-review dispatches.
+**Suggestions:** none. The user raised no observations.
+**Deferred to tech debt:** none
