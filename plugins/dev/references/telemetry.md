@@ -109,10 +109,11 @@ All read from `state.json`, except `stages.done` (see §T-stagemap):
 `loops_max` is carried on both challenge blocks for the same reason `validate` carries it: *did this
 challenger hit its ceiling?* is unanswerable from `loops_run` alone.
 
-**`challenge.blockers` and `challenge.concerns` may legitimately be `null` rather than an integer.**
-`dev:spec` Step 12a's errored-dispatch rule sets them to `null` as a **third value, distinct from
-`0`** — "the challenger could not run" is not "the challenger found nothing." Copy the value through
-unchanged. Never coerce a `null` to `0`.
+**`blockers` and `concerns` may legitimately be `null` rather than an integer, in both challenge
+blocks.** `dev:spec` Step 12a's errored-dispatch rule (mirrored for `challenge_plan` by `dev:plan`
+Step 7a) sets them to `null` as a **third value, distinct from `0`** — "the challenger could not
+run" is not "the challenger found nothing." Copy the value through unchanged. Never coerce a `null`
+to `0`.
 
 ## §T-lane — Fields added when `kind == "lane"`
 
