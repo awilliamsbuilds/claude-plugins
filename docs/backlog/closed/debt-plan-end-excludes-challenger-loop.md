@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: repo
-status: open
+status: closed
+closed: 2026-11-11
+closed_by: spec-review-autoloop
 first_recorded: 2026-08-23
 cycles: [retro-inside-pr]
 recurrence: 1

@@ -1,7 +1,9 @@
 ---
 type: debt
 scope: plugin
-status: open
+status: closed
+closed: 2026-11-11
+closed_by: spec-review-autoloop
 first_recorded: 2026-08-22
 cycles: [challenger-loop-economics]
 recurrence: 1
